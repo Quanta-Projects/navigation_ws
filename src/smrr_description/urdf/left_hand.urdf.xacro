@@ -1,0 +1,231 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <link
+        name="shoulder_l_link">
+        <inertial>
+        <origin
+            xyz="-0.00223171459040639 0.0735077610887185 -0.00727072527860662"
+            rpy="0 0 0" />
+        <!-- <mass
+            value="0.486619623596047" /> -->
+            <mass
+            value="0.0486619623596047" />
+        <inertia
+            ixx="0.000691148104143343"
+            ixy="2.23070508431298E-05"
+            ixz="-1.44584722184453E-06"
+            iyy="0.000483395276258092"
+            iyz="8.83940633277041E-06"
+            izz="0.0008722354231839" />
+        </inertial>
+        <visual>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/shoulder_l_link.STL" />
+        </geometry>
+        <material
+            name="">
+            <color
+            rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+        </material>
+        </visual>
+        <collision>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/shoulder_l_link.STL" />
+        </geometry>
+        </collision>
+    </link>
+
+    <joint
+        name="shoulder_l_joint"
+        type="fixed">
+        <origin
+        xyz="0.0025 0.17451 1.13"
+        rpy="-1.5708 0 0" />
+        <parent
+        link="base_link" />
+        <child
+        link="shoulder_l_link" />
+        <axis
+        xyz="0 0 0" />
+    </joint>
+    
+    <link
+        name="bicep_l_link">
+        <inertial>
+        <origin
+            xyz="0.000454794202440767 -0.00611220620485536 0.0539125460090588"
+            rpy="0 0 0" />
+        <!-- <mass
+            value="0.538778957177395" /> -->
+            <mass
+            value="0.0538778957177395" />
+        <inertia
+            ixx="0.00107418581685125"
+            ixy="-4.27051446432224E-05"
+            ixz="-4.34568581105098E-05"
+            iyy="0.00103125455171258"
+            iyz="5.54075320065143E-05"
+            izz="0.000397405933232645" />
+        </inertial>
+        <visual>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/bicep_l_link.STL" />
+        </geometry>
+        <material
+            name="">
+            <color
+            rgba="1 1 1 1" />
+        </material>
+        </visual>
+        <collision>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/bicep_l_link.STL" />
+        </geometry>
+        </collision>
+    </link>
+
+    <joint
+        name="bicep_l_joint"
+        type="fixed">
+        <origin
+        xyz="0 0.132886516674827 -0.0060335882458285"
+        rpy="-1.63198776689551 -1.01581788387206 0" />
+        <parent
+        link="shoulder_l_link" />
+        <child
+        link="bicep_l_link" />
+        <axis
+        xyz="0 0 0" />
+    </joint>
+
+    <link
+        name="elbow_l_link">
+        <inertial>
+        <origin
+            xyz="-0.0173747200487513 -0.104785947380545 -0.0011292843884021"
+            rpy="0 0 0" />
+        <!-- <mass
+            value="0.707425243711934" /> -->
+            <mass
+            value="0.0707425243711934" />
+        <inertia
+            ixx="0.00319627340039183"
+            ixy="-0.000696565704702898"
+            ixz="1.06171600234816E-05"
+            iyy="0.000542584103977577"
+            iyz="1.31729445005138E-06"
+            izz="0.0034583302113884" />
+        </inertial>
+        <visual>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/elbow_l_link.STL" />
+        </geometry>
+        <material
+            name="">
+            <color
+            rgba="1 1 1 1" />
+        </material>
+        </visual>
+        <collision>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/elbow_l_link.STL" />
+        </geometry>
+        </collision>
+    </link>
+
+    <joint
+        name="elbow_l_joint"
+        type="fixed">
+        <origin
+        xyz="0.0105772159798597 -0.0030571404655029 0.13340214960524"
+        rpy="-1.64338471983846 0.0522094259130711 -2.1200306963474" />
+        <parent
+        link="bicep_l_link" />
+        <child
+        link="elbow_l_link" />
+        <axis
+        xyz="0 0 0" />
+    </joint>
+
+    <link
+        name="wrist_l_link">
+        <inertial>
+        <origin
+            xyz="0.0209300830878604 0.00271510348029902 0.0642203252538052"
+            rpy="0 0 0" />
+        <!-- <mass
+            value="0.251035354848779" /> -->
+            <mass
+            value="0.0251035354848779" />
+        <inertia
+            ixx="0.000431886118305991"
+            ixy="-2.67253404726276E-05"
+            ixz="-8.06480905192447E-05"
+            iyy="0.00050803498415842"
+            iyz="-3.47935493314316E-05"
+            izz="0.000171458123713197" />
+        </inertial>
+        <visual>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/wrist_l_link.STL" />
+        </geometry>
+        <material
+            name="">
+            <color
+            rgba="1 1 1 1" />
+        </material>
+        </visual>
+        <collision>
+        <origin
+            xyz="0 0 0"
+            rpy="0 0 0" />
+        <geometry>
+            <mesh
+            filename="package://smrr_description/meshes/wrist_l_link.STL" />
+        </geometry>
+        </collision>
+    </link>
+
+    <joint
+        name="wrist_l_joint"
+        type="fixed">
+        <origin
+        xyz="-0.0475575242502448 -0.230767174560738 0.00284774101317437"
+        rpy="-1.64563125617647 -0.00657240831041781 -3.14132527572016" />
+        <parent
+        link="elbow_l_link" />
+        <child
+        link="wrist_l_link" />
+        <axis
+        xyz="0 0 0" />
+    </joint>
+
+</robot>

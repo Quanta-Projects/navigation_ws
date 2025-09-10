@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- Define custom material -->
+    <gazebo>
+        <material name="LightBlue">
+            <ambient>0.79216 0.81961 0.93333 1.0</ambient>
+            <diffuse>0.79216 0.81961 0.93333 1.0</diffuse>
+            <specular>0.1 0.1 0.1 1.0</specular>
+            <emissive>0.0 0.0 0.0 0.0</emissive>
+        </material>
+    </gazebo>
+
+    <gazebo reference="shoulder_r_link">
+        <material>LightBlue</material>
+    </gazebo>
+
+        <gazebo reference="bicep_r_link">
+        <material>LightBlue</material>
+    </gazebo>
+
+    <gazebo reference="elbow_r_link">
+        <material>Gazebo/White</material>
+    </gazebo>
+
+    <gazebo reference="wrist_r_link">
+        <material>Gazebo/White</material>
+    </gazebo>
+    
+    <gazebo>
+        <plugin name="joint_state_publisher_controller"
+            filename="libgazebo_ros_joint_state_publisher.so">
+            <!-- Update rate in Hertz -->
+            <update_rate>10</update_rate>
+            <!-- Name of joints in the model whose states will be published. -->
+            <joint_name>shoulder_r_joint</joint_name>
+            <joint_name>bicep_r_joint</joint_name>
+            <joint_name>elbow_r_joint</joint_name>
+            <joint_name>wrist_r_joint</joint_name>
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="joint_pose_trajectory_controller"
+            filename="libgazebo_ros_joint_pose_trajectory.so">
+            <!-- Update rate in Hz -->
+            <update_rate>2</update_rate>
+        </plugin>
+    </gazebo>
+
+</robot>
