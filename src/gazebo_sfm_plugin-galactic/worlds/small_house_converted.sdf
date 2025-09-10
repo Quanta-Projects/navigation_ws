@@ -1,0 +1,582 @@
+<sdf version='1.11'>
+  <world name='default'>
+    <gui>
+      <camera name='gzclient_camera'>
+        <pose>-16 -1 25 0 1 0</pose>
+      </camera>
+    </gui>
+    <gravity>0 0 -9.8000000000000007</gravity>
+    <magnetic_field>6.0000000000000002e-06 2.3e-05 -4.1999999999999998e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <physics name='default_physics' default='false' type='ode'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <scene>
+      <ambient>0.400000006 0.400000006 0.400000006 1</ambient>
+      <background>0.699999988 0.699999988 0.699999988 1</background>
+      <shadows>false</shadows>
+      <grid>false</grid>
+      <origin_visual>false</origin_visual>
+    </scene>
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <latitude_deg>0</latitude_deg>
+      <longitude_deg>0</longitude_deg>
+      <elevation>0</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>
+    <model name='AirconditionerA_01_001'>
+      <static>true</static>
+      <pose>-9.1994100000000003 2.4112300000000002 2.0845440000000002 0 0 0</pose>
+    </model>
+    <model name='AirconditionerB_01_001'>
+      <static>true</static>
+      <pose>-2.0046560000000002 -5.22661 0.0034849999999999998 0 0 0</pose>
+    </model>
+    <model name='Ball_01_003'>
+      <static>true</static>
+      <pose>-6.9455030000000004 -4.2217399999999996 0.31868400000000002 0 0 0</pose>
+    </model>
+    <model name='Bed_01_001'>
+      <static>true</static>
+      <pose>-6.1650669999999996 2.0305599999999999 -1.0000000000000001e-05 0 0 0</pose>
+    </model>
+    <model name='NightStand_01_001'>
+      <static>true</static>
+      <pose>-7.7255099999999999 2.86042 0.0052579999999999997 -2.0000000000000003e-06 0 0</pose>
+    </model>
+    <model name='NightStand_01_002'>
+      <static>true</static>
+      <pose>-4.4073409999999997 2.86042 0.0052560000000000003 0 2.0000000000000003e-06 0</pose>
+    </model>
+    <model name='Board_01_001'>
+      <static>true</static>
+      <pose>2.7790729999999999 -5.392703 1.538173 0 0 0</pose>
+    </model>
+    <model name='Carpet_01_001'>
+      <static>true</static>
+      <pose>0.78505000000000003 -1.1066469999999999 0.001106 0 0 0</pose>
+    </model>
+    <model name='Carpet_01_002'>
+      <static>true</static>
+      <pose>2.85405 3.4500000000000002 0.00058500000000000002 0 0 0</pose>
+    </model>
+    <model name='SecurityCamera_01_001'>
+      <static>true</static>
+      <pose>0.84213400000000005 -4.9962939999999998 0.49506699999999998 0 0 -2.8410389999999999</pose>
+    </model>
+    <model name='CookingBench_01_001'>
+      <pose>9.0383829999999996 -3.35114 0.90361000000000002 0 0 3.1371329999999999</pose>
+      <static>true</static>
+    </model>
+    <model name='Curtain_01_001'>
+      <static>true</static>
+      <pose>-9.1726419999999997 0.20376 0 0 0 0</pose>
+    </model>
+    <model name='ReadingDesk_01_001'>
+      <static>true</static>
+      <pose>-8.9872619999999994 2.0570580000000001 0 0 0 -0.0046379999999999998</pose>
+    </model>
+    <model name='Door_01_001'>
+      <static>true</static>
+      <pose>6.001449 -5.5490019999999998 0 0 0 0</pose>
+    </model>
+    <model name='FitnessEquipment_01_001'>
+      <static>true</static>
+      <pose>3.4847199999999998 3.5691039999999998 0.0031679999999999998 0 0 0</pose>
+    </model>
+    <model name='Handle_01_001'>
+      <static>true</static>
+      <pose>5.7240000000000002 -5.5229999999999997 0.99380000000000002 0 0 -3.1415000000000002</pose>
+    </model>
+    <model name='FloorB_01_001'>
+      <static>true</static>
+      <pose>0 0 0 0 0 0</pose>
+    </model>
+    <model name='KitchenCabinet_01_001'>
+      <static>true</static>
+      <pose>8.0020089999999993 -3.8365089999999999 0.012068000000000001 0 0 -3.1400009999999998</pose>
+    </model>
+    <model name='KitchenUtensils_01_001'>
+      <static>true</static>
+      <pose>9.2854779999999995 -5.021261 1.141805 0 0 0</pose>
+    </model>
+    <model name='Rangehood_01_001'>
+      <static>true</static>
+      <pose>9.0197939999999992 -3.3699400000000002 1.5076050000000001 0 0 0</pose>
+    </model>
+    <model name='Refrigerator_01_001'>
+      <static>true</static>
+      <pose>8.702731 -1.0320309999999999 0 0 0 -1.5634990000000002</pose>
+    </model>
+    <model name='SeasoningBox_01_001'>
+      <static>true</static>
+      <pose>9.1079679999999996 -2.651726 0.90245799999999998 -5.9999999999999993e-06 3.4000000000000007e-05 0.0012899999999999999</pose>
+    </model>
+    <model name='ShoeRack_01_001'>
+      <static>true</static>
+      <pose>4.2979779999999996 -5.1735660000000001 0 0 0 0</pose>
+    </model>
+    <model name='Tableware_01_001'>
+      <static>true</static>
+      <pose>7.1531700000000003 0.98276699999999995 0.81781199999999998 -0.0012380000000000002 -0.00097600000000000009 1.0247599999999999</pose>
+    </model>
+    <model name='TV_01_001'>
+      <static>true</static>
+      <pose>0.82425899999999996 -5.382968 0.67628200000000005 0 0 -1.5617439999999998</pose>
+    </model>
+    <model name='TV_02_001'>
+      <static>true</static>
+      <pose>-6.1973219999999998 -1.3887389999999999 0.67628200000000005 0 0 -1.5617439999999998</pose>
+    </model>
+    <model name='TVCabinet_01_001'>
+      <static>true</static>
+      <pose>0.62950899999999999 -5.1835760000000004 -0.017049000000000002 0 0 1.5791999999999999</pose>
+    </model>
+    <model name='Vase_01_001'>
+      <static>true</static>
+      <pose>3.055663 -5.4130799999999999 1.5749580000000001 3.0000000000000001e-06 0.0016999999999999999 0.00084000000000000014</pose>
+    </model>
+    <model name='Wardrobe_01_001'>
+      <static>true</static>
+      <pose>-3.1467100000000001 2.4762040000000001 0.00070399999999999998 0 0 -1.5696730000000001</pose>
+    </model>
+    <model name='RoomWindow_01_001'>
+      <static>true</static>
+      <pose>-9.4185999999999996 -0.026284999999999999 0.50273900000000005 0 0 0</pose>
+    </model>
+    <model name='RoomWindow_01_002'>
+      <static>true</static>
+      <pose>-9.4185999999999996 -2.3740899999999998 0.50273900000000005 0 0 0</pose>
+    </model>
+    <model name='RoomWindow_01_003'>
+      <static>true</static>
+      <pose>9.4226159999999997 -3.3739810000000001 0.50273900000000005 0 0 -3.1360990000000002</pose>
+    </model>
+    <model name='RoomWindow_01_004'>
+      <static>true</static>
+      <pose>9.4225580000000004 0.96852000000000005 0.49658099999999999 0 0 -3.1360990000000002</pose>
+    </model>
+    <model name='RoomWindow_01_005'>
+      <static>true</static>
+      <pose>4.7223170000000003 4.4702809999999999 0.50273900000000005 0 0 -3.1360990000000002</pose>
+    </model>
+    <model name='RoomWindow_01_006'>
+      <static>true</static>
+      <pose>3.4885199999999998 5.6006879999999999 0.50273900000000005 0 0 -1.5662739999999999</pose>
+    </model>
+    <model name='RoomWindow_01_007'>
+      <static>true</static>
+      <pose>1.140949 5.6006879999999999 0.50273900000000005 0 0 -1.5662739999999999</pose>
+    </model>
+    <model name='RoomWindow_01_008'>
+      <static>true</static>
+      <pose>-1.1993400000000001 5.6006879999999999 0.50273900000000005 0 0 -1.5662739999999999</pose>
+    </model>
+    <model name='RoomWindow_01_009'>
+      <static>true</static>
+      <pose>-2.3966240000000001 4.387607 0.50273900000000005 0 0 0</pose>
+    </model>
+    <light name='LivingRoom_CeilingLight_0' type='point'>
+      <pose>1.194296 4.1557589999999998 2.2000000000000002 0 0 0</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.32000000000000001</constant>
+        <linear>0.01</linear>
+        <quadratic>0.029999999999999999</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='LivingRoom_CeilingLight_1' type='point'>
+      <pose>1.194296 -1.5899589999999999 2.2000000000000002 0 0 0</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.050000000000000003</constant>
+        <linear>0.01</linear>
+        <quadratic>0.089999999999999997</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='LivingRoom_WallLight_0' type='point'>
+      <pose>1.76956 -5.4443700000000002 2.2000000000000002 0 0 0</pose>
+      <diffuse>0.239999995 0.239999995 0.239999995 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.12</constant>
+        <linear>0</linear>
+        <quadratic>0.029999999999999999</quadratic>
+      </attenuation>
+      <cast_shadows>true</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='LivingRoom_WallLight_1' type='point'>
+      <pose>-0.13825999999999999 -5.4443700000000002 2.2000000000000002 0 0 0</pose>
+      <diffuse>0.239999995 0.239999995 0.239999995 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.12</constant>
+        <linear>0</linear>
+        <quadratic>0.029999999999999999</quadratic>
+      </attenuation>
+      <cast_shadows>true</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='TV_Light_0' type='point'>
+      <pose>0.82689999999999997 -4.9395769999999999 1.1000000000000001 0 0 0</pose>
+      <diffuse>0.313719988 0.313719988 0.349009991 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>3</range>
+        <constant>0.10000000000000001</constant>
+        <linear>0.040000000000000001</linear>
+        <quadratic>0.5</quadratic>
+      </attenuation>
+      <cast_shadows>true</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='BedRoom_Portrait_Light_0' type='spot'>
+      <pose>-6.1903790000000001 -1.8296969999999999 1.5587 0.30000000000000004 0 0</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.5</constant>
+        <linear>0.01</linear>
+        <quadratic>0</quadratic>
+      </attenuation>
+      <spot>
+        <inner_angle>0.59999999999999998</inner_angle>
+        <outer_angle>1</outer_angle>
+        <falloff>1</falloff>
+      </spot>
+      <cast_shadows>true</cast_shadows>
+      <direction>0 0 -1</direction>
+    </light>
+    <light name='BedRoom_CeilingLight_0' type='point'>
+      <pose>-6.4510610000000002 -0.69203999999999999 2 0 0 0</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.32000000000000001</constant>
+        <linear>0.01</linear>
+        <quadratic>0.029999999999999999</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <light name='Kitchen_CeilingLight_0' type='point'>
+      <pose>7.8582000000000001 -1.5905 2.2799999999999998 0 0 0</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.100000001 0.100000001 0.100000001 1</specular>
+      <attenuation>
+        <range>20</range>
+        <constant>0.29999999999999999</constant>
+        <linear>0.01</linear>
+        <quadratic>0.01</quadratic>
+      </attenuation>
+      <cast_shadows>false</cast_shadows>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <actor name='actor1'>
+      <pose>-1 2 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/child_run.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/child_run.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor1_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>child_run_pose</topic_name>
+        <velocity>0.7</velocity>
+        <radius>0.3</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>4.0</goal_weight>
+        <obstacle_weight>60.0</obstacle_weight>
+        <social_weight>15.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <should_rotate>1</should_rotate>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.3 5.5 1.25</waypoint>
+          <waypoint>0.3 -3.5 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor2'>
+      <pose>-1 -2 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/elegant_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/walk-blue.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor2_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>elegant_man_blue_pose</topic_name>
+        <velocity>0.6</velocity>
+        <radius>0.3</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>2.0</goal_weight>
+        <obstacle_weight>60.0</obstacle_weight>
+        <social_weight>25.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.6 5.0 1.25</waypoint>
+          <waypoint>0.6 -4.0 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor3'>
+      <pose>-3 0 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/casual_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='stand'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/talk_a.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor3_plugin' filename='libActorPlugin.so'>
+        <target>3 2 1.24</target>
+        <target_weight>1.15</target_weight>
+        <obstacle_weight>1.0</obstacle_weight>
+        <animation_factor>5.1</animation_factor>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor4'>
+      <pose>-6 3 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/regular_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='stand'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/talk_b.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor4_plugin' filename='libActorPlugin.so'>
+        <target>3 2 1.24</target>
+        <target_weight>1.15</target_weight>
+        <obstacle_weight>1.0</obstacle_weight>
+        <animation_factor>5.1</animation_factor>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor5'>
+      <pose>3 0 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/elegant_woman.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/walk-green.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor5_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>elegant_woman_green_pose</topic_name>
+        <velocity>0.5</velocity>
+        <radius>0.4</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>2.0</goal_weight>
+        <obstacle_weight>60.0</obstacle_weight>
+        <social_weight>15.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.3 -3.5 1.25</waypoint>
+          <waypoint>0.3 4.5 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor6'>
+      <pose>3 0.80000000000000004 1.25 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/worker_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/walk-blue.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor6_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>worker_man_blue_pose</topic_name>
+        <velocity>0.5</velocity>
+        <radius>0.4</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>2.0</goal_weight>
+        <obstacle_weight>60.0</obstacle_weight>
+        <social_weight>15.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.6 -4.0 1.25</waypoint>
+          <waypoint>0.6 5.0 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor7'>
+      <pose>5 3 0 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/casual_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/walk-green.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor7_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>casual_man_green_pose</topic_name>
+        <velocity>0.5</velocity>
+        <radius>0.4</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>2.0</goal_weight>
+        <obstacle_weight>50.0</obstacle_weight>
+        <social_weight>15.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.2 -3.8 1.25</waypoint>
+          <waypoint>0.2 3.8 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+    <actor name='actor8'>
+      <pose>0 3 0 0 0 0</pose>
+      <skin>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/elegant_man.dae</filename>
+        <scale>1</scale>
+      </skin>
+      <animation name='walking'>
+        <filename>/home/sithija/mobile_receptionist_ws/src/gazebo_sfm_plugin-galactic/media/models/walk-red.dae</filename>
+        <scale>1</scale>
+        <interpolate_x>true</interpolate_x>
+      </animation>
+      <plugin name='actor8_plugin' filename='libPedestrianSFMPlugin.so'>
+        <topic_name>elegant_man_red_pose</topic_name>
+        <velocity>0.8</velocity>
+        <radius>0.4</radius>
+        <animation_factor>5.1</animation_factor>
+        <animation_name>walking</animation_name>
+        <people_distance>4.0</people_distance>
+        <goal_weight>2.0</goal_weight>
+        <obstacle_weight>60.0</obstacle_weight>
+        <social_weight>15.0</social_weight>
+        <group_gaze_weight>3.0</group_gaze_weight>
+        <group_coh_weight>2.0</group_coh_weight>
+        <group_rep_weight>1.0</group_rep_weight>
+        <ignore_obstacles>
+          <model>ground_plane</model>
+        </ignore_obstacles>
+        <trajectory>
+          <cyclic>true</cyclic>
+          <waypoint>0.5 -4.2 1.25</waypoint>
+          <waypoint>0.5 4.2 1.25</waypoint>
+        </trajectory>
+      </plugin>
+      <script/>
+    </actor>
+  </world>
+</sdf>

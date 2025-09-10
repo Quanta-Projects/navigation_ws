@@ -1,0 +1,262 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:property name="PI" value="3.14159265359" />
+
+    <link
+    name="shoulder_r_link">
+    <inertial>
+      <origin
+        xyz="-0.00092585 -0.073571 -0.0014299"
+        rpy="0 0 0" />
+      <!-- <mass
+        value="0.48651" /> -->
+      <mass
+        value="0.048651" />
+      <inertia
+        ixx="0.00069334"
+        ixy="-1.5427E-05"
+        ixz="-1.4012E-05"
+        iyy="0.00048243"
+        iyz="-1.2029E-05"
+        izz="0.00087094" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/shoulder_r_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/shoulder_r_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="shoulder_r_joint"
+    type="revolute">
+    <origin
+      xyz="0.0025 -0.17549 1.13"
+      rpy="1.5708 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="shoulder_r_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="0"
+      upper="${0.5*PI}"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+  <link
+    name="bicep_r_link">
+    <inertial>
+      <origin
+        xyz="0.00456419739967517 0.00249181873032056 0.0620811730205644"
+        rpy="0 0 0" />
+      <!-- <mass
+        value="0.538762310699068" /> -->
+        <mass
+        value="0.0538762310699068" />
+      <inertia
+        ixx="0.00110007999534321"
+        ixy="6.64756733254256E-06"
+        ixz="-6.42278471778445E-05"
+        iyy="0.00100542318480344"
+        iyz="-2.88448489732389E-05"
+        izz="0.000397423248392103" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/bicep_r_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/bicep_r_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="bicep_r_joint"
+    type="revolute">
+    <origin
+      xyz="-0.00044422 -0.12491 -0.0013064"
+      rpy="3.1416 -1.5388 -1.4874" />
+    <parent
+      link="shoulder_r_link" />
+    <child
+      link="bicep_r_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="${-0.25*PI}"
+      upper="${0.25*PI}"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+  <link
+    name="elbow_r_link">
+    <inertial>
+      <origin
+        xyz="0.0189012713612922 -0.104494121653016 0.0037361706207345"
+        rpy="0 0 0" />
+      <!-- <mass
+        value="0.707311793414628" /> -->
+        <mass
+        value="0.0707311793414628" />
+      <inertia
+        ixx="0.00317831610049729"
+        ixy="0.000730842285215937"
+        ixz="-3.92196962836598E-05"
+        iyy="0.00056476639828066"
+        iyz="9.72253921244881E-05"
+        izz="0.00345384756415845" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/elbow_r_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/elbow_r_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="elbow_r_joint"
+    type="revolute">
+    <origin
+      xyz="0.010186 -0.0047446 0.14136"
+      rpy="-1.6029 -0.083354 -1.5681" />
+    <parent
+      link="bicep_r_link" />
+    <child
+      link="elbow_r_link" />
+    <axis
+      xyz="-0.06561 0.035186 0.99722" />
+    <limit
+      lower="0"
+      upper="${0.5*PI}"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+  <link
+    name="wrist_r_link">
+    <inertial>
+      <origin
+        xyz="0.00536422325041863 -0.00389024639618119 0.0585391850650762"
+        rpy="0 0 0" />
+      <!-- <mass
+        value="0.251020752919746" /> -->
+        <mass
+        value="0.0251020752919746" />
+      <inertia
+        ixx="0.000465383132851358"
+        ixy="2.98567445220425E-05"
+        ixz="-1.25755488169422E-05"
+        iyy="0.00049573093541797"
+        iyz="4.38216902241107E-05"
+        izz="0.000150215820080147" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/wrist_r_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/wrist_r_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="wrist_r_joint"
+    type="revolute">
+    <origin
+      xyz="0.057171 -0.23705 0.0080661"
+      rpy="1.6119 -0.056547 0.21793" />
+    <parent
+      link="elbow_r_link" />
+    <child
+      link="wrist_r_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="${-0.25*PI}"
+      upper="${0.25*PI}"
+      effort="0"
+      velocity="0" />
+  </joint>
+
+  <link name="eef_r_link" />
+  
+  <joint name="eef_r_joint" type="fixed">
+    <origin xyz="0.04 0.0 0.13" rpy="0 0 0" />
+    <parent link="wrist_r_link" />
+    <child link="eef_r_link" />
+  </joint>
+
+</robot>
