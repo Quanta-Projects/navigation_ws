@@ -9,10 +9,10 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     # Optional: PRIME offload env for laptops with NVIDIA
-    env_use_nvidia_gpu = [
-        SetEnvironmentVariable('__NV_PRIME_RENDER_OFFLOAD', '1'),
-        SetEnvironmentVariable('__GLX_VENDOR_LIBRARY_NAME', 'nvidia'),
-    ]
+    # env_use_nvidia_gpu = [
+    #     SetEnvironmentVariable('__NV_PRIME_RENDER_OFFLOAD', '1'),
+    #     SetEnvironmentVariable('__GLX_VENDOR_LIBRARY_NAME', 'nvidia'),
+    # ]
 
     # Paths
     smrr_share = get_package_share_directory("smrr_description")
@@ -75,7 +75,7 @@ def generate_launch_description():
 
 
     return LaunchDescription([
-        *env_use_nvidia_gpu,
+        # *env_use_nvidia_gpu,
         env_gz_models,
         model_arg,
         rviz_arg,

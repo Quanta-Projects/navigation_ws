@@ -1,10 +1,10 @@
 <launch>
 
   <!-- GPU env (same as your file) -->
-  <set_env name="__NV_PRIME_RENDER_OFFLOAD" value="1"/>
+  <!-- <set_env name="__NV_PRIME_RENDER_OFFLOAD" value="1"/>
   <set_env name="__GLX_VENDOR_LIBRARY_NAME" value="nvidia"/>
   <set_env name="__VK_LAYER_NV_optimus" value="NVIDIA_only"/>
-  <set_env name="__EGL_VENDOR_LIBRARY_FILENAMES" value="/usr/share/glvnd/egl_vendor.d/10_nvidia.json"/>
+  <set_env name="__EGL_VENDOR_LIBRARY_FILENAMES" value="/usr/share/glvnd/egl_vendor.d/10_nvidia.json"/> -->
 
   <!-- NEW: help Gazebo find installed models/resources -->
   <set_env name="GAZEBO_MODEL_PATH" value="$(find-pkg-prefix smrr_description)/share"/>
@@ -22,10 +22,10 @@
 
   <!-- Start Gazebo Classic -->
   <include file="$(find-pkg-share gazebo_ros)/launch/gazebo.launch.py" >
-        <arg name="world" value="$(find-pkg-share gazebo_sfm_plugin)/worlds/small_house.world"/>
+        <!-- <arg name="world" value="$(find-pkg-share gazebo_sfm_plugin)/worlds/small_house.world"/> -->
     </include>  
 
-  <!-- <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/> -->
+  <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>
 
   <!-- Spawn entity from /robot_description with forced reset -->
   <node pkg="gazebo_ros" exec="spawn_entity.py" output="screen"
