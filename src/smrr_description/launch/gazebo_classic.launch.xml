@@ -22,10 +22,10 @@
 
   <!-- Start Gazebo Classic -->
   <include file="$(find-pkg-share gazebo_ros)/launch/gazebo.launch.py" >
-        <arg name="world" value="$(find-pkg-share gazebo_sfm_plugin)/worlds/small_house.world"/>
+        <!-- <arg name="world" value="$(find-pkg-share gazebo_sfm_plugin)/worlds/small_house.world"/> -->
     </include>  
 
-  <!-- <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/> -->
+  <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/>
 
   <!-- Spawn entity from /robot_description with forced reset -->
   <node pkg="gazebo_ros" exec="spawn_entity.py" output="screen"
