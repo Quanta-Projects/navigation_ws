@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="default">
+
+    <!-- Define the model directly within the world file -->
+    <model name="moving_joint_model">
+      <static>false</static>
+      
+      <link name="base_link">
+        <visual name="base_link_visual">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1 0 0 1</ambient> <!-- Red color -->
+          </material>
+        </visual>
+        <collision name="base_link_collision">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+
+      <link name="moving_link">
+        <pose>0 0 1 0 0 0</pose> <!-- Position it above the base_link -->
+        <visual name="moving_link_visual">
+          <geometry>
+            <box>
+              <size>0.5 0.5 2.0</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0 1 0 1</ambient> <!-- Green color -->
+          </material>
+        </visual>
+        <collision name="moving_link_collision">
+          <geometry>
+            <box>
+              <size>0.5 0.5 2.0</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+
+      <!-- <joint name="moving_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>moving_link</child>
+        <pose>0 0 0 0 0 0</pose>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <limit>
+            <lower>-1.57</lower>
+            <upper>1.57</upper>
+            <effort>100</effort>
+            <velocity>1</velocity>
+          </limit>
+        </axis>
+      </joint> -->
+
+      <joint name="moving_joint" type="prismatic">
+      <parent>base_link</parent>
+      <child>moving_link</child>
+      <pose>0 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1.0</lower> 
+          <upper>1.0</upper>
+          <effort>100</effort>
+          <velocity>1</velocity>
+        </limit>
+      </axis>
+      </joint>
+
+      <plugin name="joint_mover_plugin" filename="libjoint_mover_plugin.so"/>
+    </model>
+
+    <!-- Add a light source -->
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 -0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>1 1 1 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.5 -1</direction>
+    </light>
+
+    <!-- Ground plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Physics engine -->
+    <physics name="default_physics" type="ode">
+      <gravity>0 0 -9.8</gravity>
+    </physics>
+
+  </world>
+</sdf>
