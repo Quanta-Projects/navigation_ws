@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="moving_joint_model">
+    <static>false</static>
+    
+    <link name="base_link">
+      <visual>
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient> <!-- Red color -->
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="moving_link">
+      <visual>
+        <geometry>
+          <cylinder>
+            <radius>0.5</radius>
+            <length>2.0</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient> <!-- Green color -->
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder>
+            <radius>0.5</radius>
+            <length>2.0</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="moving_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>moving_link</child>
+      <pose>0 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
+          <effort>100</effort>
+          <velocity>1</velocity>
+        </limit>
+      </axis>
+    </joint>
+
+    <plugin name="joint_mover_plugin" filename="libjoint_mover_plugin.so"/>
+  </model>
+</sdf>
