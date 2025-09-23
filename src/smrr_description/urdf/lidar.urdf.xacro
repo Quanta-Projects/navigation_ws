@@ -31,7 +31,7 @@
 
 
     <gazebo reference="rplidar_link">
-        <sensor type="ray" name="laser">
+        <sensor type="gpu_ray" name="laser">
             <pose>0 0 0 0 0 0</pose>
             <visualize>true</visualize>
             <update_rate>30</update_rate>
