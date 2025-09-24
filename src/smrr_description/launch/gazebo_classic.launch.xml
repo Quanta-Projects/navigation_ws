@@ -22,7 +22,7 @@
 
   <!-- Start Gazebo Classic -->
   <include file="$(find-pkg-share gazebo_ros)/launch/gazebo.launch.py" >
-        <arg name="world" value="$(find-pkg-share gazebo_plugins)/model/moving_joint_model/level_simple.world"/>
+        <arg name="world" value="$(find-pkg-share gazebo_elevator_plugin)/model/moving_joint_model/level_simple.world"/>
     </include>  
 
   <!-- <node pkg="joint_state_publisher_gui" exec="joint_state_publisher_gui"/> -->
