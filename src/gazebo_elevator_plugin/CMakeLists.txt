@@ -16,7 +16,7 @@
 
 
 cmake_minimum_required(VERSION 3.5)
-project(gazebo_plugins)
+project(gazebo_elevator_plugin)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
