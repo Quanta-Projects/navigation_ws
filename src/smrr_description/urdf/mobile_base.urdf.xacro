@@ -76,7 +76,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 -0.025"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -93,7 +93,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 -0.025"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -159,7 +159,7 @@
           filename="package://smrr_description/meshes/left_wheel.STL" />
       </geometry> -->
       <origin
-        xyz="0 0 0.025"
+        xyz="0 0 0"
         rpy="0 0 0" />
        <geometry>
         <cylinder radius="0.081" length="0.05"/>
@@ -172,7 +172,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0.025"
+        xyz="0 0 0"
         rpy="0 0 0" />
        <geometry>
         <cylinder radius="0.081" length="0.05"/>
@@ -230,7 +230,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0.03"
+        xyz="0 0 0.0274"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -247,7 +247,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0.03"
+        xyz="0 0 0.0274"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -305,7 +305,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0.03"     
+        xyz="0 0 0.0274"     
         rpy="0 0 0" /> <!-- -0.0025 -->
       <!-- <geometry>
         <mesh
@@ -322,7 +322,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0.03"
+        xyz="0 0 0.0274"
         rpy="0 0 0" />
         <geometry>
           <sphere radius="0.05"/>

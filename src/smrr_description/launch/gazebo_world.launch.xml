@@ -29,7 +29,7 @@
 
   <!-- Spawn entity from /robot_description with forced reset -->
   <node pkg="gazebo_ros" exec="spawn_entity.py" output="screen"
-        args="-topic robot_description -entity smrr_fresh -x -5.0 -y -2.0 -z 0.1 -R 0.0 -P 0.0 -Y 0.0"/>
+        args="-topic robot_description -entity smrr_fresh -x -5.0 -y -2.0 -z 3.1 -R 0.0 -P 0.0 -Y 0.0"/>
 
   <!-- Include existing joystick teleop -->
   <include file="$(find-pkg-share smrr_controller)/launch/joystick_teleop.launch.py"/>
