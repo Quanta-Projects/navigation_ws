@@ -11,6 +11,7 @@ def generate_launch_description():
     maps_dir = os.path.join(get_package_share_directory('smrr_navigation'),'maps')
     map_file = os.path.join(maps_dir,'second_floor.yaml')
     params_file = os.path.join(config_dir,'smrr_nav_params.yaml')
+    # params_file = os.path.join(config_dir,'nav2_params.yaml')
     rviz_config= os.path.join(config_dir,'smrr_nav.rviz')
     return LaunchDescription([
 
