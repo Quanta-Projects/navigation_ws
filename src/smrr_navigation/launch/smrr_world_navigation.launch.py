@@ -16,14 +16,21 @@ def generate_launch_description():
 
     # Bringing our Robot
     IncludeLaunchDescription(
-        AnyLaunchDescriptionSource(os.path.join(get_package_share_directory('smrr_description'), 'launch', 'gazebo_classic.launch.xml')),
+        AnyLaunchDescriptionSource(os.path.join(get_package_share_directory('smrr_description'), 'launch', 'gazebo_world.launch.xml')),
     ),
+
+
     # Integrating Nav2 Stack
     IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')),
         launch_arguments={
-        'map':map_file,
-        'params_file': params_file}.items(),
+            'map': map_file,
+            'params_file': params_file,
+            'use_sim_time': 'True',
+            'autostart': 'True',
+            'use_composition': 'True',
+            'use_respawn': 'False'
+        }.items(),
 
     ),
 
