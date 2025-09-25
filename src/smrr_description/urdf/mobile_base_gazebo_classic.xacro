@@ -51,7 +51,7 @@
             <left_joint>right_wheel_joint</left_joint>
             <right_joint>left_wheel_joint</right_joint>
 
-            <!-- kinematics -->AC
+            <!-- kinematics -->
             <wheel_separation>0.402</wheel_separation> <!-- distance between the center of two wheels -->
             <wheel_diameter>0.162</wheel_diameter>
 
@@ -62,11 +62,24 @@
             <!-- output -->
             <publish_odom>true</publish_odom>
             <publish_odom_tf>true</publish_odom_tf>
-            <publish_wheel_tf>true</publish_wheel_tf>
+            <publish_wheel_tf>false</publish_wheel_tf>
 
             <odometry_topic>odom</odometry_topic>
             <odometry_frame>odom</odometry_frame>
             <robot_base_frame>base_footprint</robot_base_frame>
+
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="joint_state_publisher"
+            filename="libgazebo_ros_joint_state_publisher.so">
+        <!-- Update rate in Hertz -->
+        <update_rate>50</update_rate>
+
+        <!-- Name of joints in the model whose states will be published. -->
+        <joint_name>right_wheel_joint</joint_name>
+        <joint_name>left_wheel_joint</joint_name>
 
         </plugin>
     </gazebo>
