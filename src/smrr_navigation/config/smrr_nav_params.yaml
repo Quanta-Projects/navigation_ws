@@ -292,7 +292,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: True
-    yaml_filename: "/home/nadil/navigation_ws/src/smrr_navigation/maps/second_floor.yaml"
+    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/ground_floor.yaml"
 
 map_saver:
   ros__parameters:
@@ -304,7 +304,7 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 20.0
+    expected_planner_frequency: 10.0
     use_sim_time: True
     planner_plugins: ["GridBased"]
     GridBased:

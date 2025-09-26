@@ -1,5 +1,7 @@
 <launch>
 
+  <arg name="use_sim_time" default="true" />
+
   <!-- GPU env (same as your file) -->
   <set_env name="__NV_PRIME_RENDER_OFFLOAD" value="1"/>
   <set_env name="__GLX_VENDOR_LIBRARY_NAME" value="nvidia"/>
@@ -18,6 +20,7 @@
   <!-- xacro robot_description (pass is_sim just like Python) -->
   <node pkg="robot_state_publisher" exec="robot_state_publisher" output="screen">
     <param name="robot_description" value="$(command 'xacro $(var urdf_path)')" />
+    <param name="use_sim_time" value="$(var use_sim_time)" />
   </node>
 
   <!-- Start Gazebo Classic -->
@@ -29,10 +32,11 @@
 
   <!-- Spawn entity from /robot_description with forced reset -->
   <node pkg="gazebo_ros" exec="spawn_entity.py" output="screen"
-        args="-topic robot_description -entity smrr_fresh -x 0.0 -y -2.0 -z 3.1 -R 0.0 -P 0.0 -Y 0.0"/>
+        args="-topic robot_description -entity smrr_fresh -x -5.0 -y -2.0 -z 0.1 -R 0.0 -P 0.0 -Y 0.0"/>
+
 
   <!-- Include existing joystick teleop -->
-  <include file="$(find-pkg-share smrr_controller)/launch/joystick_teleop.launch.py"/>
+  <!-- <include file="$(find-pkg-share smrr_controller)/launch/joystick_teleop.launch.py"/> -->
 
       <!-- <node pkg="rviz2" exec="rviz2" output="screen" /> -->
 

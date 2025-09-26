@@ -9,7 +9,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource, Any
 def generate_launch_description():
     config_dir = os.path.join(get_package_share_directory('smrr_navigation'),'config')
     maps_dir = os.path.join(get_package_share_directory('smrr_navigation'),'maps')
-    map_file = os.path.join(maps_dir,'second_floor.yaml')
+    map_file = os.path.join(maps_dir,'ground_floor.yaml')
     params_file = os.path.join(config_dir,'smrr_nav_params.yaml')
     # params_file = os.path.join(config_dir,'nav2_params.yaml')
     rviz_config= os.path.join(config_dir,'smrr_nav.rviz')
@@ -18,6 +18,9 @@ def generate_launch_description():
     # Bringing our Robot
     IncludeLaunchDescription(
         AnyLaunchDescriptionSource(os.path.join(get_package_share_directory('smrr_description'), 'launch', 'gazebo_world.launch.xml')),
+        launch_arguments={
+            'use_sim_time': 'true'
+        }.items(),
     ),
 
 
@@ -41,8 +44,8 @@ def generate_launch_description():
         output='screen',
         executable='rviz2',
         name='rviz2_node',
-        arguments=['-d',rviz_config]
-
+        arguments=['-d',rviz_config],
+        parameters=[{'use_sim_time': True}]
     ),
 
     ])
