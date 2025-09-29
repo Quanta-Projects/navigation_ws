@@ -199,7 +199,7 @@ Navigation behavior can be customized using Nav2 behavior trees in `config/` dir
 This workspace is provided for research and educational purposes.
 
 ## Authors
-- **Maintainer**: Nadil Gunawardane (gunawardaneernh.21@uom.lk)
+- **Maintainers**: Nadil Gunawardane, Achira Hansindu
 - **Institution**: University of Moratuwa
 
 ---
