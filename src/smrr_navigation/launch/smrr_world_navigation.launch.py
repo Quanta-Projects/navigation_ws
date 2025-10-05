@@ -15,9 +15,9 @@ def generate_launch_description():
     rviz_config= os.path.join(config_dir,'smrr_nav.rviz')
     return LaunchDescription([
 
-    # Bringing our Robot
+    # Bringing our Robot with ros2_control controllers
     IncludeLaunchDescription(
-        AnyLaunchDescriptionSource(os.path.join(get_package_share_directory('smrr_description'), 'launch', 'gazebo_world.launch.xml')),
+        PythonLaunchDescriptionSource(os.path.join(get_package_share_directory('smrr_description'), 'launch', 'gazebo_classic_controllers.launch.py')),
         launch_arguments={
             'use_sim_time': 'true'
         }.items(),

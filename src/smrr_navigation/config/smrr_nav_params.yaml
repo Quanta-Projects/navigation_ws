@@ -1,6 +1,6 @@
 amcl:
   ros__parameters:
-    use_sim_time: True
+    use_sim_time: True 
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
@@ -21,6 +21,7 @@ amcl:
     max_particles: 2000
     min_particles: 500
     odom_frame_id: "odom"
+    odom_topic: /diff_drive_controller/odom
     pf_err: 0.05
     pf_z: 0.99
     recovery_alpha_fast: 0.0
@@ -51,8 +52,8 @@ bt_navigator:
   ros__parameters:
     use_sim_time: True
     global_frame: map
-    robot_base_frame: base_link
-    odom_topic: /odom
+    robot_base_frame: base_footprint
+    odom_topic: /diff_drive_controller/odom
     default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -101,6 +102,7 @@ controller_server:
     use_sim_time: True
     robot_base_frame: base_link
     odom_frame: odom
+    odom_topic: /diff_drive_controller/odom
     controller_frequency: 10.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
