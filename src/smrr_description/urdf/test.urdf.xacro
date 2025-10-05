@@ -2,11 +2,14 @@
 <robot name="base_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <xacro:include filename="$(find smrr_description)/urdf/mobile_base.urdf.xacro" />
-    <xacro:include filename="$(find smrr_description)/urdf/mobile_base_gazebo_classic.xacro" />
+    <!-- <xacro:include filename="$(find smrr_description)/urdf/mobile_base_gazebo_classic.xacro" /> -->
     <xacro:include filename="$(find smrr_description)/urdf/right_hand.urdf.xacro" />
-    <xacro:include filename="$(find smrr_description)/urdf/right_hand_gazebo.urdf.xacro" />
+    <!-- <xacro:include filename="$(find smrr_description)/urdf/right_hand_gazebo.urdf.xacro" /> -->
     <xacro:include filename="$(find smrr_description)/urdf/left_hand.urdf.xacro" />
     <xacro:include filename="$(find smrr_description)/urdf/camera.urdf.xacro" />
     <xacro:include filename="$(find smrr_description)/urdf/lidar.urdf.xacro" />
+    <xacro:include filename="$(find smrr_description)/urdf/transmission.urdf.xacro" />
+    <xacro:include filename="$(find smrr_description)/urdf/smrr_ros2_control.urdf.xacro" />
+    <xacro:include filename="$(find smrr_description)/urdf/gazebo_ros2_control.urdf.xacro" /> 
 
 </robot>

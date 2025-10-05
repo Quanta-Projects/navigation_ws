@@ -18,7 +18,7 @@ def generate_launch_description():
 
     robot_description = ParameterValue(
         Command(["xacro ",
-                 os.path.join(get_package_share_directory("smrr_description"), "urdf", "smrr_description.urdf")
+                 os.path.join(get_package_share_directory("smrr_description"), "urdf", "test.urdf.xacro")
                  ," is_sim:=",is_sim]
                  ), 
         value_type=str
@@ -53,7 +53,6 @@ def generate_launch_description():
     diff_drive_controller = Node(
         package="controller_manager",
         executable="spawner",
-        namespace='driver',
         arguments=[
             "diff_drive_controller",
             "--controller-manager",

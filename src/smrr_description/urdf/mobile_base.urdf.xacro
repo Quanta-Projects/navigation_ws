@@ -230,7 +230,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0.0274"
+        xyz="0 0 0.0284"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -247,7 +247,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0.0274"
+        xyz="0 0 0.0284"
         rpy="0 0 0" />
       <!-- <geometry>
         <mesh
@@ -305,7 +305,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0.0274"     
+        xyz="0 0 0.0284"     
         rpy="0 0 0" /> <!-- -0.0025 -->
       <!-- <geometry>
         <mesh
@@ -322,7 +322,7 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 0.0274"
+        xyz="0 0 0.0284"
         rpy="0 0 0" />
         <geometry>
           <sphere radius="0.05"/>
