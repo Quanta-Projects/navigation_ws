@@ -15,7 +15,7 @@ def generate_launch_description():
                 os.path.join(
                     get_package_share_directory("smrr_description"),
                     "urdf",
-                    "smrr_description.urdf",
+                    "test.urdf.xacro",
                 ),
                 " is_sim:=False"
             ]
