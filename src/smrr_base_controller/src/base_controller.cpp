@@ -59,15 +59,15 @@ std::vector<hardware_interface::StateInterface> BaseController::export_state_int
 {
   std::vector<hardware_interface::StateInterface> state_interfaces;
 
- 
-  state_interfaces.emplace_back(hardware_interface::StateInterface(
-      "shoulder_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[0]));
-  state_interfaces.emplace_back(hardware_interface::StateInterface(
-      "bicep_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[1]));
-  state_interfaces.emplace_back(hardware_interface::StateInterface(
-      "elbow_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[2]));
-  state_interfaces.emplace_back(hardware_interface::StateInterface(
-      "wrist_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[3]));
+  // Arm controller position states are commented.
+  // state_interfaces.emplace_back(hardware_interface::StateInterface(
+  //     "shoulder_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[0]));
+  // state_interfaces.emplace_back(hardware_interface::StateInterface(
+  //     "bicep_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[1]));
+  // state_interfaces.emplace_back(hardware_interface::StateInterface(
+  //     "elbow_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[2]));
+  // state_interfaces.emplace_back(hardware_interface::StateInterface(
+  //     "wrist_r_joint", hardware_interface::HW_IF_POSITION, &position_states_[3]));
 
   state_interfaces.emplace_back(hardware_interface::StateInterface(
       "left_wheel_joint", hardware_interface::HW_IF_POSITION, &position_states_[4]));
@@ -90,14 +90,15 @@ std::vector<hardware_interface::CommandInterface> BaseController::export_command
 
   // Provide only a velocity Interafce
 
-  command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        "shoulder_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[0]));
-  command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        "bicep_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[1]));
-  command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        "elbow_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[2]));
-  command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        "wrist_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[3]));
+  // Position commands for the arm joints are commented.
+  // command_interfaces.emplace_back(hardware_interface::CommandInterface(
+  //       "shoulder_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[0]));
+  // command_interfaces.emplace_back(hardware_interface::CommandInterface(
+  //       "bicep_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[1]));
+  // command_interfaces.emplace_back(hardware_interface::CommandInterface(
+  //       "elbow_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[2]));
+  // command_interfaces.emplace_back(hardware_interface::CommandInterface(
+  //       "wrist_r_joint", hardware_interface::HW_IF_POSITION, &position_commands_[3]));
 
   command_interfaces.emplace_back(hardware_interface::CommandInterface(
         "left_wheel_joint", hardware_interface::HW_IF_VELOCITY, &velocity_commands_[0]));
@@ -329,7 +330,7 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
       arduino_.ReadLine(feedback);
 
       // Print the received message directly
-      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Received Arduino Message: %s", feedback.c_str());
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Received Message: %s", feedback.c_str());
 
       // Process the feedback if necessary (for now, just print it)
       // If you need to parse it or do further processing, you can add that here.
