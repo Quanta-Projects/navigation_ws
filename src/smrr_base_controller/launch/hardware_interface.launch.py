@@ -33,11 +33,12 @@ def generate_launch_description():
         package="controller_manager",
         executable="ros2_control_node",
         parameters=[
-            {"use_sim_time": False},  #"robot_description": robot_description,
+            {"use_sim_time": False, "robot_description": robot_description},
             os.path.join(
                 get_package_share_directory("smrr_controller"),
                 "config",
-                "arm_controller.yaml",
+                # "arm_controller.yaml", #Full config with arm controller
+                "hardware_controller.yaml"  # Diffdrive-specific config without arm controller
             ),
         ],
         remappings=[('/controller_manager/robot_description', '/robot_description')]  # Remap the topic
