@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 String inputString = "";
 boolean stringComplete = false;
 
