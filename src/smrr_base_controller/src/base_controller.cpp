@@ -146,7 +146,7 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Serial port opened: %s", port_.c_str());
 
     // Set baud rate
-    arduino_.SetBaudRate(LibSerial::BaudRate::BAUD_115200);
+    arduino_.SetBaudRate(LibSerial::BaudRate::BAUD_9600);
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Baud rate set to 115200");
 
     // Reset the Arduino via DTR (toggling DTR)
