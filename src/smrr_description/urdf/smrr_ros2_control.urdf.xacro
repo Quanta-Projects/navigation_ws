@@ -14,6 +14,7 @@
         </xacro:if>
 
         <!-- ros2_control Real Robot -->
+         
         <xacro:unless value="$(arg is_sim)">
             <hardware>
                 <plugin>smrr_base_controller/BaseController</plugin>
