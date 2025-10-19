@@ -1,0 +1,59 @@
+docking_server:
+  ros__parameters:
+    # General parameters
+    use_sim_time: true
+    
+    # Frequencies / timeouts
+    controller_frequency: 50.0
+    initial_perception_timeout: 5.0
+    wait_charge_timeout: 5.0
+    dock_approach_timeout: 30.0
+    undock_timeout: 30.0
+    max_retries: 3
+
+    # Motion limits (be conservative at first)
+    max_linear_speed: 0.15
+    max_angular_speed: 0.6
+
+    # Frames (use your stack’s base; you often use base_footprint)
+    base_frame: "base_footprint"
+    fixed_frame: "odom"     # avoid map drift during close-in docking
+
+    # Choose the dock plugin
+    dock_plugins: ["simple_dock"]
+    simple_dock:
+      plugin: "opennav_docking::SimpleChargingDock"   # Jazzy: "nav2_docking::SimpleChargingDock"
+
+      # Perception input (can be an AprilTag pose, or use the test publisher below)
+      use_external_detection_pose: true
+      external_detection_pose_topic: "/dock_pose"
+      external_detection_timeout: 1.0
+
+      # Offsets to place the robot contact point into the station
+      external_detection_offsets:   # [dx, dy, dtheta] in meters/rad
+        - -0.18
+        - 0.00
+        - 3.14159
+
+      # Success/contact signals (enable when you have them)
+      use_battery_status: false
+      battery_topic: "/battery_state"
+      battery_current_threshold: 0.2
+
+      use_stall_detection: false
+      joint_states_topic: "/joint_states"
+      stall_effort_threshold: 0.6
+
+      docking_threshold: 0.05          # 5 cm success radius
+      staging_offset: [0.7, 0.0, 0.0]  # approach point in front of the dock
+
+    # Either inline database here…
+    docks: ["home_dock"]
+    home_dock:
+      type: "simple_dock"
+      frame: "map"
+      pose: [2.35, -1.10, 1.57]  # <- put your dock pose
+      id: "home"
+
+    # …or load from a separate file:
+    # dock_database: "$(find-pkg-share smrr_navigation)/config/docks.yaml"
