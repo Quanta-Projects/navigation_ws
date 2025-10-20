@@ -29,6 +29,7 @@ setup(
     entry_points={
         'console_scripts': [
             'publish_state_dock_pose = smrr_docking.publish_state_dock_pose:main',
+            'apriltag_to_dock_pose = smrr_docking.apriltag_to_dock_pose:main',
         ],
     },
 )

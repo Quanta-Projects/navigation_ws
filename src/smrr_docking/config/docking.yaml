@@ -45,14 +45,29 @@ docking_server:
       stall_effort_threshold: 0.6
 
       docking_threshold: 0.05          # 5 cm success radius
-      staging_offset: [0.7, 0.0, 0.0]  # approach point in front of the dock
+      
+      # === STAGING POSE CONFIGURATION (for rear camera) ===
+      # Robot will navigate to this offset from dock, turn around, then use AprilTag
+      # Staging offset [x, y, yaw] relative to dock pose:
+      #   - x: 0.8m in FRONT of dock (positive = away from dock/wall)
+      #   - y: 0.0m (no lateral offset)  
+      #   - yaw: π (180°) so robot faces AWAY from dock
+      #          This positions rear camera to face the dock
+      staging_offset: [2.0, 0.0, 3.14159]
+      
+      # Enable staging pose and navigation
+      use_staging_pose: true           # Use staging pose approach
+      navigate_to_staging_pose: true   # Navigate to staging using Nav2
+      
+      # Docking direction
+      dock_backwards: true             # Back into dock (for rear camera)
 
     # Either inline database here…
     docks: ["home_dock"]
     home_dock:
       type: "simple_dock"
       frame: "map"
-      pose: [2.35, -1.10, 1.57]  # <- put your dock pose
+      pose: [4.0, -0.4, 1.5708]  # <- put your dock pose
       id: "home"
 
     # …or load from a separate file:
