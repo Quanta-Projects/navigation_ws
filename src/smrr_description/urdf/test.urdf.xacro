@@ -11,15 +11,7 @@
     <xacro:include filename="$(find smrr_description)/urdf/camera.urdf.xacro" />
     <xacro:include filename="$(find smrr_description)/urdf/lidar.urdf.xacro" />
     <xacro:include filename="$(find smrr_description)/urdf/transmission.urdf.xacro" />
-    
-    <!-- Use different ros2_control config for sim vs hardware -->
-    <xacro:if value="$(arg is_sim)">
-        <xacro:include filename="$(find smrr_description)/urdf/smrr_ros2_control.urdf.xacro" />
-    </xacro:if>
-    <xacro:unless value="$(arg is_sim)">
-        <xacro:include filename="$(find smrr_description)/urdf/smrr_ros2_control_hardware.urdf.xacro" />
-    </xacro:unless>
-    
+    <xacro:include filename="$(find smrr_description)/urdf/smrr_ros2_control.urdf.xacro" />
     <xacro:include filename="$(find smrr_description)/urdf/gazebo_ros2_control.urdf.xacro" /> 
 
 </robot>

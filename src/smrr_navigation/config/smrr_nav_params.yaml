@@ -294,7 +294,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: True
-    yaml_filename: "/home/nadil/navigation_ws/src/smrr_navigation/maps/ground_floor.yaml"
+    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/first_floor_with_docking_station.yaml"
 
 map_saver:
   ros__parameters:

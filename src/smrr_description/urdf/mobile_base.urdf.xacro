@@ -212,6 +212,99 @@
       <dynamics damping="0.3" friction="0.5"/>
   </joint>
 
+  <!-- <link
+    name="docking_station_mount">
+    <inertial>
+      <origin
+        xyz="2.46415216024198E-05 -0.0079159646726803 0.0969814867787446"
+        rpy="0 0 0" />
+      <mass
+        value="0.312805817268065" />
+      <inertia
+        ixx="0.000884962592461685"
+        ixy="3.85178154688985E-07"
+        ixz="4.77831152807354E-07"
+        iyy="0.00125523278460193"
+        iyz="-0.000141824356047521"
+        izz="0.00151275866886532" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/Docking_assembly.STL"
+          scale="0.001 0.001 0.001" />
+      </geometry>
+      <material
+        name="docking_grey">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://smrr_description/meshes/Docking_assembly.STL"
+          scale="0.001 0.001 0.001" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint
+    name="docking_mount_joint"
+    type="fixed">
+    <origin
+      xyz="-0.14469 -2.0850 0.46748"
+      rpy="3.1416 1.5708 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="docking_station_mount" />
+    <axis
+      xyz="0 0 0" />
+  </joint> -->
+
+      <link name="docking_station_mount">
+    <inertial>
+      <origin xyz="2.46415216024198e-05 -0.0079159646726803 0.0969814867787446" rpy="0 0 0"/>
+      <mass value="0.312805817268065"/>
+      <inertia ixx="0.000884962592461685" ixy="3.85178154688985e-07" ixz="4.77831152807354e-07"
+               iyy="0.00125523278460193" iyz="-0.000141824356047521" izz="0.00151275866886532"/>
+    </inertial>
+
+    <visual>
+      <origin xyz="-0.41401 -0.9544 -0.96557" rpy="0 0 0"/>
+      <geometry>
+        <!-- keep your current mesh and scale; change only if your asset uses meters already -->
+        <mesh filename="package://smrr_description/meshes/Docking_assembly.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="docking_grey">
+        <color rgba="0.7921568627 0.8196078431 0.9333333333 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <origin xyz="-0.41401 -0.9544 -0.96557" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://smrr_description/meshes/Docking_assembly.STL" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="docking_mount_joint" type="fixed">
+    <!-- docking pose from SolidWorks, transformed into your base_link using wheel joints as anchors -->
+    <origin xyz="-0.275 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="docking_station_mount"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
+
   <link
     name="front_caster">
     <inertial>
