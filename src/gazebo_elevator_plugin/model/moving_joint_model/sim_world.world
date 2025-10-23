@@ -3029,7 +3029,7 @@
           <geometry>
             <mesh>
               <scale>0.001 0.001 0.001</scale>
-              <uri>file:///home/achiraubuntu/navigation_ws/src/smrr_description/meshes/Docking_station_assembly.STL</uri>
+              <uri>file:///home/nadil/navigation_ws/src/smrr_description/meshes/Docking_station_assembly.STL</uri>
             </mesh>
           </geometry>
           <surface>
@@ -3051,7 +3051,7 @@
           <geometry>
             <mesh>
               <scale>0.001 0.001 0.001</scale>
-              <uri>file:///home/achiraubuntu/navigation_ws/src/smrr_description/meshes/Docking_station_assembly.STL</uri>
+              <uri>file:///home/nadil/navigation_ws/src/smrr_description/meshes/Docking_station_assembly.STL</uri>
             </mesh>
           </geometry>
           <material>
@@ -3075,8 +3075,8 @@
             <emissive>0.2 0.2 0.2 1</emissive>
             <lighting>1</lighting>
             <script>
-              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/scripts</uri>
-              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/textures</uri>
+              <uri>file:///home/nadil/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/scripts</uri>
+              <uri>file:///home/nadil/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/textures</uri>
               <name>Apriltag36_11_00000</name>
             </script>
           </material>
