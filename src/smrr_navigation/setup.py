@@ -32,6 +32,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'startup_localizer = smrr_navigation.startup_localizer:main',
         ],
     },
 )
