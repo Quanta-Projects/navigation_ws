@@ -52,7 +52,7 @@ def generate_launch_description():
             remappings=[
                 ('image_rect', f'{camera_ns}/image_raw'),
                 ('camera_info', f'{camera_ns}/camera_info'),
-                ('detections', '/apriltag/detections'),
+                ('detections', '/apriltag/detections'),  
             ]
         ),
         

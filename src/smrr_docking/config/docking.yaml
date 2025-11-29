@@ -27,7 +27,7 @@ docking_server:
       # Perception input (can be an AprilTag pose, or use the test publisher below)
       use_external_detection_pose: true
       external_detection_pose_topic: "/dock_pose"
-      external_detection_timeout: 1.0
+      external_detection_timeout: 10.0  # Increased timeout to 10 seconds
 
       # Offsets to place the robot contact point into the station
       external_detection_offsets:   # [dx, dy, dtheta] in meters/rad
@@ -47,13 +47,12 @@ docking_server:
       docking_threshold: 0.05          # 5 cm success radius
       
       # === STAGING POSE CONFIGURATION (for rear camera) ===
-      # Robot will navigate to this offset from dock, turn around, then use AprilTag
-      # Staging offset [x, y, yaw] relative to dock pose:
-      #   - x: 0.8m in FRONT of dock (positive = away from dock/wall)
-      #   - y: 0.0m (no lateral offset)  
-      #   - yaw: π (180°) so robot faces AWAY from dock
-      #          This positions rear camera to face the dock
-      staging_offset: [2.0, 0.0, 3.14159]
+      # OpenNav docking ONLY supports X (forward/back) and Yaw staging offsets
+      # NO lateral (Y) offset supported!
+      # Desired staging: [2.178, -1.010], Dock: [2.197, 1.409]
+      # Adding 90 degrees to the right (-90 degrees or -π/2 radians)
+      staging_x_offset: 0.0   
+      staging_yaw_offset: -1.6 
       
       # Enable staging pose and navigation
       use_staging_pose: true           # Use staging pose approach
@@ -63,12 +62,13 @@ docking_server:
       dock_backwards: true             # Back into dock (for rear camera)
 
     # Either inline database here…
+    # The dock ID is the key name 'home_dock' - no separate id field needed
+    # ADJUSTED: Using desired staging pose as "dock" since lateral staging offset not supported
     docks: ["home_dock"]
     home_dock:
       type: "simple_dock"
       frame: "map"
-      pose: [4.0, -0.4, 1.5708]  # <- put your dock pose
-      id: "home"
+      pose: [2.23, -1.0, 0.0]  # Using staging position as dock for now
 
     # …or load from a separate file:
     # dock_database: "$(find-pkg-share smrr_navigation)/config/docks.yaml"
