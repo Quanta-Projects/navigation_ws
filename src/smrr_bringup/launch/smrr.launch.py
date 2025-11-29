@@ -2,6 +2,8 @@ import os
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -12,6 +14,7 @@ def generate_launch_description():
             "launch",
             "hardware_interface.launch.py"
         ),
+        launch_arguments={'port': '/dev/ttyACM0'}.items()
     )
     
     controller = IncludeLaunchDescription(
@@ -31,8 +34,47 @@ def generate_launch_description():
         ),
     )
     
+    # SLLidar ROS2 launch (using sllidar_ros2 package)
+    sllidar = IncludeLaunchDescription(
+        os.path.join(
+            get_package_share_directory("sllidar_ros2"),
+            "launch",
+            "sllidar_a1_launch.py"
+        ),
+        launch_arguments={
+            'frame_id': 'rplidar_link'
+        }.items()
+    )
+    
+    # Odometry path visualization
+    odom_path = Node(
+        package='smrr_navigation',
+        executable='odom_to_path',
+        name='odom_to_path',
+        parameters=[{
+            'odom_topic': '/diff_drive_controller/odom',
+            'path_topic': '/odom_path',
+            'max_path_length': 10000
+        }],
+        output='screen'
+    )
+    
+    navigation = IncludeLaunchDescription(
+        os.path.join(
+            get_package_share_directory("smrr_navigation"),
+            "launch",
+            "smrr_hardware_navigation.launch.py"
+        ),
+        launch_arguments={
+            'autostart': 'True'
+        }.items()
+    )
+    
     return LaunchDescription([
         hardware_interface,
         controller,
-        joystick
+        joystick,
+        sllidar
+        # odom_path,
+        # navigation
     ])

@@ -48,7 +48,8 @@
 
   <joint
     name="shoulder_r_joint"
-    type="revolute">
+    type="fixed">
+    <!-- type="revolute" -->
     <origin
       xyz="0.0025 -0.17549 1.13"
       rpy="1.5708 0 0" />
@@ -110,7 +111,8 @@
 
   <joint
     name="bicep_r_joint"
-    type="revolute">
+    type="fixed">
+    <!-- type="revolute" -->
     <origin
       xyz="-0.00044422 -0.12491 -0.0013064"
       rpy="3.1416 -1.5388 -1.4874" />
@@ -172,7 +174,8 @@
 
   <joint
     name="elbow_r_joint"
-    type="revolute">
+    type="fixed">
+    <!-- type="revolute" -->
     <origin
       xyz="0.010186 -0.0047446 0.14136"
       rpy="-1.6029 -0.083354 -1.5681" />
@@ -234,7 +237,8 @@
 
   <joint
     name="wrist_r_joint"
-    type="revolute">
+    type="fixed">
+    <!-- type="revolute" -->
     <origin
       xyz="0.057171 -0.23705 0.0080661"
       rpy="1.6119 -0.056547 0.21793" />

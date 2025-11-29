@@ -17,7 +17,7 @@
         <xacro:unless value="$(arg is_sim)">
             <hardware>
                 <plugin>smrr_base_controller/BaseController</plugin>
-                <param name="port">/dev/ttyACM0</param>  
+                <param name="port">/dev/ttyACM1</param>  
                 <!-- /dev/ttyUSB0 -->
             </hardware>
         </xacro:unless>

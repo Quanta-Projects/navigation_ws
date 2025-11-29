@@ -3,14 +3,15 @@
 
   <xacro:property name="PI" value="3.14159265359" />
   <xacro:arg name="is_sim" default="false"/>
+  <xacro:arg name="port" default="/dev/ttyACM0"/>
 
 
     <ros2_control name="RobotSystem" type="system">
         <!-- ros2_control Real Robot (Hardware Only - No Arm Joints) -->
         <hardware>
             <plugin>smrr_base_controller/BaseController</plugin>
-            <param name="port">/dev/ttyACM0</param>  
-            <!-- /dev/ttyACM0 -->
+            <param name="port">$(arg port)</param>  
+            <!-- Port can be specified via launch file -->
         </hardware>
 
         <!-- Only wheel joints for differential drive -->

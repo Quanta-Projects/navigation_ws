@@ -16,8 +16,8 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share',package_name,'launch') , glob('launch/*')),
         (os.path.join('share',package_name,'config') , glob('config/*')),
-        (os.path.join('share',package_name,'maps') , glob('maps/*')),
-
+        (os.path.join('share',package_name,'maps') , glob('maps/*.yaml') + glob('maps/*.pgm')),
+        (os.path.join('share',package_name,'maps','physical_maps') , glob('maps/physical_maps/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -32,6 +32,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'odom_to_path = scripts.odom_to_path:main',
         ],
     },
 )

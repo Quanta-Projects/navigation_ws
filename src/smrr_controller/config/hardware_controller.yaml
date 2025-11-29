@@ -19,8 +19,8 @@ diff_drive_controller:
     right_wheel_names: ["right_wheel_joint"]  
 
     # CALIBRATED: Corrected wheel parameters based on odometry testing
-    wheel_separation: 0.402  # Matches classic Gazebo plugin
-    wheel_radius: 0.081    # Calibrated wheel radius
+    wheel_separation: 0.47  # Measured wheel separation
+    wheel_radius: 0.085    # Measured wheel radius
 
     wheel_separation_multiplier: 1.0
     left_wheel_radius_multiplier: 1.0
