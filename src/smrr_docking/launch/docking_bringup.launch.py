@@ -56,26 +56,4 @@ def generate_launch_description():
             ]
         ),
 
-        # Node(
-        #   package='apriltag_ros', executable='apriltag_node',
-        #   name='apriltag',
-        #   parameters=['config/apriltag.yaml'],
-        #   remappings=[
-        #     ('image', '/camera/image_raw'),
-        #     ('camera_info', '/camera/camera_info'),
-        #   ],
-        #   output='screen'
-        # ),
-
-        # # Static dock pose publisher (for testing)
-        # Node(
-        #     package='smrr_docking',
-        #     executable='publish_state_dock_pose',
-        #     name='publish_state_dock_pose',
-        #     output='screen',
-        #     parameters=[
-        #         {'use_sim_time': use_sim_time}
-        #     ]
-        # ),
-
     ])

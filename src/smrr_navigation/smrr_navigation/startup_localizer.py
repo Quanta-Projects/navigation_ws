@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Startup Localizer Node for AMCL Convergence
-
-This node runs automatically at navigation startup to help AMCL localization converge.
-It performs a simple motion sequence:
-1. Waits for initialization
-2. Drives forward ~1 meter (odometry-based)
-3. Performs a 360-degree rotation in place (yaw-based)
-4. Stops and exits
-
-This motion helps AMCL quickly refine the initial pose estimate by observing
-the environment from multiple perspectives.
-"""
 
 import rclpy
 from rclpy.node import Node
@@ -50,12 +37,12 @@ class StartupLocalizer(Node):
     def __init__(self):
         super().__init__('startup_localizer')
         
-        # Declare parameters for easy tuning
+        # Declare parameters
         self.declare_parameter('startup_delay', 2.0)  # Wait for AMCL to initialize
         self.declare_parameter('forward_speed', 0.15)  # m/s
         self.declare_parameter('forward_distance', 1.0)  # meters
         self.declare_parameter('rotation_speed', 0.5)  # rad/s
-        self.declare_parameter('target_rotation_angle', 2.0 * math.pi)  # radians (360°)
+        self.declare_parameter('target_rotation_angle', 2.0 * math.pi)  # radians
         self.declare_parameter('control_period', 0.05)  # timer period in seconds
         self.declare_parameter('stop_duration', 1.0)  # Pause between motions
         
@@ -118,10 +105,6 @@ class StartupLocalizer(Node):
         self.current_odom = msg
     
     def amcl_pose_callback(self, msg):
-        """
-        Optional callback to track AMCL pose.
-        Can be extended to check covariance and determine convergence.
-        """
         self.amcl_pose = msg
     
     def get_current_pose_from_odom(self):
@@ -140,7 +123,7 @@ class StartupLocalizer(Node):
         return (x, y, yaw)
     
     def publish_velocity(self, linear_x=0.0, angular_z=0.0):
-        """Helper function to publish velocity commands"""
+        """Publish velocity commands"""
         msg = Twist()
         msg.linear.x = linear_x
         msg.angular.z = angular_z
