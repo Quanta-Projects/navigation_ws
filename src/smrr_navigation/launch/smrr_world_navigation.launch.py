@@ -18,7 +18,7 @@ def generate_launch_description():
     # Launch arguments
     declare_enable_startup_localizer = DeclareLaunchArgument(
         'enable_startup_localizer',
-        default_value='true',
+        default_value='false',
         description='Enable automatic startup localization sequence to help AMCL converge'
     )
     
