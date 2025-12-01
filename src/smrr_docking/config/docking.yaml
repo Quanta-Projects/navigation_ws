@@ -9,6 +9,7 @@ docking_server:
     undock_timeout: 30.0
     undock_linear_tolerance: 0.05
     undock_angular_tolerance: 0.1
+    rotation_angular_tolerance: 0.05
     max_retries: 3
 
     # Motion limits
@@ -22,51 +23,59 @@ docking_server:
     odom_duration: 0.3
 
     # Misc
+    dock_backwards: true         # Humble-era flag; keep true for backward docking
     dock_prestaging_tolerance: 0.5
     introspection_mode: "disabled"
 
-    # Types of docks
+    # Dock plugins
     dock_plugins: ['simple_dock']
     simple_dock:
       plugin: 'opennav_docking::SimpleChargingDock'
 
       # Docking behaviour
-      docking_threshold: 0.05
-      dock_direction: "backward"
+      docking_threshold: 0.2
+      dock_direction: "backward"      # your intent is to back into the dock
+      rotate_to_dock: false           # ignored on Humble, but OK to leave
 
-      # Staging pose configuration
-      staging_x_offset: 1.6
+      # Staging pose configuration (relative to dock pose)
+      # For "backward" docking: staging pose should be in front of the dock,
+      # with the robot's BACK facing the dock.
+      staging_x_offset: 2.6           # tuned so staging pose is where you want it
       staging_yaw_offset: 0.0
       use_staging_pose: true
       navigate_to_staging_pose: true
 
       # Perception input
-      use_external_detection_pose: false
+      use_external_detection_pose: true
       external_detection_pose_topic: "/detected_dock_pose"
-      external_detection_timeout: 10.0
-      external_detection_translation_x: -0.18
+      external_detection_timeout: 1.0   # OK, can increase later if needed
+
+      # Offset from detected pose to actual docking pose
+      external_detection_translation_x: 0.0
       external_detection_translation_y: 0.0
       external_detection_translation_z: 0.0
+
+      # Orientation offsets: keep these only if they are correct for
+      # YOUR camera mounting and your detected pose frame.
       external_detection_rotation_roll: 0.0
       external_detection_rotation_pitch: 0.0
       external_detection_rotation_yaw: 0.0
 
-      # Optional detector service integration (from template)
-      detector_service_name: '/detector/toggle'
-      detector_service_timeout: 5.0
-      subscribe_toggle: true
+      filter_coef: 0.1
+
+      # TEMP: keep detection always on while debugging
+      detector_service_name: ""        # disable toggle
+      detector_service_timeout: 0.0
+      subscribe_toggle: false          # always subscribed to topic
 
       # Success/contact signals
       use_battery_status: false
       battery_topic: "/battery_state"
       battery_current_threshold: 0.2
+
       use_stall_detection: false
       joint_states_topic: "/joint_states"
       stall_effort_threshold: 0.6
-
-      # Misc plugin params (from template)
-      rotate_to_dock: false
-      filter_coef: 0.1
 
     # Dock instances
     docks: ['home_dock']
@@ -76,11 +85,12 @@ docking_server:
       pose: [2.4, 1.5, -1.5708]
       id: 'home'
 
+    # Docking controller
     controller:
       k_phi: 3.0
       k_delta: 2.0
       v_linear_min: 0.15
-      v_linear_max: 0.15
+      v_linear_max: 0.25
       v_angular_max: 0.75
       slowdown_radius: 0.25
       rotate_to_heading_angular_vel: 1.0
