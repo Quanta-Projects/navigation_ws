@@ -3062,7 +3062,7 @@
           </material>
         </visual>
         <visual name='apriltag_marker'>
-          <pose>0.091 0.35 -0.018 0 0 -1.5708</pose>
+          <pose>0.091 0.35 -0.018 0 0 1.5708</pose>
           <geometry>
             <box>
               <size>0.2 0.2 0.001</size>
@@ -3085,7 +3085,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <pose>4 -0.4 0 1.57 -0 0</pose>
+      <pose>4 -0.4 0 0 0 0</pose>
     </model>
     
     <state world_name='default'>

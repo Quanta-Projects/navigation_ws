@@ -1,30 +1,28 @@
-apriltag_ros:
+apriltag:
   ros__parameters:
-    # AprilTag detector settings
-    image_transport: raw
-    family: tag36h11  # Common family; also: tag25h9, tag16h5, tagStandard41h12
-    size: 0.2      # Tag size in meters (adjust to your actual tag size)
-    max_hamming: 0    # Maximum hamming distance (0 = no error correction)
-    
-    # Performance tuning
-    z_aligned: false
-    
-    # Camera settings
-    camera_frame: zed2_rear_left_camera_link  # Updated to match the camera namespace
+    # setup (defaults)
+    image_transport: raw  # image format
+    family: 36h11         # UPDATED: Set to 36h11 (Standard Tag36h11)
+    size: 0.2          # IMPORTANT: Change this to your tag's printed size in meters!
+    profile: false
+
+    # tuning of detection (defaults)
+    max_hamming: 0
+    detector:
+      threads: 1
+      decimate: 2.0
+      blur: 0.0
+      refine: 1
+      sharpening: 0.25
+      debug: 0
+
+    pose_estimation_method: "pnp"
+
     publish_tf: true
-    
-    # Message synchronization settings - increased for better sync
-    queue_size: 50
-    
-    # Tag-specific sizes (optional - override default size for specific IDs)
+
+    # (optional) list of tags
+    # If you want to track specific tags, uncomment and fill this:
     # tag:
-    #   ids: [0, 1, 2]
-    #   sizes: [0.162, 0.162, 0.162]
-    
-    # Detection settings
-    # Refinement of corner positions
-    quad_decimate: 2.0      # Decimate input image by this factor (higher = faster, less accurate)
-    quad_sigma: 0.0         # Apply Gaussian blur with this sigma before detection
-    nthreads: 4             # Number of threads to use
-    debug: false            # Enable debug output
-    refine_edges: true      # Refine tag edges for better accuracy
+    #   ids:    [1, 2]
+    #   frames: [tag_1_frame, tag_2_frame]
+    #   sizes:  [0.15, 0.15]

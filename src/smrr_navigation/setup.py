@@ -17,7 +17,7 @@ setup(
         (os.path.join('share',package_name,'launch') , glob('launch/*')),
         (os.path.join('share',package_name,'config') , glob('config/*')),
         (os.path.join('share',package_name,'maps') , glob('maps/*')),
-
+        (os.path.join('share',package_name,'srv') , glob('srv/*.srv')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -33,6 +33,8 @@ setup(
     entry_points={
         'console_scripts': [
             'startup_localizer = smrr_navigation.startup_localizer:main',
+            'named_goal_server = smrr_navigation.named_goal_server:main',
+            'named_goal_client = smrr_navigation.named_goal_client:main',
         ],
     },
 )

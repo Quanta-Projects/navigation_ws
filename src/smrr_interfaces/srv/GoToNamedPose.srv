@@ -1,0 +1,6 @@
+# Request: name of the location to navigate to
+string name
+---
+# Response: whether the request was accepted and result
+bool accepted
+string message

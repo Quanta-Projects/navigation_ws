@@ -78,6 +78,20 @@ def generate_launch_description():
         ]
     ),
 
+    # Named Goal Server - Navigate to predefined named locations
+    Node(
+        package='smrr_navigation',
+        executable='named_goal_server',
+        name='named_goal_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'locations_file': 'locations.yaml'},
+            {'global_frame': 'map'},
+            {'action_timeout': 300.0}
+        ]
+    ),
+
     # Rviz2 bringup
     Node(
         package='rviz2',
