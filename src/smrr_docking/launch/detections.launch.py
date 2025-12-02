@@ -123,7 +123,13 @@ def generate_launch_description():
                 {
                     'publish_tf': True,
                     'size': 0.20,
-                    'max_hamming': 0
+                    'max_hamming': 2,       # Increased from 0 to 2 for robust continuous detection
+                    'decimate': 1.0,        # No decimation for best accuracy
+                    'blur': 0.0,            # No blur
+                    'refine_edges': 1,      # Better edge refinement
+                    'threads': 4,           # Parallel processing for speed
+                    'debug': 0,
+                    'tag_family': 'tag36h11'
                 }
             ],
             output='screen'

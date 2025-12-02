@@ -92,6 +92,20 @@ def generate_launch_description():
         ]
     ),
 
+    # Location Subscriber - Bridge from /location topic to named_goal_server
+    Node(
+        package='smrr_navigation',
+        executable='location_subscriber',
+        name='location_subscriber',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'location_topic': 'location'},
+            {'service_name': '/go_to_pose'},
+            {'service_timeout': 5.0}
+        ]
+    ),
+
     # Rviz2 bringup
     Node(
         package='rviz2',
