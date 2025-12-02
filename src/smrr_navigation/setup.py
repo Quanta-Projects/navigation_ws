@@ -18,6 +18,7 @@ setup(
         (os.path.join('share',package_name,'config') , glob('config/*')),
         (os.path.join('share',package_name,'maps') , glob('maps/*.yaml') + glob('maps/*.pgm')),
         (os.path.join('share',package_name,'maps','physical_maps') , glob('maps/physical_maps/*')),
+        (os.path.join('share',package_name,'srv') , glob('srv/*.srv')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -32,7 +33,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'odom_to_path = scripts.odom_to_path:main',
+            'startup_localizer = smrr_navigation.startup_localizer:main',
+            'named_goal_server = smrr_navigation.named_goal_server:main',
+            'named_goal_client = smrr_navigation.named_goal_client:main',
+            'location_subscriber = smrr_navigation.location_subscriber:main',
         ],
     },
 )

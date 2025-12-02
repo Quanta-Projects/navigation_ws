@@ -1,0 +1,29 @@
+locations:
+  hod_office:
+    x: -9.09
+    y: 24.25
+    yaw: 0.0
+  computer_lab:
+    x: 6.40
+    y: -1.59
+    yaw: 1.57
+  conference_room:
+    x: -10.2
+    y: 22.60
+    yaw: 0.0
+  prof_jayasinghe_office:
+    x: 10.92
+    y: 9.46
+    yaw: 3.14
+  prof_kyew_office:
+    x: 11.28
+    y: 7.39
+    yaw: 3.14
+  prof_dileeka_office:
+    x: 11.76
+    y: 5.02
+    yaw: 3.14
+  prof_rohan_office:
+    x: 12.29
+    y: 2.47
+    yaw: 3.14

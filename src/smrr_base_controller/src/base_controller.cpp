@@ -471,7 +471,7 @@ hardware_interface::return_type BaseController::write(const rclcpp::Time &,
     
     std::stringstream message_stream;
     message_stream << std::fixed << std::setprecision(2) 
-      << scaled_left <<"," << scaled_right <<"," <<"0" <<"," <<"0" <<"\n";
+      << scaled_left << "," << scaled_right << ",0.0,0.0,0.0,0.0\n";
 
     try
     {
