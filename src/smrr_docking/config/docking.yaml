@@ -9,7 +9,7 @@ docking_server:
     undock_timeout: 30.0
     undock_linear_tolerance: 0.05
     undock_angular_tolerance: 0.1
-    rotation_angular_tolerance: 0.05
+    rotation_angular_tolerance: 0.15
     max_retries: 3
 
     # Motion limits
@@ -33,7 +33,7 @@ docking_server:
       plugin: 'opennav_docking::SimpleChargingDock'
 
       # Docking behaviour
-      docking_threshold: 0.2
+      docking_threshold: 0.25
       dock_direction: "backward"      # your intent is to back into the dock
       rotate_to_dock: false           # ignored on Humble, but OK to leave
 
@@ -51,7 +51,7 @@ docking_server:
       external_detection_timeout: 1.0   # OK, can increase later if needed
 
       # Offset from detected pose to actual docking pose
-      external_detection_translation_x: 0.0
+      external_detection_translation_x: 0.2
       external_detection_translation_y: 0.0
       external_detection_translation_z: 0.0
 
@@ -87,12 +87,12 @@ docking_server:
 
     # Docking controller
     controller:
-      k_phi: 3.0
+      k_phi: 2.0
       k_delta: 2.0
-      v_linear_min: 0.15
-      v_linear_max: 0.25
+      v_linear_min: 0.08
+      v_linear_max: 0.15
       v_angular_max: 0.75
-      slowdown_radius: 0.25
+      slowdown_radius: 0.5
       rotate_to_heading_angular_vel: 1.0
       rotate_to_heading_max_angular_accel: 3.2
       use_collision_detection: true
