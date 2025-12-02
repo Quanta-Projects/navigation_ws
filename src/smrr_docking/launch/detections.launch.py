@@ -7,8 +7,9 @@ import os
 
 def generate_launch_description():
     
-    # UPDATE THIS PATH to your actual config file location
-    apriltag_config_path = 'src/smrr_docking/config/apriltag.yaml'
+    # Get package share directory for proper path resolution
+    pkg_share = get_package_share_directory('smrr_docking')
+    apriltag_config_path = os.path.join(pkg_share, 'config', 'apriltag.yaml')
 
     return LaunchDescription([
         
@@ -42,13 +43,19 @@ def generate_launch_description():
                 ('camera_info', '/zed2_rear_left_camera/camera_info'),
             ],
             parameters=[
-            apriltag_config_path, 
-            {
-                'publish_tf': True,
-                'size': 0.20,      # <--- FORCE THE SIZE HERE
-                'max_hamming': 0
-            }
-        ],
+                apriltag_config_path, 
+                {
+                    'publish_tf': True,
+                    'size': 0.20,
+                    'max_hamming': 2,       # Increased from 0 to 2 for robust continuous detection
+                    'decimate': 1.0,        # No decimation for best accuracy
+                    'blur': 0.0,            # No blur
+                    'refine_edges': 1,      # Better edge refinement
+                    'threads': 4,           # Parallel processing for speed
+                    'debug': 0,
+                    'tag_family': 'tag36h11'
+                }
+            ],
             output='screen'
         ),
 
