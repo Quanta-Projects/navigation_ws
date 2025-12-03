@@ -245,26 +245,12 @@
                     <mean>0.0</mean>
                     <stddev>0.007</stddev>
                 </noise>
-                <distortion>
-                    <!-- Same ZED2 distortion parameters -->
-                    <k1>-0.043693598</k1>
-                    <k2>0.0146164996</k2>
-                    <p1>-0.006573319</p1>
-                    <p2>-0.000216900</p2>
-                    <k3>0.000084328</k3>
-                    <center>0.5 0.5</center>
-                </distortion>
             </camera>
             <plugin name="rear_camera_controller" filename="libgazebo_ros_camera.so">
                 <cameraName>zed2_rear/zed_node/left_raw</cameraName>
                 <imageTopicName>image_raw_color</imageTopicName>
                 <cameraInfoTopicName>camera_info</cameraInfoTopicName>
                 <frameName>rear_left_camera_link_optical</frameName>
-                <distortionK1>-0.043693598</distortionK1>
-                <distortionK2>0.0146164996</distortionK2>
-                <distortionT1>-0.006573319</distortionT1>
-                <distortionT2>-0.000216900</distortionT2>
-                <distortionK3>0.000084328</distortionK3>
                 <CxPrime>648.5</CxPrime>
                 <Cx>648.5</Cx>
                 <Cy>366.8340148925781</Cy>
