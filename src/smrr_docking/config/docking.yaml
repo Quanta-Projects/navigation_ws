@@ -1,0 +1,104 @@
+docking_server:
+  ros__parameters:
+    # General parameters
+    use_sim_time: true
+    controller_frequency: 50.0
+    initial_perception_timeout: 5.0
+    wait_charge_timeout: 5.0
+    dock_approach_timeout: 30.0
+    undock_timeout: 30.0
+    undock_linear_tolerance: 0.05
+    undock_angular_tolerance: 0.1
+    rotation_angular_tolerance: 0.15
+    max_retries: 3
+
+    # Motion limits
+    max_linear_speed: 0.15
+    max_angular_speed: 0.6
+
+    # Frames
+    base_frame: "base_link"
+    fixed_frame: "odom"
+    odom_topic: "odom"
+    odom_duration: 0.3
+
+    # Misc
+    dock_backwards: true         # Humble-era flag; keep true for backward docking
+    dock_prestaging_tolerance: 0.5
+    introspection_mode: "disabled"
+
+    # Dock plugins
+    dock_plugins: ['simple_dock']
+    simple_dock:
+      plugin: 'opennav_docking::SimpleChargingDock'
+
+      # Docking behaviour
+      docking_threshold: 0.23
+      dock_direction: "backward"      # your intent is to back into the dock
+      rotate_to_dock: false           # ignored on Humble, but OK to leave
+
+      # Staging pose configuration (relative to dock pose)
+      # For "backward" docking: staging pose should be in front of the dock,
+      # with the robot's BACK facing the dock.
+      staging_x_offset: 1.5           # tuned so staging pose is where you want it
+      staging_yaw_offset: 0.0
+      use_staging_pose: true
+      navigate_to_staging_pose: true
+
+      # Perception input
+      use_external_detection_pose: true
+      external_detection_pose_topic: "/detected_dock_pose"
+      external_detection_timeout: 1.0   # OK, can increase later if needed
+
+      # Offset from detected pose to actual docking pose
+      external_detection_translation_x: 0.1
+      external_detection_translation_y: 0.0
+      external_detection_translation_z: 0.0
+
+      # Orientation offsets: keep these only if they are correct for
+      # YOUR camera mounting and your detected pose frame.
+      external_detection_rotation_roll: 0.0
+      external_detection_rotation_pitch: 0.0
+      external_detection_rotation_yaw: 0.0
+
+      filter_coef: 0.1
+
+      # TEMP: keep detection always on while debugging
+      detector_service_name: ""        # disable toggle
+      detector_service_timeout: 0.0
+      subscribe_toggle: false          # always subscribed to topic
+
+      # Success/contact signals
+      use_battery_status: false
+      battery_topic: "/battery_state"
+      battery_current_threshold: 0.2
+
+      use_stall_detection: false
+      joint_states_topic: "/joint_states"
+      stall_effort_threshold: 0.6
+
+    # Dock instances
+    docks: ['home_dock']
+    home_dock:
+      type: 'simple_dock'
+      frame: "map"
+      pose: [-1.34, 0.0, 0.006658]
+      id: 'home'
+
+    # Docking controller
+    controller:
+      k_phi: 0.75
+      k_delta: 1.0
+      v_linear_min: 0.03
+      v_linear_max: 0.10
+      v_angular_max: 0.35
+      slowdown_radius: 0.6
+      rotate_to_heading_angular_vel: 0.8
+      rotate_to_heading_max_angular_accel: 3.2
+      use_collision_detection: true
+      costmap_topic: "local_costmap/costmap_raw"
+      footprint_topic: "local_costmap/published_footprint"
+      transform_tolerance: 0.1
+      projection_time: 1.0
+      simulation_time_step: 0.1
+      dock_collision_threshold: 0.3

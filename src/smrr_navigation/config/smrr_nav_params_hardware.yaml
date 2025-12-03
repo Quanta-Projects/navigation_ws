@@ -44,9 +44,9 @@ amcl:
     scan_topic: scan
     set_initial_pose: true
     initial_pose:
-      x: 1.64
-      y: 22.97
-      yaw: -0.60
+      x: 0.0  #1.64
+      y: 0.0  #22.97
+      yaw: -0.6617 #-0.60
     initial_cov_xx: 0.5
     initial_cov_yy: 0.5
     initial_cov_aa: 0.68
@@ -306,7 +306,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: False
-    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/first_floor.yaml"
+    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/third_floor_new.yaml"
 
 map_saver:
   ros__parameters:

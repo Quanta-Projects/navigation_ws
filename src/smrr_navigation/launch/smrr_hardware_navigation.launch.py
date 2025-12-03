@@ -25,7 +25,7 @@ def generate_launch_description():
     # Paths to configuration files
     config_dir = os.path.join(smrr_navigation_dir, 'config')
     maps_dir = os.path.join(get_package_share_directory('smrr_navigation'),'maps', 'physical_maps')
-    default_map_file = os.path.join(maps_dir, 'first_floor.yaml')
+    default_map_file = os.path.join(maps_dir, 'third_floor_new.yaml')
     
     # Nav2 parameters file
     params_file = os.path.join(config_dir, 'smrr_nav_params_hardware.yaml')
