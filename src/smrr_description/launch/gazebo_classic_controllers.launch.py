@@ -49,7 +49,7 @@ def generate_launch_description():
     # Use same world as gazebo_classic.launch.xml
     gazebo_world_arg = DeclareLaunchArgument("world", 
                                              default_value=os.path.join(get_package_share_directory("gazebo_elevator_plugin"), 
-                                                                       "model", "moving_joint_model", "sim_world.world"),
+                                                                       "model", "moving_joint_model", "level_simple.world"),
                                              description="Gazebo world file name")
     gazebo_world = LaunchConfiguration("world")
 
