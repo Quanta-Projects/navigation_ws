@@ -49,7 +49,7 @@ def generate_launch_description():
     # Use same world as gazebo_classic.launch.xml
     gazebo_world_arg = DeclareLaunchArgument("world", 
                                              default_value=os.path.join(get_package_share_directory("gazebo_elevator_plugin"), 
-                                                                       "model", "moving_joint_model", "sim_world.world"),
+                                                                       "model", "moving_joint_model", "level_simple.world"),
                                              description="Gazebo world file name")
     gazebo_world = LaunchConfiguration("world")
 
@@ -68,7 +68,7 @@ def generate_launch_description():
     spawn_robot = Node(package="gazebo_ros", executable="spawn_entity.py",
                         arguments=["-entity", "smrr_fresh",
                                    "-topic", "robot_description",
-                                   "-x", "2.0", "-y", "-2.0", "-z", "0.1",
+                                   "-x", "2.0", "-y", "-2.0", "-z", "0.15",
                                    "-R", "0.0", "-P", "0.0", "-Y", "0.0"
                                   ],
                         output="screen"
