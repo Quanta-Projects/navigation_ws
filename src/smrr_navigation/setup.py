@@ -36,6 +36,7 @@ setup(
             'named_goal_server = smrr_navigation.named_goal_server:main',
             'named_goal_client = smrr_navigation.named_goal_client:main',
             'location_subscriber = smrr_navigation.location_subscriber:main',
+            'smrr_multifloor_bt_navigator = smrr_navigation.smrr_multifloor_bt_navigator:main',
         ],
     },
 )

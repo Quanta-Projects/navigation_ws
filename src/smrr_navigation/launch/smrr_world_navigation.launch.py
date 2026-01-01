@@ -18,16 +18,24 @@ def generate_launch_description():
     # Launch arguments
     declare_enable_startup_localizer = DeclareLaunchArgument(
         'enable_startup_localizer',
-        default_value='true',
+        default_value='false',
         description='Enable automatic startup localization sequence to help AMCL converge'
     )
     
+    declare_enable_multifloor_navigator = DeclareLaunchArgument(
+        'enable_multifloor_navigator',
+        default_value='true',
+        description='Enable multi-floor BT navigator (Step 4a - same floor navigation only)'
+    )
+    
     enable_startup_localizer = LaunchConfiguration('enable_startup_localizer')
+    enable_multifloor_navigator = LaunchConfiguration('enable_multifloor_navigator')
     
     return LaunchDescription([
     
     # Arguments
     declare_enable_startup_localizer,
+    declare_enable_multifloor_navigator,
 
     # Bringing our Robot with ros2_control controllers
     IncludeLaunchDescription(
@@ -78,7 +86,7 @@ def generate_launch_description():
         ]
     ),
 
-    # Named Goal Server - Navigate to predefined named locations
+    # Named Goal Server - Resolver and dispatcher for named locations
     Node(
         package='smrr_navigation',
         executable='named_goal_server',
@@ -87,8 +95,8 @@ def generate_launch_description():
         parameters=[
             {'use_sim_time': True},
             {'locations_file': 'locations.yaml'},
-            {'global_frame': 'map'},
-            {'action_timeout': 300.0}
+            {'multifloor_action_name': '/navigate_to_named_location'},
+            {'multifloor_action_timeout': 10.0}
         ]
     ),
 
@@ -104,6 +112,22 @@ def generate_launch_description():
             {'service_name': '/go_to_pose'},
             {'service_timeout': 5.0}
         ]
+    ),
+
+    # SMRR Multi-Floor BT Navigator (Step 4a - same floor only, enabled by default)
+    Node(
+        package='smrr_navigation',
+        executable='smrr_multifloor_bt_navigator',
+        name='smrr_multifloor_bt_navigator',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'global_frame': 'map'},
+            {'nav2_action_name': 'navigate_to_pose'},
+            {'nav2_wait_timeout': 10.0},
+            {'feedback_rate_hz': 2.0}
+        ],
+        condition=IfCondition(enable_multifloor_navigator)
     ),
 
     # Rviz2 bringup

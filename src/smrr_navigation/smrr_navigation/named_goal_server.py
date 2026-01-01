@@ -3,16 +3,15 @@
 Named Goal Server Node
 
 This node provides a service to navigate to named locations stored in a YAML file.
-It acts as a bridge between simple string-based location names and Nav2's NavigateToPose action.
+It acts as a resolver and dispatcher, forwarding navigation requests to the multi-floor executor.
 """
 
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
-from nav2_msgs.action import NavigateToPose
-from geometry_msgs.msg import PoseStamped
 from smrr_interfaces.srv import GoToNamedPose
+from smrr_interfaces.action import NavigateToNamedLocation
 import yaml
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -21,7 +20,8 @@ import math
 
 class NamedGoalServer(Node):
     """
-    A service server that navigates to named locations using Nav2.
+    A service server that resolves named locations and dispatches navigation
+    to the multi-floor executor.
     """
     
     def __init__(self):
@@ -29,24 +29,26 @@ class NamedGoalServer(Node):
         
         # Declare parameters
         self.declare_parameter('locations_file', 'locations.yaml')
-        self.declare_parameter('global_frame', 'map')
-        self.declare_parameter('action_timeout', 300.0)  # 5 minutes default
+        self.declare_parameter('multifloor_action_name', '/navigate_to_named_location')
+        self.declare_parameter('multifloor_action_timeout', 10.0)
         
         # Get parameters
         locations_file = self.get_parameter('locations_file').value
-        self.global_frame = self.get_parameter('global_frame').value
-        self.action_timeout = self.get_parameter('action_timeout').value
+        self.multifloor_action_name = self.get_parameter('multifloor_action_name').value
+        self.multifloor_action_timeout = self.get_parameter('multifloor_action_timeout').value
         
-        # Load locations from YAML
-        self.locations = self.load_locations(locations_file)
+        # Load locations from YAML (floor-aware structure)
+        self.floors, self.location_index = self.load_locations(locations_file)
         
-        if not self.locations:
+        if not self.floors:
             self.get_logger().error('No locations loaded! Check your YAML file.')
         else:
-            self.get_logger().info(f'Loaded {len(self.locations)} named locations:')
-            for name in self.locations.keys():
-                loc = self.locations[name]
-                self.get_logger().info(f'  - {name}: ({loc["x"]:.2f}, {loc["y"]:.2f}, {math.degrees(loc["yaw"]):.1f}°)')
+            total_locations = sum(len(floor_data['locations']) for floor_data in self.floors.values())
+            self.get_logger().info(f'Loaded {total_locations} named locations across {len(self.floors)} floor(s):')
+            for floor_id, floor_data in self.floors.items():
+                self.get_logger().info(f'  Floor: {floor_id}')
+                for name, loc in floor_data['locations'].items():
+                    self.get_logger().info(f'    - {name}: ({loc["x"]:.2f}, {loc["y"]:.2f}, {math.degrees(loc["yaw"]):.1f}°)')
         
         # Create callback group for concurrent execution
         self.callback_group = ReentrantCallbackGroup()
@@ -59,27 +61,23 @@ class NamedGoalServer(Node):
             callback_group=self.callback_group
         )
         
-        # Create action client for Nav2
-        self.nav_client = ActionClient(
+        # Create action client for multifloor executor
+        self.multifloor_client = ActionClient(
             self,
-            NavigateToPose,
-            'navigate_to_pose',
+            NavigateToNamedLocation,
+            self.multifloor_action_name,
             callback_group=self.callback_group
         )
         
-        # Wait for action server
-        self.get_logger().info('Waiting for navigate_to_pose action server...')
-        if not self.nav_client.wait_for_server(timeout_sec=10.0):
-            self.get_logger().warn('navigate_to_pose action server not available after 10 seconds')
-        else:
-            self.get_logger().info('navigate_to_pose action server connected')
-        
+        self.get_logger().info(f'Multi-floor executor: {self.multifloor_action_name}')
         self.get_logger().info('Named Goal Server ready. Service: /go_to_pose')
     
     def load_locations(self, filename):
         """
-        Load named locations from YAML file.
-        Returns a dictionary: {name: {x, y, yaw}}
+        Load named locations from YAML file with floor-aware structure.
+        Returns:
+            floors: {floor_id: {"locations": {name: {x, y, yaw}}}}
+            location_index: {name: [list of floor_ids that contain this name]}
         """
         try:
             # Try to load from config directory in package share
@@ -102,142 +100,211 @@ class NamedGoalServer(Node):
             with open(filepath, 'r') as f:
                 data = yaml.safe_load(f)
             
-            if 'locations' not in data:
-                self.get_logger().error('YAML file does not contain "locations" key')
-                return {}
+            # Validate top-level structure
+            if 'floors' not in data:
+                self.get_logger().error('YAML file does not contain "floors" key')
+                return {}, {}
             
-            locations = {}
-            for name, pose_data in data['locations'].items():
-                if 'x' in pose_data and 'y' in pose_data and 'yaw' in pose_data:
-                    locations[name] = {
-                        'x': float(pose_data['x']),
-                        'y': float(pose_data['y']),
-                        'yaw': float(pose_data['yaw'])
-                    }
-                else:
-                    self.get_logger().warn(f'Location "{name}" missing x, y, or yaw. Skipping.')
+            if not isinstance(data['floors'], dict):
+                self.get_logger().error('"floors" must be a dictionary')
+                return {}, {}
             
-            return locations
+            floors = {}
+            location_index = {}  # {location_name: [floor_id1, floor_id2, ...]}
+            
+            # Parse each floor
+            for floor_id, floor_data in data['floors'].items():
+                if not isinstance(floor_data, dict):
+                    self.get_logger().warn(f'Floor "{floor_id}" is not a dictionary. Skipping.')
+                    continue
+                
+                if 'locations' not in floor_data:
+                    self.get_logger().warn(f'Floor "{floor_id}" does not contain "locations" key. Skipping.')
+                    continue
+                
+                if not isinstance(floor_data['locations'], dict):
+                    self.get_logger().warn(f'Floor "{floor_id}" locations is not a dictionary. Skipping.')
+                    continue
+                
+                # Parse locations for this floor
+                floor_locations = {}
+                for name, pose_data in floor_data['locations'].items():
+                    if not isinstance(pose_data, dict):
+                        self.get_logger().warn(f'Location "{name}" on floor "{floor_id}" is not a dictionary. Skipping.')
+                        continue
+                    
+                    if 'x' in pose_data and 'y' in pose_data and 'yaw' in pose_data:
+                        try:
+                            floor_locations[name] = {
+                                'x': float(pose_data['x']),
+                                'y': float(pose_data['y']),
+                                'yaw': float(pose_data['yaw'])
+                            }
+                            
+                            # Build reverse index
+                            if name not in location_index:
+                                location_index[name] = []
+                            location_index[name].append(floor_id)
+                            
+                        except (ValueError, TypeError) as e:
+                            self.get_logger().warn(f'Invalid numeric values for "{name}" on floor "{floor_id}": {e}')
+                    else:
+                        self.get_logger().warn(f'Location "{name}" on floor "{floor_id}" missing x, y, or yaw. Skipping.')
+                
+                if floor_locations:
+                    floors[floor_id] = {'locations': floor_locations}
+            
+            return floors, location_index
             
         except FileNotFoundError:
             self.get_logger().error(f'Locations file not found: {filename}')
-            return {}
+            return {}, {}
         except yaml.YAMLError as e:
             self.get_logger().error(f'Error parsing YAML file: {e}')
-            return {}
+            return {}, {}
         except Exception as e:
             self.get_logger().error(f'Unexpected error loading locations: {e}')
-            return {}
+            return {}, {}
     
-    def create_pose_stamped(self, x, y, yaw):
+    def resolve_location(self, name):
         """
-        Create a PoseStamped message from x, y, yaw coordinates.
+        Resolve a location name to (floor_id, pose).
+        
+        Args:
+            name: Location name (string)
+        
+        Returns:
+            tuple: (floor_id, pose_dict) where pose_dict contains {x, y, yaw}
+            tuple: (None, error_message) if resolution fails
         """
-        pose = PoseStamped()
-        pose.header.frame_id = self.global_frame
-        pose.header.stamp = self.get_clock().now().to_msg()
+        # Strip whitespace
+        name = name.strip()
         
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-        pose.pose.position.z = 0.0
+        # Reject empty string
+        if not name:
+            return None, 'Location name cannot be empty'
         
-        # Convert yaw to quaternion
-        pose.pose.orientation.x = 0.0
-        pose.pose.orientation.y = 0.0
-        pose.pose.orientation.z = math.sin(yaw / 2.0)
-        pose.pose.orientation.w = math.cos(yaw / 2.0)
+        # Check if location exists
+        if name not in self.location_index:
+            # Build list of all available locations
+            all_locations = list(self.location_index.keys())
+            return None, f'Unknown location: "{name}". Available locations: {all_locations}'
         
-        return pose
+        # Get floors that contain this location
+        matching_floors = self.location_index[name]
+        
+        # Check for ambiguity
+        if len(matching_floors) > 1:
+            return None, f'Ambiguous location: "{name}" exists on multiple floors: {matching_floors}. Please specify which floor.'
+        
+        # Exactly one match - resolve it
+        floor_id = matching_floors[0]
+        pose = self.floors[floor_id]['locations'][name]
+        
+        return floor_id, pose
     
     def handle_go_to_pose(self, request, response):
         """
-        Service callback: look up named location and send Nav2 action goal.
-        Returns immediately after goal is accepted (non-blocking).
+        Service callback: resolve named location and dispatch to multi-floor executor.
+        Returns immediately after goal is sent (non-blocking).
         """
         location_name = request.name
         
-        self.get_logger().info(f'Received request to navigate to: {location_name}')
+        self.get_logger().info(f'Received request to navigate to: "{location_name}"')
         
-        # Check if location exists
-        if location_name not in self.locations:
+        # Resolve location to (floor_id, pose)
+        floor_id, result = self.resolve_location(location_name)
+        
+        if floor_id is None:
+            # Resolution failed - result contains error message
             response.accepted = False
-            response.message = f'Unknown location: {location_name}. Available: {list(self.locations.keys())}'
+            response.message = result
             self.get_logger().warn(response.message)
             return response
         
-        # Get location data
-        loc = self.locations[location_name]
+        # Resolution succeeded - result contains pose
+        loc = result
         
-        # Check if action server is available
-        if not self.nav_client.server_is_ready():
+        # Log resolved floor and pose
+        self.get_logger().info(f'Resolved location "{location_name}" -> floor: "{floor_id}", '
+                              f'pose: ({loc["x"]:.2f}, {loc["y"]:.2f}, yaw: {loc["yaw"]:.2f} rad / {math.degrees(loc["yaw"]):.1f}°)')
+        
+        # Check if multifloor action server is available
+        if not self.multifloor_client.wait_for_server(timeout_sec=self.multifloor_action_timeout):
             response.accepted = False
-            response.message = 'Navigation action server not available'
+            response.message = f'Multifloor action server {self.multifloor_action_name} not available'
             self.get_logger().error(response.message)
             return response
         
-        # Create Nav2 action goal
-        goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = self.create_pose_stamped(loc['x'], loc['y'], loc['yaw'])
+        # Create multifloor navigation goal
+        goal_msg = NavigateToNamedLocation.Goal()
+        goal_msg.location_name = location_name
+        goal_msg.target_floor_id = floor_id
+        goal_msg.x = float(loc['x'])
+        goal_msg.y = float(loc['y'])
+        goal_msg.yaw = float(loc['yaw'])
         
-        # Send action goal asynchronously
-        self.get_logger().info(f'Sending navigation goal to ({loc["x"]:.2f}, {loc["y"]:.2f}, {math.degrees(loc["yaw"]):.1f}°)')
+        self.get_logger().info(
+            f'Dispatching to multifloor executor: '
+            f'action="{self.multifloor_action_name}", '
+            f'location="{location_name}", floor="{floor_id}", '
+            f'pose=({loc["x"]:.2f}, {loc["y"]:.2f}, {math.degrees(loc["yaw"]):.1f}°)'
+        )
         
         try:
             # Send goal without blocking
-            send_goal_future = self.nav_client.send_goal_async(
-                goal_msg,
-                feedback_callback=self.navigation_feedback_callback
-            )
+            send_goal_future = self.multifloor_client.send_goal_async(goal_msg)
             send_goal_future.add_done_callback(
-                lambda future: self.goal_response_callback(future, location_name)
+                lambda future: self.multifloor_goal_response_callback(future, location_name)
             )
             
             # Return immediately - don't wait for navigation to complete
             response.accepted = True
-            response.message = f'Navigation goal to {location_name} sent successfully'
+            response.message = f'Dispatched navigation to multifloor executor for {location_name}'
             self.get_logger().info(response.message)
             return response
             
         except Exception as e:
             response.accepted = False
-            response.message = f'Error sending navigation goal: {str(e)}'
+            response.message = f'Error dispatching to multifloor executor: {str(e)}'
             self.get_logger().error(response.message)
             return response
     
-    def navigation_feedback_callback(self, feedback_msg):
-        """Callback for navigation feedback (optional logging)"""
-        feedback = feedback_msg.feedback
-        # Optionally log distance remaining, time elapsed, etc.
-        # self.get_logger().info(f'Navigation feedback: {feedback}', throttle_duration_sec=5.0)
+    def multifloor_goal_response_callback(self, future, location_name):
+        """Callback when multifloor executor accepts/rejects goal"""
+        try:
+            goal_handle = future.result()
+            if not goal_handle.accepted:
+                self.get_logger().warn(f'Multifloor executor rejected goal to {location_name}')
+                return
+            
+            self.get_logger().info(f'Multifloor executor accepted goal to {location_name}')
+            
+            # Register callback for when navigation completes
+            result_future = goal_handle.get_result_async()
+            result_future.add_done_callback(
+                lambda future: self.multifloor_result_callback(future, location_name)
+            )
+        except Exception as e:
+            self.get_logger().error(f'Error in multifloor goal response for {location_name}: {e}')
     
-    def goal_response_callback(self, future, location_name):
-        """Callback when goal is accepted/rejected by action server"""
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.get_logger().warn(f'Goal to {location_name} was rejected by action server')
-            return
-        
-        self.get_logger().info(f'Goal to {location_name} accepted by action server')
-        
-        # Register callback for when navigation completes
-        result_future = goal_handle.get_result_async()
-        result_future.add_done_callback(
-            lambda future: self.navigation_result_callback(future, location_name)
-        )
-    
-    def navigation_result_callback(self, future, location_name):
-        """Callback when navigation completes"""
-        result = future.result()
-        status = result.status
-        
-        if status == 4:  # SUCCEEDED
-            self.get_logger().info(f'Successfully navigated to {location_name}')
-        elif status == 5:  # CANCELED
-            self.get_logger().warn(f'Navigation to {location_name} was canceled')
-        elif status == 6:  # ABORTED
-            self.get_logger().error(f'Navigation to {location_name} was aborted')
-        else:
-            self.get_logger().warn(f'Navigation to {location_name} completed with status: {status}')
+    def multifloor_result_callback(self, future, location_name):
+        """Callback when multifloor navigation completes"""
+        try:
+            result = future.result()
+            action_result = result.result
+            
+            if action_result.success:
+                self.get_logger().info(
+                    f'Multifloor navigation to {location_name} succeeded: {action_result.message}'
+                )
+            else:
+                self.get_logger().warn(
+                    f'Multifloor navigation to {location_name} failed (status={action_result.nav_status}): '
+                    f'{action_result.message}'
+                )
+        except Exception as e:
+            self.get_logger().error(f'Error in multifloor result callback for {location_name}: {e}')
 
 
 def main(args=None):
