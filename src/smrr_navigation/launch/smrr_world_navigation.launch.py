@@ -9,11 +9,13 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource, Any
 
 
 def generate_launch_description():
-    config_dir = os.path.join(get_package_share_directory('smrr_navigation'),'config')
-    maps_dir = os.path.join(get_package_share_directory('smrr_navigation'),'maps')
-    map_file = os.path.join(maps_dir,'first_floor_with_docking_station.yaml')
-    params_file = os.path.join(config_dir,'smrr_nav_params.yaml')
-    rviz_config= os.path.join(config_dir,'smrr_nav.rviz')
+    pkg_share = get_package_share_directory('smrr_navigation')
+    config_dir = os.path.join(pkg_share, 'config')
+    maps_dir = os.path.join(pkg_share, 'maps')
+    bt_xml_path = os.path.join(pkg_share, 'config', 'bt', 'same_floor_nav.xml')
+    map_file = os.path.join(maps_dir, 'first_floor_with_docking_station.yaml')
+    params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
+    rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')
     
     # Launch arguments
     declare_enable_startup_localizer = DeclareLaunchArgument(
@@ -22,20 +24,20 @@ def generate_launch_description():
         description='Enable automatic startup localization sequence to help AMCL converge'
     )
     
-    declare_enable_multifloor_navigator = DeclareLaunchArgument(
-        'enable_multifloor_navigator',
-        default_value='true',
-        description='Enable multi-floor BT navigator (Step 4a - same floor navigation only)'
+    declare_initial_floor_id = DeclareLaunchArgument(
+        'initial_floor_id',
+        default_value='floor0',
+        description='Initial floor ID for the robot'
     )
     
     enable_startup_localizer = LaunchConfiguration('enable_startup_localizer')
-    enable_multifloor_navigator = LaunchConfiguration('enable_multifloor_navigator')
+    initial_floor_id = LaunchConfiguration('initial_floor_id')
     
     return LaunchDescription([
     
     # Arguments
     declare_enable_startup_localizer,
-    declare_enable_multifloor_navigator,
+    declare_initial_floor_id,
 
     # Bringing our Robot with ros2_control controllers
     IncludeLaunchDescription(
@@ -68,7 +70,7 @@ def generate_launch_description():
         actions=[
             Node(
                 package='smrr_navigation',
-                executable='startup_localizer',
+                executable='startup_localizer.py',
                 name='startup_localizer',
                 output='screen',
                 parameters=[
@@ -86,24 +88,28 @@ def generate_launch_description():
         ]
     ),
 
-    # Named Goal Server - Resolver and dispatcher for named locations
+    # Named Goal Server - Resolver and dispatcher for named locations (with BT executor)
     Node(
         package='smrr_navigation',
-        executable='named_goal_server',
+        executable='named_goal_server.py',
         name='named_goal_server',
         output='screen',
+        respawn=True,
+        respawn_delay=2.0,
         parameters=[
             {'use_sim_time': True},
             {'locations_file': 'locations.yaml'},
-            {'multifloor_action_name': '/navigate_to_named_location'},
-            {'multifloor_action_timeout': 10.0}
+            {'use_bt_mission_executor': True},
+            {'initial_floor_id': initial_floor_id},
+            {'start_mission_service_name': '/start_mission'},
+            {'start_mission_timeout': 5.0}
         ]
     ),
 
     # Location Subscriber - Bridge from /location topic to named_goal_server
     Node(
         package='smrr_navigation',
-        executable='location_subscriber',
+        executable='location_subscriber.py',
         name='location_subscriber',
         output='screen',
         parameters=[
@@ -114,20 +120,48 @@ def generate_launch_description():
         ]
     ),
 
-    # SMRR Multi-Floor BT Navigator (Step 4a - same floor only, enabled by default)
+    # BT Mission Executor - Runs BehaviorTree for same-floor navigation
     Node(
         package='smrr_navigation',
-        executable='smrr_multifloor_bt_navigator',
-        name='smrr_multifloor_bt_navigator',
+        executable='smrr_bt_mission_executor',
+        name='smrr_bt_mission_executor',
         output='screen',
-        parameters=[
-            {'use_sim_time': True},
-            {'global_frame': 'map'},
-            {'nav2_action_name': 'navigate_to_pose'},
-            {'nav2_wait_timeout': 10.0},
-            {'feedback_rate_hz': 2.0}
-        ],
-        condition=IfCondition(enable_multifloor_navigator)
+        parameters=[{
+            'use_sim_time': True,
+            'bt_xml_path': bt_xml_path,
+            'plugin_lib_names': [
+                # Nav2 BT plugins
+                'nav2_compute_path_to_pose_action_bt_node',
+                'nav2_follow_path_action_bt_node',
+                'nav2_back_up_action_bt_node',
+                'nav2_spin_action_bt_node',
+                'nav2_wait_action_bt_node',
+                'nav2_clear_costmap_service_bt_node',
+                'nav2_is_stuck_condition_bt_node',
+                'nav2_goal_reached_condition_bt_node',
+                'nav2_initial_pose_received_condition_bt_node',
+                'nav2_goal_updated_condition_bt_node',
+                'nav2_reinitialize_global_localization_service_bt_node',
+                'nav2_rate_controller_bt_node',
+                'nav2_distance_controller_bt_node',
+                'nav2_speed_controller_bt_node',
+                'nav2_truncate_path_action_bt_node',
+                'nav2_goal_updater_node_bt_node',
+                'nav2_recovery_node_bt_node',
+                'nav2_pipeline_sequence_bt_node',
+                'nav2_round_robin_node_bt_node',
+                'nav2_transform_available_condition_bt_node',
+                'nav2_time_expired_condition_bt_node',
+                'nav2_distance_traveled_condition_bt_node',
+                'nav2_single_trigger_bt_node',
+                'nav2_is_battery_low_condition_bt_node',
+                'nav2_navigate_to_pose_action_bt_node',
+                # Custom BT plugins
+                'smrr_bt_nodes'
+            ],
+            'bt_tick_rate_hz': 20.0,
+            'bt_timeout_sec': 300.0
+        }]
     ),
 
     # Rviz2 bringup

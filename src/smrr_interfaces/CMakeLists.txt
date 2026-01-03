@@ -11,6 +11,7 @@ find_package(action_msgs REQUIRED)
 # Generate services and actions
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GoToNamedPose.srv"
+  "srv/StartMission.srv"
   "action/NavigateToNamedLocation.action"
   DEPENDENCIES builtin_interfaces std_msgs action_msgs
 )

@@ -10,12 +10,13 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
-from smrr_interfaces.srv import GoToNamedPose
+from smrr_interfaces.srv import GoToNamedPose, StartMission
 from smrr_interfaces.action import NavigateToNamedLocation
 import yaml
 import os
 from ament_index_python.packages import get_package_share_directory
 import math
+import uuid
 
 
 class NamedGoalServer(Node):
@@ -31,11 +32,19 @@ class NamedGoalServer(Node):
         self.declare_parameter('locations_file', 'locations.yaml')
         self.declare_parameter('multifloor_action_name', '/navigate_to_named_location')
         self.declare_parameter('multifloor_action_timeout', 10.0)
+        self.declare_parameter('use_bt_mission_executor', True)
+        self.declare_parameter('initial_floor_id', 'floor0')
+        self.declare_parameter('start_mission_service_name', '/start_mission')
+        self.declare_parameter('start_mission_timeout', 5.0)
         
         # Get parameters
         locations_file = self.get_parameter('locations_file').value
         self.multifloor_action_name = self.get_parameter('multifloor_action_name').value
         self.multifloor_action_timeout = self.get_parameter('multifloor_action_timeout').value
+        self.use_bt_mission_executor = self.get_parameter('use_bt_mission_executor').value
+        self.initial_floor_id = self.get_parameter('initial_floor_id').value
+        self.start_mission_service_name = self.get_parameter('start_mission_service_name').value
+        self.start_mission_timeout = self.get_parameter('start_mission_timeout').value
         
         # Load locations from YAML (floor-aware structure)
         self.floors, self.location_index = self.load_locations(locations_file)
@@ -61,7 +70,7 @@ class NamedGoalServer(Node):
             callback_group=self.callback_group
         )
         
-        # Create action client for multifloor executor
+        # Create action client for multifloor executor (legacy mode)
         self.multifloor_client = ActionClient(
             self,
             NavigateToNamedLocation,
@@ -69,7 +78,19 @@ class NamedGoalServer(Node):
             callback_group=self.callback_group
         )
         
-        self.get_logger().info(f'Multi-floor executor: {self.multifloor_action_name}')
+        # Create service client for BT mission executor (new mode)
+        self.start_mission_client = self.create_client(
+            StartMission,
+            self.start_mission_service_name,
+            callback_group=self.callback_group
+        )
+        
+        if self.use_bt_mission_executor:
+            self.get_logger().info(f'BT Mission Executor mode enabled. Service: {self.start_mission_service_name}')
+            self.get_logger().info(f'Initial floor: {self.initial_floor_id}')
+        else:
+            self.get_logger().info(f'Legacy action mode enabled. Action: {self.multifloor_action_name}')
+        
         self.get_logger().info('Named Goal Server ready. Service: /go_to_pose')
     
     def load_locations(self, filename):
@@ -205,8 +226,15 @@ class NamedGoalServer(Node):
     
     def handle_go_to_pose(self, request, response):
         """
-        Service callback: resolve named location and dispatch to multi-floor executor.
-        Returns immediately after goal is sent (non-blocking).
+        Service callback: resolve named location and dispatch.
+        
+        Behavior depends on use_bt_mission_executor parameter:
+        - If True: Calls /start_mission service (BT-based execution)
+        - If False: Uses legacy action client (action-based execution)
+        
+        For BT mode:
+        - response.accepted reflects whether service accepted the request
+        - response.message includes mission_id and BT result
         """
         location_name = request.name
         
@@ -229,6 +257,95 @@ class NamedGoalServer(Node):
         self.get_logger().info(f'Resolved location "{location_name}" -> floor: "{floor_id}", '
                               f'pose: ({loc["x"]:.2f}, {loc["y"]:.2f}, yaw: {loc["yaw"]:.2f} rad / {math.degrees(loc["yaw"]):.1f}°)')
         
+        # Route to appropriate executor
+        if self.use_bt_mission_executor:
+            return self.handle_bt_mission_executor(request, response, location_name, floor_id, loc)
+        else:
+            return self.handle_legacy_action_executor(request, response, location_name, floor_id, loc)
+    
+    def handle_bt_mission_executor(self, request, response, location_name, floor_id, loc):
+        """
+        Call /start_mission service with resolved location data.
+        
+        Response mapping:
+        - accepted=True if service call succeeded (regardless of BT result)
+        - message includes mission_id and indicates BT success/failure
+        """
+        # Check if service is available
+        if not self.start_mission_client.wait_for_service(timeout_sec=self.start_mission_timeout):
+            response.accepted = False
+            response.message = f'StartMission service {self.start_mission_service_name} not available'
+            self.get_logger().error(response.message)
+            return response
+        
+        # Generate mission ID
+        mission_id = str(uuid.uuid4())
+        
+        # Build service request
+        mission_request = StartMission.Request()
+        mission_request.mission_id = mission_id
+        mission_request.current_floor_id = self.initial_floor_id
+        mission_request.target_floor_id = floor_id
+        mission_request.target_location_name = location_name
+        mission_request.x = float(loc['x'])
+        mission_request.y = float(loc['y'])
+        mission_request.yaw = float(loc['yaw'])
+        
+        self.get_logger().info(
+            f'Calling StartMission service: mission_id={mission_id}, '
+            f'current_floor={self.initial_floor_id}, target_floor={floor_id}'
+        )
+        
+        try:
+            # Call service synchronously with timeout
+            future = self.start_mission_client.call_async(mission_request)
+            
+            # Wait for response with timeout
+            import time
+            start_time = time.time()
+            timeout = 300.0  # Match BT timeout + overhead
+            
+            while not future.done():
+                if time.time() - start_time > timeout:
+                    response.accepted = False
+                    response.message = f'StartMission service call timeout for mission {mission_id}'
+                    self.get_logger().error(response.message)
+                    return response
+                time.sleep(0.1)
+            
+            mission_response = future.result()
+            
+            # Map service response to our response
+            # Note: We set accepted=True if the service accepted the request,
+            # even if BT failed. The message will indicate BT result.
+            if mission_response.accepted:
+                response.accepted = True
+                if mission_response.success:
+                    response.message = f'Navigation to {location_name} completed: {mission_response.message}'
+                    self.get_logger().info(response.message)
+                else:
+                    # BT ran but failed (e.g., cross-floor not implemented, navigation failed)
+                    response.message = f'Navigation to {location_name} failed: {mission_response.message}'
+                    self.get_logger().warn(response.message)
+            else:
+                # Service rejected the request (invalid data)
+                response.accepted = False
+                response.message = f'StartMission rejected: {mission_response.message}'
+                self.get_logger().error(response.message)
+            
+            return response
+            
+        except Exception as e:
+            response.accepted = False
+            response.message = f'Error calling StartMission service: {str(e)}'
+            self.get_logger().error(response.message)
+            return response
+    
+    def handle_legacy_action_executor(self, request, response, location_name, floor_id, loc):
+        """
+        Legacy action-based executor (original implementation).
+        Dispatches to multifloor action server and returns immediately.
+        """
         # Check if multifloor action server is available
         if not self.multifloor_client.wait_for_server(timeout_sec=self.multifloor_action_timeout):
             response.accepted = False
