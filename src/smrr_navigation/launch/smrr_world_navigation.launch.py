@@ -12,7 +12,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory('smrr_navigation')
     config_dir = os.path.join(pkg_share, 'config')
     maps_dir = os.path.join(pkg_share, 'maps')
-    bt_xml_path = os.path.join(pkg_share, 'config', 'bt', 'same_floor_nav.xml')
+    bt_xml_path = os.path.join(pkg_share, 'behavior_trees', 'smrr_multifloor.xml')
     map_file = os.path.join(maps_dir, 'first_floor_with_docking_station.yaml')
     params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
     rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')

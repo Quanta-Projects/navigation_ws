@@ -37,7 +37,7 @@ public:
       // Use default path in package share directory
       try {
         std::string pkg_share = ament_index_cpp::get_package_share_directory("smrr_navigation");
-        bt_xml_path = pkg_share + "/config/bt/same_floor_nav.xml";
+        bt_xml_path = pkg_share + "/behavior_trees/smrr_multifloor.xml";
         RCLCPP_INFO(this->get_logger(), "Using default BT XML path: %s", bt_xml_path.c_str());
       } catch (const std::exception & e) {
         RCLCPP_ERROR(this->get_logger(), "Failed to find package share directory: %s", e.what());
@@ -48,10 +48,16 @@ public:
 
     plugin_lib_names_ = this->get_parameter("plugin_lib_names").as_string_array();
     
-    // Create service
+    // Create a reentrant callback group to allow nested service calls
+    // This allows BT nodes to make service calls while we're in the StartMission callback
+    callback_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+    
+    // Create service with the reentrant callback group
     service_ = this->create_service<smrr_interfaces::srv::StartMission>(
       "/start_mission",
-      std::bind(&BtMissionExecutor::handleStartMission, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&BtMissionExecutor::handleStartMission, this, std::placeholders::_1, std::placeholders::_2),
+      rmw_qos_profile_services_default,
+      callback_group_);
 
     RCLCPP_INFO(this->get_logger(), "BT Mission Executor initialized");
     RCLCPP_INFO(this->get_logger(), "BT XML: %s", bt_xml_path_.c_str());
@@ -192,6 +198,7 @@ private:
   }
 
   rclcpp::Service<smrr_interfaces::srv::StartMission>::SharedPtr service_;
+  rclcpp::CallbackGroup::SharedPtr callback_group_;
   std::string bt_xml_path_;
   std::vector<std::string> plugin_lib_names_;
   double bt_tick_rate_hz_;
@@ -204,7 +211,13 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<smrr_navigation::BtMissionExecutor>();
-  rclcpp::spin(node);
+  
+  // Use MultiThreadedExecutor to support reentrant callbacks
+  // This allows BT nodes to make service calls while the StartMission service callback is executing
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(node);
+  executor.spin();
+  
   rclcpp::shutdown();
   return 0;
 }

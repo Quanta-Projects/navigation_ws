@@ -9,6 +9,10 @@ setup(
     version='0.0.0',
     # packages=find_packages(exclude=['test']),
     packages=[package_name],
+    package_data={
+        package_name: ['models/*.onnx', 'models/*.onnx.data'],
+    },
+    include_package_data=True,
 
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -37,6 +41,7 @@ setup(
             'named_goal_client = smrr_navigation.named_goal_client:main',
             'location_subscriber = smrr_navigation.location_subscriber:main',
             'smrr_multifloor_bt_navigator = smrr_navigation.smrr_multifloor_bt_navigator:main',
+            'door_classifier_node = smrr_navigation.door_classifier_node:main',
         ],
     },
 )

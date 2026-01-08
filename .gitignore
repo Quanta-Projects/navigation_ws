@@ -4,3 +4,4 @@ install/
 log/
 frames/
 .env*
+ml_door_classifier/
