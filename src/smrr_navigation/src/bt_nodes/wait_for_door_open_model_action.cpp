@@ -10,14 +10,14 @@
  * - Architecture: TinyCNN (~15K params)
  * - Input: depth_input [1, 1, 96, 96] float32, normalized [0,1]
  * - Output: logits [1, 2] float32
- * - Classes: Configurable via open_index (default: 0=OPEN, 1=CLOSED)
+ * - Classes: Configurable via open_index (default: 0=CLOSED, 1=OPEN)
  *
  * Depth Preprocessing:
  * 1. Convert from 32FC1 (meters) or 16UC1 (mm) to float32 meters
- * 2. Replace invalid pixels (NaN, inf, <=0) with 0.0
- * 3. Resize full image to 96x96 using nearest-neighbor
- * 4. Clip to [clip_min_m, clip_max_m] range
- * 5. Normalize to [0, 1]
+ * 2. Replace invalid pixels (NaN, inf, <=0) with clip_max_m (5.0 = FAR, not 0!)
+ * 3. Resize full image to 96x96 using area-based downsampling (INTER_AREA equivalent)
+ * 4. Clip to [clip_min_m=0.2, clip_max_m=5.0] range
+ * 5. Normalize to [0, 1]: (depth - clip_min) / (clip_max - clip_min)
  * 6. Reshape to [1, 1, 96, 96] NCHW tensor
  */
 
@@ -57,10 +57,10 @@ void WaitForDoorOpenModelAction::loadParameters()
   poll_rate_hz_ = 10.0;
   max_depth_stale_sec_ = 1.0;
   stable_time_sec_ = 1.0;
-  clip_min_m_ = 0.0;
-  clip_max_m_ = 5.0;
-  open_index_ = 0;
-  threshold_ = 0.5;
+  clip_min_m_ = 0.2;  // TRAINING SPEC: min clip = 0.2m
+  clip_max_m_ = 5.0;  // TRAINING SPEC: max clip = 5.0m
+  open_index_ = 1;
+  threshold_ = 0.7;
   debug_log_ = false;
 
   // Load from ports
@@ -101,11 +101,11 @@ void WaitForDoorOpenModelAction::loadParameters()
   if (model_path_.empty()) {
     try {
       std::string pkg_share = ament_index_cpp::get_package_share_directory("smrr_navigation");
-      model_path_ = pkg_share + "/models/door_classifier.onnx";
+      model_path_ = pkg_share + "/models/door_classifier_3.onnx";
     } catch (const std::exception & e) {
       RCLCPP_WARN(node_->get_logger(),
                   "Could not find package share dir, using hardcoded model path");
-      model_path_ = "/home/achiraubuntu/navigation_ws/ml_door_classifier/outputs/onnx/door_classifier.onnx";
+      model_path_ = "/home/achiraubuntu/navigation_ws/ml_door_classifier/outputs/onnx/door_classifier_3.onnx";
     }
   }
 }
@@ -241,9 +241,54 @@ BT::NodeStatus WaitForDoorOpenModelAction::onRunning()
     return BT::NodeStatus::FAILURE;
   }
 
+  // Debug logging: compute statistics BEFORE preprocessing (throttled to 1 Hz)
+  static rclcpp::Time last_debug_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  if (debug_log_ && (now - last_debug_time).seconds() >= 1.0) {
+    // Compute stats on original depth (after invalid replacement with clip_max)
+    int total_pixels = width * height;
+    int valid_count = 0;
+    float min_val = std::numeric_limits<float>::max();
+    float max_val = std::numeric_limits<float>::lowest();
+    float sum_val = 0.0f;
+    int at_clip_max = 0;  // Count pixels at clip_max (were invalid)
+    
+    for (const auto & d : depth_m) {
+      if (std::abs(d - static_cast<float>(clip_max_m_)) < 0.001f) {
+        at_clip_max++;
+      }
+      if (d > 0.0f && std::isfinite(d)) {
+        min_val = std::min(min_val, d);
+        max_val = std::max(max_val, d);
+        sum_val += d;
+        valid_count++;
+      }
+    }
+    
+    float invalid_frac = static_cast<float>(at_clip_max) / total_pixels;
+    float mean_val = valid_count > 0 ? sum_val / valid_count : 0.0f;
+    
+    RCLCPP_INFO(node_->get_logger(),
+                "[PREPROCESS] Encoding=%s, Invalid=%.1f%%, "
+                "Depth: min=%.2fm, mean=%.2fm, max=%.2fm",
+                depth_msg->encoding.c_str(), invalid_frac * 100.0f,
+                min_val, mean_val, max_val);
+    
+    last_debug_time = now;
+  }
+
   // Preprocess to model input tensor
   std::vector<float> input_tensor;
   preprocessDepth(depth_m, width, height, input_tensor);
+
+  // Debug logging: normalized tensor stats (throttled to 1 Hz)
+  if (debug_log_ && (now - last_debug_time).seconds() >= 0.95) {  // Slightly offset
+    float tensor_min = *std::min_element(input_tensor.begin(), input_tensor.end());
+    float tensor_max = *std::max_element(input_tensor.begin(), input_tensor.end());
+    
+    RCLCPP_INFO(node_->get_logger(),
+                "[PREPROCESS] Normalized tensor: min=%.4f, max=%.4f, size=%zu",
+                tensor_min, tensor_max, input_tensor.size());
+  }
 
   // Run inference
   float p_open;
@@ -342,9 +387,9 @@ bool WaitForDoorOpenModelAction::convertToDepthMeters(
     const float * src = reinterpret_cast<const float *>(msg.data.data());
     for (int i = 0; i < height * width; ++i) {
       float d = src[i];
-      // Replace invalid values
+      // Replace invalid values with clip_max_m_ (FAR) to match training
       if (!std::isfinite(d) || d <= 0.0f) {
-        depth_out[i] = 0.0f;
+        depth_out[i] = static_cast<float>(clip_max_m_);
       } else {
         depth_out[i] = d;
       }
@@ -361,7 +406,7 @@ bool WaitForDoorOpenModelAction::convertToDepthMeters(
     for (int i = 0; i < height * width; ++i) {
       uint16_t mm = src[i];
       if (mm == 0) {
-        depth_out[i] = 0.0f;
+        depth_out[i] = static_cast<float>(clip_max_m_);  // TRAINING SPEC: invalid = FAR
       } else {
         depth_out[i] = static_cast<float>(mm) * 0.001f;  // mm to meters
       }
@@ -376,20 +421,53 @@ bool WaitForDoorOpenModelAction::convertToDepthMeters(
   }
 }
 
-void WaitForDoorOpenModelAction::resizeNearestNeighbor(
+void WaitForDoorOpenModelAction::resizeAreaDownsample(
   const std::vector<float> & src, int src_w, int src_h,
   std::vector<float> & dst, int dst_w, int dst_h)
 {
-  dst.resize(dst_w * dst_h);
-
-  float x_ratio = static_cast<float>(src_w) / dst_w;
-  float y_ratio = static_cast<float>(src_h) / dst_h;
-
-  for (int y = 0; y < dst_h; ++y) {
-    int src_y = std::min(static_cast<int>(y * y_ratio), src_h - 1);
-    for (int x = 0; x < dst_w; ++x) {
-      int src_x = std::min(static_cast<int>(x * x_ratio), src_w - 1);
-      dst[y * dst_w + x] = src[src_y * src_w + src_x];
+  // Area-based downsampling to match cv2.INTER_AREA behavior
+  // For each output pixel, average all source pixels that map to it
+  dst.resize(dst_w * dst_h, 0.0f);
+  
+  float x_scale = static_cast<float>(src_w) / dst_w;
+  float y_scale = static_cast<float>(src_h) / dst_h;
+  
+  for (int dst_y = 0; dst_y < dst_h; ++dst_y) {
+    float src_y_start = dst_y * y_scale;
+    float src_y_end = (dst_y + 1) * y_scale;
+    int src_y_start_int = static_cast<int>(std::floor(src_y_start));
+    int src_y_end_int = static_cast<int>(std::ceil(src_y_end));
+    
+    for (int dst_x = 0; dst_x < dst_w; ++dst_x) {
+      float src_x_start = dst_x * x_scale;
+      float src_x_end = (dst_x + 1) * x_scale;
+      int src_x_start_int = static_cast<int>(std::floor(src_x_start));
+      int src_x_end_int = static_cast<int>(std::ceil(src_x_end));
+      
+      float sum = 0.0f;
+      float weight_sum = 0.0f;
+      
+      // Iterate over all source pixels that contribute to this output pixel
+      for (int src_y = src_y_start_int; src_y < src_y_end_int && src_y < src_h; ++src_y) {
+        float y_overlap_start = std::max(src_y_start, static_cast<float>(src_y));
+        float y_overlap_end = std::min(src_y_end, static_cast<float>(src_y + 1));
+        float y_weight = y_overlap_end - y_overlap_start;
+        
+        for (int src_x = src_x_start_int; src_x < src_x_end_int && src_x < src_w; ++src_x) {
+          float x_overlap_start = std::max(src_x_start, static_cast<float>(src_x));
+          float x_overlap_end = std::min(src_x_end, static_cast<float>(src_x + 1));
+          float x_weight = x_overlap_end - x_overlap_start;
+          
+          float weight = x_weight * y_weight;
+          sum += src[src_y * src_w + src_x] * weight;
+          weight_sum += weight;
+        }
+      }
+      
+      // Compute weighted average
+      if (weight_sum > 0.0f) {
+        dst[dst_y * dst_w + dst_x] = sum / weight_sum;
+      }
     }
   }
 }
@@ -398,24 +476,26 @@ void WaitForDoorOpenModelAction::preprocessDepth(
   const std::vector<float> & depth_m, int width, int height,
   std::vector<float> & tensor_out)
 {
-  // Resize to 96x96
+  // TRAINING SPEC PREPROCESSING - Match training exactly:
+  // Note: Invalid pixels already replaced with clip_max_m in convertToDepthMeters
+  
+  // Step 1: Resize to 96x96 using area-based downsampling (INTER_AREA equivalent)
   std::vector<float> resized;
-  resizeNearestNeighbor(depth_m, width, height, resized,
-                        MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
+  resizeAreaDownsample(depth_m, width, height, resized,
+                       MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
 
-  // Clip and normalize
+  // Step 2: Clip to [clip_min_m, clip_max_m] and normalize to [0, 1]
   tensor_out.resize(MODEL_INPUT_SIZE * MODEL_INPUT_SIZE);
   float clip_min_f = static_cast<float>(clip_min_m_);
   float clip_max_f = static_cast<float>(clip_max_m_);
   float range = clip_max_f - clip_min_f;
-  float eps = 1e-6f;
 
   for (size_t i = 0; i < resized.size(); ++i) {
     float d = resized[i];
-    // Clip
+    // Clip to valid range
     d = std::max(clip_min_f, std::min(d, clip_max_f));
-    // Normalize to [0, 1]
-    tensor_out[i] = (d - clip_min_f) / (range + eps);
+    // Normalize to [0, 1]: (depth - clip_min) / (clip_max - clip_min)
+    tensor_out[i] = (d - clip_min_f) / range;
   }
 }
 

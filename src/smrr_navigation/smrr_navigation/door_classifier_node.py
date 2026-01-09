@@ -39,6 +39,12 @@ from pathlib import Path
 import numpy as np
 import time
 
+# Import canonical preprocessing spec (matches training exactly)
+from smrr_navigation.depth_preprocess_spec import (
+    preprocess_depth_training_spec,
+    compute_preprocessing_stats
+)
+
 # Try to import cv2 for resize, fallback to numpy
 try:
     import cv2
@@ -64,11 +70,12 @@ class DoorClassifierNode(Node):
         # Declare parameters
         self.declare_parameter('depth_topic', '/zed2_left_camera/depth/image_raw')
         self.declare_parameter('model_path', '')
-        self.declare_parameter('open_index', 0)  # Model: 0=OPEN, 1=CLOSED
-        self.declare_parameter('threshold', 0.8)
-        self.declare_parameter('clip_min_m', 0.0)
-        self.declare_parameter('clip_max_m', 5.0)
+        self.declare_parameter('open_index', 1)  # Model: 0=CLOSED, 1=OPEN
+        self.declare_parameter('threshold', 0.7)
+        self.declare_parameter('clip_min_m', 0.2)  # TRAINING SPEC: min clip = 0.2m
+        self.declare_parameter('clip_max_m', 5.0)   # TRAINING SPEC: max clip = 5.0m
         self.declare_parameter('print_rate_hz', 5.0)
+        self.declare_parameter('debug_preprocess', False)  # Enable preprocessing debug logs
 
         # Get parameters
         self.depth_topic = self.get_parameter('depth_topic').value
@@ -78,6 +85,8 @@ class DoorClassifierNode(Node):
         self.clip_min_m = self.get_parameter('clip_min_m').value
         self.clip_max_m = self.get_parameter('clip_max_m').value
         self.print_rate_hz = self.get_parameter('print_rate_hz').value
+        self.debug_preprocess = self.get_parameter('debug_preprocess').value
+        self.debug_preprocess = self.get_parameter('debug_preprocess').value
 
         # Validate onnxruntime is available
         if ort is None:
@@ -118,6 +127,7 @@ class DoorClassifierNode(Node):
         self.print_period = 1.0 / max(self.print_rate_hz, 0.1)
         self.frames_received = 0
         self.last_frame_time = None
+        self.last_debug_log_time = 0.0  # For throttled preprocessing debug logs
 
         # Log configuration
         self.get_logger().info('=' * 60)
@@ -127,8 +137,9 @@ class DoorClassifierNode(Node):
         self.get_logger().info(f'  Model path:     {self.model_path}')
         self.get_logger().info(f'  Open index:     {self.open_index}')
         self.get_logger().info(f'  Threshold:      {self.threshold}')
-        self.get_logger().info(f'  Clip range:     [{self.clip_min_m}, {self.clip_max_m}] m')
+        self.get_logger().info(f'  Clip range:     [{self.clip_min_m}, {self.clip_max_m}] m (TRAINING SPEC)')
         self.get_logger().info(f'  Print rate:     {self.print_rate_hz} Hz')
+        self.get_logger().info(f'  Debug preproc:  {self.debug_preprocess}')
         self.get_logger().info(f'  Using cv2:      {HAS_CV2}')
         self.get_logger().info('=' * 60)
 
@@ -155,20 +166,21 @@ class DoorClassifierNode(Node):
         2. Relative to __file__ directly
         3. In package share directory
         """
-        model_name = 'door_classifier.onnx'
+        model_name = 'door_classifier_3.onnx'
         
         # Candidate paths to try
         candidates = []
         
-        # 1. Resolve symlinks and look relative to actual source
+        # 1. Resolve symlinks and look relative to actual source (package root)
         try:
             real_path = Path(__file__).resolve()
-            candidates.append(real_path.parent / 'models' / model_name)
+            # Go up from smrr_navigation/door_classifier_node.py to package root
+            candidates.append(real_path.parent.parent / 'models' / model_name)
         except Exception:
             pass
         
-        # 2. Relative to __file__ (may be symlink)
-        candidates.append(Path(__file__).parent / 'models' / model_name)
+        # 2. Relative to __file__ (may be symlink) - package root
+        candidates.append(Path(__file__).parent.parent / 'models' / model_name)
         
         # 3. Try using ament_index to find package share
         try:
@@ -268,62 +280,53 @@ class DoorClassifierNode(Node):
 
     def preprocess(self, depth_m: np.ndarray) -> np.ndarray:
         """
-        Preprocess depth image for model input.
-        - Replace invalid values with 0.0
-        - Resize to 96x96
-        - Clip and normalize to [0, 1]
-        - Return tensor shape [1, 1, 96, 96], dtype float32
+        Preprocess depth image using EXACT training spec.
+        
+        Training preprocessing steps:
+        1. Replace invalid (NaN/inf/<=0) with clip_max_m (5.0 = FAR, not 0!)
+        2. Clip to [clip_min_m=0.2, clip_max_m=5.0]
+        3. Normalize to [0, 1]
+        4. Resize to 96x96 using cv2.INTER_AREA (area-based downsampling)
+        5. Return float32 tensor [1, 1, 96, 96]
+        
+        Returns:
+            Preprocessed tensor matching training spec exactly
         """
-        # Replace invalid values (NaN, inf, <= 0) with 0.0
-        valid_mask = np.isfinite(depth_m) & (depth_m > 0)
-        depth_m = np.where(valid_mask, depth_m, 0.0)
-
-        # Resize to 96x96
-        target_size = (96, 96)
-        if HAS_CV2:
-            # Use OpenCV with nearest neighbor interpolation
-            depth_resized = cv2.resize(
-                depth_m.astype(np.float32),
-                target_size,
-                interpolation=cv2.INTER_NEAREST
-            )
-        else:
-            # Fallback: numpy nearest-neighbor resize
-            depth_resized = self.numpy_resize_nearest(depth_m, target_size)
-
-        # Clip to valid range
-        depth_clipped = np.clip(depth_resized, self.clip_min_m, self.clip_max_m)
-
-        # Normalize to [0, 1]
-        range_val = self.clip_max_m - self.clip_min_m
-        eps = 1e-6
-        depth_normalized = (depth_clipped - self.clip_min_m) / (range_val + eps)
-
-        # Form tensor: [1, 1, 96, 96]
-        tensor = depth_normalized.astype(np.float32).reshape(1, 1, 96, 96)
-
+        # Compute stats before preprocessing (for debug logging)
+        if self.debug_preprocess:
+            current_time = time.time()
+            # Throttle to ~1 Hz
+            if current_time - self.last_debug_log_time >= 1.0:
+                stats = compute_preprocessing_stats(depth_m, self.clip_min_m, self.clip_max_m)
+                self.get_logger().info(
+                    f'[PREPROCESS] Invalid: {stats["invalid_fraction"]*100:.1f}%, '
+                    f'Valid depth: min={stats.get("valid_min", np.nan):.2f}m, '
+                    f'mean={stats.get("valid_mean", np.nan):.2f}m, '
+                    f'max={stats.get("valid_max", np.nan):.2f}m, '
+                    f'Below {self.clip_min_m}m: {stats["below_clip_min"]}, '
+                    f'Above {self.clip_max_m}m: {stats["above_clip_max"]}'
+                )
+                self.last_debug_log_time = current_time
+        
+        # Use canonical training spec preprocessing
+        tensor = preprocess_depth_training_spec(
+            depth_m,
+            clip_min_m=self.clip_min_m,
+            clip_max_m=self.clip_max_m,
+            out_size=96
+        )
+        
+        # Debug log normalized tensor range (throttled)
+        if self.debug_preprocess:
+            current_time = time.time()
+            if current_time - self.last_debug_log_time >= 1.0:
+                self.get_logger().info(
+                    f'[PREPROCESS] Normalized tensor: '
+                    f'min={tensor.min():.4f}, max={tensor.max():.4f}, '
+                    f'shape={tensor.shape}, dtype={tensor.dtype}'
+                )
+        
         return tensor
-
-    def numpy_resize_nearest(self, img: np.ndarray, target_size: tuple) -> np.ndarray:
-        """
-        Simple nearest-neighbor resize using numpy indexing.
-        target_size: (width, height)
-        """
-        target_w, target_h = target_size
-        src_h, src_w = img.shape[:2]
-
-        # Compute source indices for each target pixel
-        x_indices = (np.arange(target_w) * src_w / target_w).astype(np.int32)
-        y_indices = (np.arange(target_h) * src_h / target_h).astype(np.int32)
-
-        # Clip to valid range
-        x_indices = np.clip(x_indices, 0, src_w - 1)
-        y_indices = np.clip(y_indices, 0, src_h - 1)
-
-        # Use advanced indexing
-        resized = img[np.ix_(y_indices, x_indices)]
-
-        return resized.astype(np.float32)
 
     def run_inference(self, tensor: np.ndarray) -> np.ndarray:
         """Run ONNX inference."""

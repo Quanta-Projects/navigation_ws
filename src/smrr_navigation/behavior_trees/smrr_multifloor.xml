@@ -28,14 +28,14 @@
         <WaitForDoorOpenModel
           depth_topic="/zed2_left_camera/depth/image_raw"
           model_path=""
-          timeout_sec="30.0"
+          timeout_sec="300.0"
           poll_rate_hz="10.0"
-          max_depth_stale_sec="1.0"
+          max_depth_stale_sec="2.0"
           stable_time_sec="1.0"
-          clip_min_m="0.0"
+          clip_min_m="0.2"
           clip_max_m="5.0"
-          open_index="0"
-          threshold="0.85"
+          open_index="1"
+          threshold="0.7"
           debug_log="false"/>
         
         <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
@@ -55,14 +55,14 @@
         <WaitForDoorOpenModel
           depth_topic="/zed2_left_camera/depth/image_raw"
           model_path=""
-          timeout_sec="30.0"
+          timeout_sec="300.0"
           poll_rate_hz="10.0"
-          max_depth_stale_sec="1.0"
+          max_depth_stale_sec="2.0"
           stable_time_sec="1.0"
-          clip_min_m="0.0"
+          clip_min_m="0.2"
           clip_max_m="5.0"
           open_index="1"
-          threshold="0.85"
+          threshold="0.7"
           debug_log="false"/>
 
         <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>

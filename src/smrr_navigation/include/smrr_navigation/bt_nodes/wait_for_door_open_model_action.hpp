@@ -110,11 +110,11 @@ private:
                             std::vector<float> & depth_out,
                             int & width_out, int & height_out);
 
-  // Nearest-neighbor resize (no OpenCV dependency)
-  void resizeNearestNeighbor(const std::vector<float> & src, int src_w, int src_h,
-                             std::vector<float> & dst, int dst_w, int dst_h);
+  // Area-based downsampling to match cv2.INTER_AREA (training spec)
+  void resizeAreaDownsample(const std::vector<float> & src, int src_w, int src_h,
+                            std::vector<float> & dst, int dst_w, int dst_h);
 
-  // Preprocess depth to model input tensor
+  // Preprocess depth to model input tensor (matches training preprocessing exactly)
   void preprocessDepth(const std::vector<float> & depth_m, int width, int height,
                        std::vector<float> & tensor_out);
 
