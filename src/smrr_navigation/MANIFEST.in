@@ -1,0 +1,2 @@
+include smrr_navigation/models/*.onnx
+include smrr_navigation/models/*.onnx.data

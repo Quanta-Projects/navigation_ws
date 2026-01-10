@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root main_tree_to_execute="MissionTree">
+  <BehaviorTree ID="MissionTree">
+    <Fallback name="Root">
+      <!-- Same-floor navigation -->
+      <Sequence name="SameFloor">
+        <IsSameFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
+      </Sequence>
+
+      <!-- Cross-floor navigation with elevator entry -->
+      <Sequence name="CrossFloor_ElevatorEntry">
+        <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
+        
+        <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
+        
+        <GetNamedMap floor_id="{current_floor_id}" map_key="open" map_yaml="{map_open_current}"/>
+        <GetNamedPose floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
+        <SwitchMap map_yaml="{map_open_current}"/>
+        <PublishInitialPose initial_pose="{amcl_open_current}"/>
+        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+        
+        <CallElevator floor_id="{current_floor_id}"/>
+
+        <!-- Wait for elevator door to open using ONNX depth classifier -->
+        <WaitForDoorOpenModel
+          depth_topic="/zed2_left_camera/depth/image_raw"
+          model_path=""
+          timeout_sec="300.0"
+          poll_rate_hz="10.0"
+          max_depth_stale_sec="2.0"
+          stable_time_sec="1.0"
+          clip_min_m="0.2"
+          clip_max_m="5.0"
+          open_index="1"
+          threshold="0.7"
+          debug_log="false"/>
+        
+        <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+        <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
+        
+        <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
+        <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+        <SwitchMap map_yaml="{map_open_target}"/>
+        <PublishInitialPose initial_pose="{amcl_open_target}"/>
+        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
+        <CallElevator floor_id="{target_floor_id}"/>
+
+        <!-- Wait for elevator door to open using ONNX depth classifier (exit floor) -->
+        <WaitForDoorOpenModel
+          depth_topic="/zed2_left_camera/depth/image_raw"
+          model_path=""
+          timeout_sec="300.0"
+          poll_rate_hz="10.0"
+          max_depth_stale_sec="2.0"
+          stable_time_sec="1.0"
+          clip_min_m="0.2"
+          clip_max_m="5.0"
+          open_index="1"
+          threshold="0.7"
+          debug_log="false"/>
+
+        <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+
+        <GetNamedMap floor_id="{target_floor_id}" map_key="closed" map_yaml="{map_closed_target}"/>
+        <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_closed" pose="{amcl_closed_target}"/>
+        <SwitchMap map_yaml="{map_closed_target}"/>
+        <PublishInitialPose initial_pose="{amcl_closed_target}"/>
+        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
+        <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
+      </Sequence>
+    </Fallback>
+  </BehaviorTree>
+</root>

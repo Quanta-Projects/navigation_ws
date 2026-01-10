@@ -23,6 +23,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(gazebo REQUIRED)
 
 include_directories(${GAZEBO_INCLUDE_DIRS})
 
@@ -38,7 +39,20 @@ install(
   DESTINATION share/${PROJECT_NAME}/
 )
 
-add_library(multi_floor_door_control SHARED model/moving_joint_model/plugin/multi_floor_door_control.cpp)
-target_link_libraries(multi_floor_door_control ${GAZEBO_LIBRARIES})
+# Build custom elevator plugin
+add_library(CustomElevatorPlugin SHARED 
+  model/moving_joint_model/plugin/CustomElevatorPlugin.cc
+)
+target_link_libraries(CustomElevatorPlugin ${GAZEBO_LIBRARIES})
+target_include_directories(CustomElevatorPlugin PRIVATE 
+  model/moving_joint_model/plugin
+)
+
+# Install the plugin library
+install(TARGETS CustomElevatorPlugin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 ament_package()

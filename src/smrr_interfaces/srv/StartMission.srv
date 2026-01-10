@@ -1,0 +1,14 @@
+# Request fields
+string mission_id
+string current_floor_id
+string target_floor_id
+string target_location_name
+float32 x
+float32 y
+float32 yaw
+---
+# Response fields
+bool accepted            # true unless request invalid or BT couldn't run
+bool success             # true only if BT returns SUCCESS
+uint8 nav_status         # for now: 0 if not available; later can be Nav2 status
+string message           # include mission_id and reason

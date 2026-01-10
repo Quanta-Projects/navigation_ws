@@ -1,17 +1,164 @@
-locations:
-  dock:
-    x: 2.23
-    y: -1.0
-    yaw: 0.0
-  elevator:
-    x: -2.0
-    y: 1.3
-    yaw: 1.57
-  left_back:
-    x: -9.9
-    y: 1.33
-    yaw: 0.0
-  right_back:
-    x: -9.9
-    y: -3.0
-    yaw: 3.14
+floors:
+  floor0:
+    maps:
+      closed: first_floor_with_docking_station.yaml
+      open: floor0_open.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      amcl_initial_pose_open:
+        x: -2.0
+        y: 1.3
+        yaw: 1.57
+      dock:
+        x: 2.23
+        y: -1.0
+        yaw: 0.0
+      left_back:
+        x: -9.9
+        y: 1.33
+        yaw: 0.0
+      right_back:
+        x: -9.9
+        y: -3.0
+        yaw: 3.14
+      elevator_staging:
+        x: -2.0
+        y: 1.1
+        yaw: 1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: 1.57
+      elevator_exit:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+
+  floor1:
+    maps:
+      closed: second_floor.yaml
+      open: floor1_open.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: 0.22104
+        y: -1.6485
+        yaw: -1.57
+      amcl_initial_pose_open:
+        x: -1.7834
+        y: 2.6613
+        yaw: -1.57
+      elevator_staging:
+        x: -0.30
+        y: -0.83
+        yaw: 1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: -1.57
+      elevator_exit:
+        x: -1.7197
+        y: 0.38080
+        yaw: -1.57
+      office_101:
+        x: 7.926
+        y: -4.290
+        yaw: 0.0
+      office_102:
+        x: 5.0
+        y: 2.0
+        yaw: 0.0
+      conference_room:
+        x: -5.0
+        y: 3.5
+        yaw: 1.57
+      reception:
+        x: 0.0
+        y: 0.0
+        yaw: 3.14
+
+  floor2:
+    maps:
+      closed: third_floor.yaml
+      open: third_floor.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      amcl_initial_pose_open:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      elevator_staging:
+        x: -2.5
+        y: 0.8
+        yaw: 1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: -1.57
+      elevator_exit:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      lab_201:
+        x: 4.5
+        y: -2.0
+        yaw: 0.0
+      lab_202:
+        x: 6.5
+        y: -2.0
+        yaw: 0.0
+      server_room:
+        x: -6.0
+        y: -4.0
+        yaw: 3.14
+      break_room:
+        x: 2.0
+        y: 4.0
+        yaw: 1.57
+
+  floor3:
+    maps:
+      closed: fourth_floor.yaml
+      open: fourth_floor.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      amcl_initial_pose_open:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      elevator_staging:
+        x: -2.5
+        y: 0.8
+        yaw: 1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: -1.57
+      elevator_exit:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+      exec_office:
+        x: 8.0
+        y: 3.0
+        yaw: 0.0
+      board_room:
+        x: -7.0
+        y: 2.5
+        yaw: 1.57
+      rooftop_access:
+        x: 0.0
+        y: 8.0
+        yaw: 0.0
+      storage:
+        x: -3.0
+        y: -5.0
+        yaw: 3.14
