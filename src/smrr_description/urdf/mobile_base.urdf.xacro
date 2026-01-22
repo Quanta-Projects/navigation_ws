@@ -19,19 +19,17 @@
     name="base_link">
     <inertial>
       <origin
-        xyz="0.0201310485852864 0.000520829416461865 0.865026738420884"
+        xyz="0.0201310485852864 0.000520829416461865 0.35"
         rpy="0 0 0" />
       <mass
-        value="8.2797481488828" /> <!-- 28.2797481488828 -->
-      <!-- <mass
-        value="48.2797481488828" /> -->
+        value="17.0" />
       <inertia
-        ixx="1.40869842198577"
-        ixy="0.00172519109922957"
-        ixz="0.0295451682055194"
-        iyy="1.38963154057563"
-        iyz="-0.00609490500279897"
-        izz="0.244482664433787" />
+        ixx="1.5"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="1.5"
+        iyz="0.0"
+        izz="1.0" />
     </inertial>
     <visual>
       <origin
@@ -131,7 +129,7 @@
       link="right_wheel" />
     <axis
       xyz="0 0 1" />
-    <dynamics damping="0.3" friction="0.5"/>
+    <dynamics damping="0.1" friction="0.01"/>
   </joint>
 
   <link
@@ -209,7 +207,7 @@
         link="left_wheel" />
       <axis
         xyz="0 0 1" />
-      <dynamics damping="0.3" friction="0.5"/>
+      <dynamics damping="0.1" friction="0.01"/>
   </joint>
 
   <!-- <link
@@ -378,6 +376,7 @@
       link="front_caster" />
     <axis
       xyz="1 0 0" />
+    <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
   <link
@@ -453,6 +452,7 @@
       link="back_caster" />
     <axis
       xyz="1 0 0" />
+    <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
 </robot>

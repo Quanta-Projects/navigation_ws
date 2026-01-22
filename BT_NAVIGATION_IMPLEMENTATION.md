@@ -5,9 +5,10 @@
 This document describes the complete implementation of a BehaviorTree (BT) based navigation system for the SMRR robot. The system replaces the previous Python state machine approach with a modular, XML-configurable BT architecture that integrates with Nav2 for both same-floor and cross-floor navigation tasks.
 
 **Implementation Date:** January 3, 2026  
+**Last Updated:** January 22, 2026  
 **ROS 2 Distribution:** Humble  
 **BehaviorTree Library:** BehaviorTree.CPP v3  
-**Current Milestone:** ✅ **Cross-floor with elevator call/door-open/entry + map switching both floors**
+**Current Milestone:** ✅ **Simplified Open-Map-Only Cross-Floor Navigation with Optimized AMCL and Robot Dynamics**
 
 ---
 
@@ -54,17 +55,17 @@ This document describes the complete implementation of a BehaviorTree (BT) based
 │  └─ Sequence (CrossFloor_ElevatorEntry)                   │
 │     ├─ IsDifferentFloor (Custom Condition)                │
 │     ├─ GetNamedPose(elevator_staging) → NavigateToPose    │
-│     ├─ GetNamedMap(open@current) → SwitchMap →            │
-│     │  PublishInitialPose → ClearCostmaps                 │
-│     ├─ CallElevator(current) → WaitForDoorOpen            │
-│     ├─ GetNamedPose(elevator_inside) → NavigateToPose →   │
-│     │  Spin                                               │
+│     ├─ RetryUntilSuccessful(2x):                          │
+│     │  └─ CallElevator(current) → WaitForDoorOpenModel →  │
+│     │     NavigateToPose(inside) → Spin(180°) → StopRobot │
 │     ├─ GetNamedMap(open@target) → SwitchMap →             │
 │     │  PublishInitialPose → ClearCostmaps                 │
-│     ├─ CallElevator(target) → WaitForDoorOpen             │
-│     ├─ GetNamedPose(elevator_exit) → NavigateToPose       │
-│     ├─ GetNamedMap(closed@target) → SwitchMap →           │
-│     │  PublishInitialPose → ClearCostmaps                 │
+│     ├─ Fallback (ExitElevator_WithRepositionRetry):       │
+│     │  ├─ CallElevator(target) → WaitForDoorOpenModel →   │
+│     │  │  NavigateToPose(exit)                            │
+│     │  └─ NavigateToPose(inside) → Spin → StopRobot →     │
+│     │     CallElevator → WaitForDoorOpenModel →           │
+│     │     NavigateToPose(exit)                            │
 │     └─ NavigateToPose(final_pose)                         │
 └───────────────────────────────────────────────────────────┘
 ```
@@ -80,6 +81,21 @@ This document describes the complete implementation of a BehaviorTree (BT) based
 7. **Executor Simplicity**: Mission executor remains a pure BT runner with no control logic
 8. **Reentrant Callbacks**: MultiThreadedExecutor with reentrant callback group allows nested service calls
 9. **Async BT Pattern**: StatefulActionNode for long-running operations (map switching)
+10. **Single Map Policy**: Uses only "open" maps per floor - no switching between open/closed variants
+11. **One Map Transition**: Map switching occurs only once (inside elevator, from current→target floor)
+
+### Simplified Navigation Flow
+
+**Cross-Floor Navigation Sequence:**
+1. **Start**: Robot on current floor with open map already loaded
+2. **Navigate to staging**: Move to elevator entry position (using current floor open map)
+3. **Enter elevator**: Call elevator, wait for CNN door detection, navigate inside, rotate 180°
+4. **Switch map**: While inside elevator, switch from current floor open map → target floor open map
+5. **Exit elevator**: Call elevator on target floor, wait for door, exit elevator
+6. **Navigate to goal**: Move to final destination (using target floor open map)
+7. **Complete**: Mission success
+
+**Key Improvement**: Eliminated complex open/closed map toggling, reduced map switches from 3 to 1, simplified recovery logic
 
 ---
 
@@ -1766,6 +1782,397 @@ plugin_lib_names:
 
 ---
 
+## Current Implementation: Simplified Open-Map-Only Navigation (v2.0+)
+
+### Overview
+
+As of January 22, 2026, the navigation system has been significantly simplified to use only "open" maps per floor, eliminating the complex open/closed map switching logic. This reduces the number of map transitions from 3 to 1 per cross-floor mission, improving reliability and reducing latency.
+
+### Architecture Changes
+
+**Previous Architecture (v1.x):**
+- Started on current floor with closed map
+- Switched to open map before entering elevator
+- Switched to open map on target floor after arriving
+- Switched to closed map on target floor before final navigation
+- **Total: 3 map switches**
+
+**Current Architecture (v2.x):**
+- Starts on current floor with open map already loaded
+- Navigates to elevator and enters (using current floor open map)
+- **Single map switch inside elevator** (current floor open → target floor open)
+- Exits elevator and navigates to goal (using target floor open map)
+- **Total: 1 map switch**
+
+### Behavior Tree Structure
+
+```xml
+<Fallback name="Root">
+  <!-- Same-floor navigation -->
+  <Sequence name="SameFloor">
+    <IsSameFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
+    <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
+  </Sequence>
+
+  <!-- Cross-floor navigation -->
+  <Sequence name="CrossFloor_ElevatorEntry">
+    <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
+    
+    <!-- Stage 1: Navigate to elevator on current floor -->
+    <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
+    <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
+
+    <!-- Stage 2: Enter elevator with retry -->
+    <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
+      <Sequence name="CallWaitAndEnter">
+        <CallElevator floor_id="{current_floor_id}"/>
+        <WaitForDoorOpenModel timeout_sec="300.0" threshold="0.7"/>
+        <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+        <Spin spin_dist="-3.1416" time_allowance="10.0"/>
+        <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+      </Sequence>
+    </RetryUntilSuccessful>
+    
+    <!-- Stage 3: Switch to target floor map (ONLY MAP SWITCH) -->
+    <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
+    <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+    <SwitchMap map_yaml="{map_open_target}"/>
+    <PublishInitialPose initial_pose="{amcl_open_target}"/>
+    <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+    <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
+    <!-- Stage 4: Exit elevator with repositioning fallback -->
+    <Fallback name="ExitElevator_WithRepositionRetry">
+      <Sequence name="ExitAttempt_1">
+        <CallElevator floor_id="{target_floor_id}"/>
+        <WaitForDoorOpenModel timeout_sec="1500.0" threshold="0.7"/>
+        <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+      </Sequence>
+      
+      <Sequence name="RepositionThenExitAttempt_2">
+        <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+        <Spin spin_dist="-3.5416" time_allowance="10.0"/>
+        <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+        <CallElevator floor_id="{target_floor_id}"/>
+        <WaitForDoorOpenModel timeout_sec="300.0" threshold="0.7"/>
+        <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+      </Sequence>
+    </Fallback>
+
+    <!-- Stage 5: Navigate to final destination -->
+    <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
+  </Sequence>
+</Fallback>
+```
+
+### Robot Configuration Optimizations
+
+#### 1. Mass and Inertial Properties
+
+**File:** `src/smrr_description/urdf/mobile_base.urdf.xacro`
+
+**Critical Fix - Base Link Mass:**
+```xml
+<link name="base_link">
+  <inertial>
+    <origin xyz="0.020 0.001 0.35" rpy="0 0 0"/>
+    <mass value="17.0"/>  <!-- Fixed from 8.28 kg -->
+    <inertia
+      ixx="1.5"  <!-- Reduced from 2.5 for stability -->
+      iyy="1.5"
+      izz="1.0"  <!-- Reduced from 1.5 for better rotation control -->
+      ixy="0.0" ixz="0.0" iyz="0.0"/>
+  </inertial>
+</link>
+```
+
+**Changes Made:**
+- **Mass**: 8.28 kg → 17.0 kg (realistic for 20 kg total robot including arms)
+- **Center of Mass**: z=0.865 m → 0.35 m (lowered by 51.5 cm for stability)
+- **Rotational Inertia**: Izz 0.244 → 1.0 kg⋅m² (4× increase for rotation stability)
+
+**Result:** Robot no longer rotates spontaneously at rest or in elevator
+
+#### 2. Wheel Friction and Dynamics
+
+**File:** `src/smrr_description/urdf/mobile_base.urdf.xacro`
+
+**Wheel Joint Configuration:**
+```xml
+<joint name="right_wheel_joint" type="continuous">
+  <origin xyz="0 -0.201 0.0184" rpy="-1.5708 0 0"/>
+  <parent link="base_link"/>
+  <child link="right_wheel"/>
+  <axis xyz="0 0 1"/>
+  <dynamics damping="0.1" friction="0.01"/>  <!-- Fixed from 0.3/0.5 -->
+</joint>
+
+<joint name="left_wheel_joint" type="continuous">
+  <origin xyz="0 0.201 0.0184" rpy="-1.5708 0 0"/>
+  <parent link="base_link"/>
+  <child link="left_wheel"/>
+  <axis xyz="0 0 1"/>
+  <dynamics damping="0.1" friction="0.01"/>  <!-- Fixed from 0.3/0.5 -->
+</joint>
+```
+
+**Changes Made:**
+- **Friction**: 0.5 → 0.01 (50× reduction for free-spinning wheels)
+- **Damping**: 0.3 → 0.1 (allows more responsive control)
+- **Caster Friction**: Added explicit 0.0 friction to fixed casters
+
+**Result:** Eliminated drag-induced rotation, more responsive wheel control
+
+#### 3. Differential Drive Controller
+
+**File:** `src/smrr_controller/config/arm_controller.yaml`
+
+**Controller Manager:**
+```yaml
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Increased from 50 Hz
+    use_sim_time: true
+```
+
+**Diff Drive Controller:**
+```yaml
+diff_drive_controller:
+  ros__parameters:
+    wheel_separation: 0.402  # meters
+    wheel_radius: 0.081      # meters
+    
+    publish_rate: 100.0      # Match update_rate
+    cmd_vel_timeout: 1.0     # Increased from 0.5s
+    velocity_rolling_window_size: 1  # Reduced from 2 for immediate response
+    
+    # Velocity limits
+    linear.x.max_velocity: 1.0
+    linear.x.max_acceleration: 2.0
+    angular.z.max_velocity: 2.0
+    angular.z.max_acceleration: 4.0
+```
+
+**Changes Made:**
+- **Update Rate**: 50 → 100 Hz (matches publish rate, eliminates timing oscillations)
+- **CMD Timeout**: 0.5 → 1.0 seconds (prevents premature emergency stops)
+- **Rolling Window**: 2 → 1 (minimal velocity smoothing for immediate stop response)
+
+**Result:** Better timing synchronization, faster response to zero-velocity commands
+
+#### 4. AMCL Localization Parameters
+
+**File:** `src/smrr_navigation/config/smrr_nav_params.yaml`
+
+**Critical AMCL Parameters:**
+```yaml
+amcl:
+  ros__parameters:
+    # Sensor configuration
+    laser_max_range: -1.0  # Use sensor's actual range (RPLiDAR A2: 12m)
+    laser_min_range: -1.0  # Use sensor's minimum (0.2m)
+    max_beams: 120         # Increased from 60 for better orientation
+    
+    # Particle filter
+    max_particles: 5000    # Increased from 2000
+    min_particles: 1000    # Increased from 500
+    resample_interval: 1   # Optimal for fast convergence
+    
+    # Motion model (differential drive)
+    recovery_alpha_fast: 0.1   # Enable recovery from bad localization
+    recovery_alpha_slow: 0.001
+    
+    # Update thresholds
+    update_min_a: 0.05     # Reduced from 0.2 rad (~3° vs ~11°)
+    update_min_d: 0.25     # meters
+    transform_tolerance: 0.5
+    
+    # Initial covariance (critical for orientation stability)
+    initial_cov_xx: 2.0    # ±2m position uncertainty
+    initial_cov_yy: 2.0
+    initial_cov_aa: 0.03   # ±10° angular uncertainty (reduced from 0.52/±45°)
+```
+
+**Changes Made:**
+- **Angular Covariance**: 0.52 (±45°) → 0.03 (±10°) [Critical fix for rotation stability]
+- **Angular Update**: 0.2 rad → 0.05 rad (4× more frequent orientation updates)
+- **Max Beams**: 60 → 120 (double the scan data for orientation)
+- **Particles**: 500-2000 → 1000-5000 (better coverage and stability)
+- **Recovery**: Enabled fast/slow recovery (was disabled at 0.0)
+
+**Result:** Robot commits to single rotation direction, no more bidirectional oscillation
+
+#### 5. DWB Local Planner Parameters
+
+**File:** `src/smrr_navigation/config/smrr_nav_params.yaml`
+
+**Controller Configuration:**
+```yaml
+FollowPath:
+  plugin: "dwb_core::DWBLocalPlanner"
+  
+  # Velocity limits
+  max_vel_x: 0.35
+  max_vel_theta: 1.5
+  
+  # Acceleration limits (reduced for stability)
+  acc_lim_x: 2.5
+  acc_lim_theta: 2.5      # Reduced from 4.0
+  decel_lim_theta: -2.5   # Reduced from -4.0
+  
+  # Trajectory sampling
+  vtheta_samples: 50      # Increased from 40 for finer resolution
+  sim_time: 1.7
+  
+  # Goal tolerances
+  xy_goal_tolerance: 0.10
+  yaw_goal_tolerance: 0.17  # ±10° (relaxed from 0.15/±8.6°)
+  
+  # Critics
+  critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+  Oscillation.scale: 1.0    # Moderate penalty (was 5.0-10.0)
+  RotateToGoal.scale: 48.0
+  RotateToGoal.slowing_factor: 3.0
+```
+
+**Changes Made:**
+- **Rotational Acceleration**: 4.0 → 2.5 rad/s² (prevents overshoot during large rotations)
+- **Yaw Tolerance**: 0.15 → 0.17 rad (matches ±10° localization uncertainty)
+- **Oscillation Critic**: Tuned 10.0 → 1.0 (balanced direction commitment vs. flexibility)
+- **Vtheta Samples**: 40 → 50 (finer angular trajectory resolution)
+
+**Result:** Smooth rotations for all angles (50°-180°), no back-and-forth oscillation
+
+#### 6. RPLiDAR A2 Sensor Configuration
+
+**File:** `src/smrr_description/urdf/lidar.urdf.xacro`
+
+**Corrected Gazebo Sensor:**
+```xml
+<gazebo reference="rplidar_link">
+  <sensor name="laser" type="gpu_ray">
+    <pose>0 0 0 0 0 0</pose>
+    <update_rate>10</update_rate>  <!-- Fixed from 30 Hz -->
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>400</samples>
+          <resolution>1</resolution>
+          <min_angle>-3.14159265</min_angle>  <!-- Fixed from -2.0943 (-120°) -->
+          <max_angle>3.14159265</max_angle>   <!-- Fixed from 2.0943 (+120°) -->
+        </horizontal>
+      </scan>
+      <range>
+        <min>0.15</min>
+        <max>12.0</max>
+        <resolution>0.01</resolution>
+      </range>
+    </ray>
+    <plugin filename="libgazebo_ros_ray_sensor.so" name="gazebo_ros_laser_controller">
+      <ros><namespace>/</namespace><remapping>~/out:=scan</remapping></ros>
+      <output_type>sensor_msgs/LaserScan</output_type>
+      <frame_name>rplidar_link</frame_name>
+    </plugin>
+  </sensor>
+</gazebo>
+```
+
+**Changes Made:**
+- **Angular Range**: -120° to +120° (240° total) → -180° to +180° (360° total)
+- **Scan Rate**: 30 Hz → 10 Hz (matches RPLiDAR A2M8 specifications)
+- **Samples**: 400 (acceptable for 360° coverage)
+
+**Result:** Full 360° lidar coverage matching real hardware, accurate simulation
+
+### StopRobot Custom BT Node
+
+**Purpose:** Explicitly publish zero velocity commands to stop residual robot motion after Spin action.
+
+**Implementation:**
+```cpp
+// Publishes zero Twist on /cmd_vel every 200ms for 800ms total
+<StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+```
+
+**Why Needed:** Nav2 controllers have velocity smoothing/ramping that may leave residual motion. Explicit zero commands ensure complete stop before map switching.
+
+### Locations Configuration Structure
+
+**File:** `src/smrr_navigation/config/locations.yaml`
+
+```yaml
+floors:
+  floor0:
+    maps:
+      open: floor0_open.yaml    # Only open map used
+    locations:
+      amcl_initial_pose_open:
+        x: -2.0
+        y: 1.3
+        yaw: 1.57
+      elevator_staging:
+        x: -2.0
+        y: 1.1
+        yaw: 1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: 1.57
+      elevator_exit:
+        x: -1.5
+        y: 0.8
+        yaw: 1.57
+
+  floor1:
+    maps:
+      open: floor1_open.yaml    # Only open map used
+    locations:
+      amcl_initial_pose_open:
+        x: -1.7834
+        y: 2.6613
+        yaw: -1.57
+      elevator_inside:
+        x: -1.96
+        y: 3.00
+        yaw: -1.57
+      elevator_exit:
+        x: -1.7197
+        y: 0.3808
+        yaw: -1.57
+      office_101:
+        x: 5.896
+        y: -2.293
+        yaw: 0.0
+```
+
+**Key Points:**
+- **Only "open" map key used** - closed maps no longer referenced
+- **AMCL poses per floor** - different for each floor's coordinate system
+- **Elevator poses** - staging, inside, exit defined for each floor
+- **Goal coordinates** - must be within map bounds (validate in RViz)
+
+### Performance Metrics
+
+**Tested Configuration:**
+- Robot Mass: 20.08 kg total
+- Localization: ±10° angular uncertainty, 3° update threshold
+- Controller: 100 Hz update, 2.5 rad/s² angular acceleration
+- Navigation: Successfully completes floor0 → floor1 → office_101
+
+**Typical Cross-Floor Mission Timeline:**
+1. Staging navigation: 15-20 seconds
+2. Elevator entry (call + door + enter): 10-15 seconds
+3. Map switch + relocalization: 2-3 seconds
+4. Elevator exit (call + door + exit): 15-20 seconds (1500s timeout for door)
+5. Final navigation: 20-30 seconds
+**Total: 62-88 seconds** (excluding door wait times)
+
+---
+
 ## Performance Characteristics
 
 - **BT Tick Rate:** 20 Hz (configurable)
@@ -1856,6 +2263,10 @@ smrr_navigation/launch/smrr_world_navigation.launch.py  # Launch BT executor wit
 | 2026-01-03 | 1.3.0 | **Map Switching Implementation**: Added GetNamedMap, SwitchMap (async), PublishInitialPose BT nodes |
 | 2026-01-03 | 1.3.1 | Fixed executor pattern: MultiThreadedExecutor + Reentrant callback group for nested service calls |
 | 2026-01-03 | 1.3.2 | Fixed PublishInitialPose input handling (`bad_expected_access` error) |
+| 2026-01-22 | 2.0.0 | **Simplified Open-Map-Only Architecture**: Removed dual open/closed map system, single map transition inside elevator |
+| 2026-01-22 | 2.1.0 | **Robot Dynamics Optimization**: Fixed mass (8.28→17.0 kg), CoM (86.5→35 cm), wheel friction (0.5→0.01), controller timing (50→100 Hz) |
+| 2026-01-22 | 2.2.0 | **AMCL Tuning**: Optimized angular covariance (±45°→±10°), update frequency (0.2→0.05 rad), rotational accel (4.0→2.5 rad/s²), yaw tolerance (0.15→0.17 rad) |
+| 2026-01-22 | 2.2.1 | **Sensor Calibration**: Corrected RPLiDAR A2 configuration (240°→360° coverage, 30→10 Hz scan rate) |
 | 2026-01-03 | 1.3.3 | Added costmap clearing to BT sequence (ClearEntireCostmap nodes) |
 | 2026-01-03 | 1.4.0 | Complete cross-floor map switching (open map, relocalize, clear costmaps) |
 | 2026-01-03 | **1.5.0** | **✅ Elevator call + door-open wait + entry/exit + target-floor map switching and final navigation** |
