@@ -8,39 +8,66 @@
         <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
       </Sequence>
 
-      <!-- Cross-floor navigation with elevator entry -->
+      <!-- Cross-floor navigation -->
       <Sequence name="CrossFloor_ElevatorEntry">
         <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
         
+        <!-- Go to staging pose -->
         <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
-        
-        <GetNamedMap floor_id="{current_floor_id}" map_key="open" map_yaml="{map_open_current}"/>
-        <GetNamedPose floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
-        <SwitchMap map_yaml="{map_open_current}"/>
-        <PublishInitialPose initial_pose="{amcl_open_current}"/>
-        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
-        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
-        
-        <CallElevator floor_id="{current_floor_id}"/>
 
-        <!-- Wait for elevator door to open using ONNX depth classifier -->
-        <WaitForDoorOpenModel
-          depth_topic="/zed2_left_camera/depth/image_raw"
-          model_path=""
-          timeout_sec="300.0"
-          poll_rate_hz="10.0"
-          max_depth_stale_sec="2.0"
-          stable_time_sec="1.0"
-          clip_min_m="0.2"
-          clip_max_m="5.0"
-          open_index="1"
-          threshold="0.7"
-          debug_log="false"/>
-        
-        <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
-        <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
-        <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
+        <GetNamedMap floor_id="{current_floor_id}" map_key="open"   map_yaml="{map_open_current}"/>
+        <GetNamedMap floor_id="{current_floor_id}" map_key="closed" map_yaml="{map_closed_current}"/>
+
+        <!-- Elevator entry-->
+        <Fallback name="ElevatorEntryOrRestoreClosedMap">
+
+          <!-- Primary attempt: switch to open map, call elevator, wait for door -->
+          <Sequence name="ElevatorEntryAttempt">
+            <GetNamedPose floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
+
+            <SwitchMap map_yaml="{map_open_current}"/>
+            <PublishInitialPose initial_pose="{amcl_open_current}"/>
+
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
+            <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndDetectDoor_Twice">
+              <Sequence name="CallAndWaitDoor">
+                <CallElevator floor_id="{current_floor_id}"/>
+
+                <WaitForDoorOpenModel
+                  depth_topic="/zed2_left_camera/depth/image_raw"
+                  model_path=""
+                  timeout_sec="300.0"
+                  poll_rate_hz="10.0"
+                  max_depth_stale_sec="2.0"
+                  stable_time_sec="1.0"
+                  clip_min_m="0.2"
+                  clip_max_m="5.0"
+                  open_index="1"
+                  threshold="0.7"
+                  debug_log="false"/>
+
+                <!--Navigate inside elevator-->
+                <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+                <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+                <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
+                <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+              </Sequence>
+            </RetryUntilSuccessful>
+          </Sequence>
+
+          <!-- Fallback: restore closed map and reset pose to staging -->
+          <ForceFailure name="RestoreAndAbortMission">
+            <Sequence name="RestoreClosedMapAtStaging">
+              <SwitchMap map_yaml="{map_closed_current}"/>
+              <PublishInitialPose initial_pose="{staging_pose}"/>
+              <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+              <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+            </Sequence>
+          </ForceFailure>
+        </Fallback>
         
         <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
         <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
@@ -49,24 +76,61 @@
         <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
         <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
-        <CallElevator floor_id="{target_floor_id}"/>
+        <!-- Exit elevator handling-->
+        <Fallback name="ExitFloor_DoorAndExit_WithRepositionRetry">
 
-        <!-- Wait for elevator door to open using ONNX depth classifier (exit floor) -->
-        <WaitForDoorOpenModel
-          depth_topic="/zed2_left_camera/depth/image_raw"
-          model_path=""
-          timeout_sec="300.0"
-          poll_rate_hz="10.0"
-          max_depth_stale_sec="2.0"
-          stable_time_sec="1.0"
-          clip_min_m="0.2"
-          clip_max_m="5.0"
-          open_index="1"
-          threshold="0.7"
-          debug_log="false"/>
+          <!-- Attempt 1: call elevator, detect door, exit -->
+          <Sequence name="ExitAttempt_1">
+            <CallElevator floor_id="{target_floor_id}"/>
 
-        <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
-        <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+            <WaitForDoorOpenModel
+              depth_topic="/zed2_left_camera/depth/image_raw"
+              model_path=""
+              timeout_sec="300.0"
+              poll_rate_hz="10.0"
+              max_depth_stale_sec="2.0"
+              stable_time_sec="1.0"
+              clip_min_m="0.2"
+              clip_max_m="5.0"
+              open_index="1"
+              threshold="0.7"
+              debug_log="false"/>
+
+            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+            <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+          </Sequence>
+
+          <!-- Attempt 2: if attempt 1 fails, go to inside pose, spin, then retry -->
+          <Sequence name="RepositionThenExitAttempt_2">
+
+            <!-- Navigate to elevator inside pose of target floor -->
+            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+            <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+            <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
+            <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+
+            <!-- Retry call + door detection + exit navigation -->
+            <CallElevator floor_id="{target_floor_id}"/>
+
+            <WaitForDoorOpenModel
+              depth_topic="/zed2_left_camera/depth/image_raw"
+              model_path=""
+              timeout_sec="300.0"
+              poll_rate_hz="10.0"
+              max_depth_stale_sec="2.0"
+              stable_time_sec="1.0"
+              clip_min_m="0.2"
+              clip_max_m="5.0"
+              open_index="1"
+              threshold="0.7"
+              debug_log="false"/>
+
+            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+            <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+          </Sequence>
+
+        </Fallback>
+
 
         <GetNamedMap floor_id="{target_floor_id}" map_key="closed" map_yaml="{map_closed_target}"/>
         <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_closed" pose="{amcl_closed_target}"/>
