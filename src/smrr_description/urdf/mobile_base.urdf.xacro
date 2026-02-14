@@ -22,14 +22,14 @@
         xyz="0.0201310485852864 0.000520829416461865 0.35"
         rpy="0 0 0" />
       <mass
-        value="17.0" />
+        value="10.0" />
       <inertia
-        ixx="1.5"
+        ixx="1.0"
         ixy="0.0"
         ixz="0.0"
-        iyy="1.5"
+        iyy="1.0"
         iyz="0.0"
-        izz="1.0" />
+        izz="0.8" />
     </inertial>
     <visual>
       <origin
@@ -60,17 +60,17 @@
     name="right_wheel">
     <inertial>
       <origin
-        xyz="3.04623488683875E-06 6.72391256367755E-06 -0.0311105168378413"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.989823090734283" />
+        value="1.5" />
       <inertia
-        ixx="0.00167921032012111"
-        ixy="6.53172867821882E-09"
-        ixz="-1.64665780609969E-07"
-        iyy="0.0016792904624912"
-        iyz="-3.63464523309006E-07"
-        izz="0.00288690083815089" />
+        ixx="0.0025"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0025"
+        iyz="0.0"
+        izz="0.0044" />
     </inertial>
     <visual>
       <origin
@@ -129,24 +129,24 @@
       link="right_wheel" />
     <axis
       xyz="0 0 1" />
-    <dynamics damping="0.1" friction="0.01"/>
+    <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
   <link
     name="left_wheel">
     <inertial>
       <origin
-        xyz="-8.38679888204297E-07 7.3339732202804E-06 0.0311105168378413"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.989823090734282" />
+        value="1.5" />
       <inertia
-        ixx="0.00167926061595776"
-        ixy="-1.12032618333546E-08"
-        ixz="-4.53352691396202E-08"
-        iyy="0.00167924016665455"
-        iyz="3.96441663275016E-07"
-        izz="0.0028869008381509" />
+        ixx="0.0025"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0025"
+        iyz="0.0"
+        izz="0.0044" />
     </inertial>
     <visual>
       <!-- <origin
@@ -207,7 +207,7 @@
         link="left_wheel" />
       <axis
         xyz="0 0 1" />
-      <dynamics damping="0.1" friction="0.01"/>
+      <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
   <!-- <link
@@ -307,17 +307,17 @@
     name="front_caster">
     <inertial>
       <origin
-        xyz="0 0 -0.0025"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.0335103216382911" />
+        value="0.5" />
       <inertia
-        ixx="5.36165146212658E-06"
-        ixy="0"
-        ixz="-9.4039548065783E-38"
-        iyy="5.36165146212658E-06"
-        iyz="0"
-        izz="5.36165146212658E-06" />
+        ixx="0.0001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0001"
+        iyz="0.0"
+        izz="0.0001" />
     </inertial>
     <visual>
       <origin
@@ -368,7 +368,7 @@
     name="front_caster_joint"
     type="fixed">
     <origin
-      xyz="0.245 0 -0.04"
+      xyz="0.245 0 -0.0414"
       rpy="0 0 0" />
     <parent
       link="base_link" />
@@ -383,17 +383,17 @@
     name="back_caster">
     <inertial>
       <origin
-        xyz="0 0 -0.0025"
+        xyz="0 0 0"
         rpy="0 0 0" />
       <mass
-        value="0.0335103216382911" />
+        value="0.5" />
       <inertia
-        ixx="5.36165146212658E-06"
-        ixy="0"
-        ixz="-9.4039548065783E-38"
-        iyy="5.36165146212658E-06"
-        iyz="0"
-        izz="5.36165146212658E-06" />
+        ixx="0.0001"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="0.0001"
+        iyz="0.0"
+        izz="0.0001" />
     </inertial>
     <visual>
       <origin
@@ -444,7 +444,7 @@
     name="back_caster_joint"
     type="fixed">
     <origin
-      xyz="-0.245 0 -0.04"
+      xyz="-0.245 0 -0.0384"
       rpy="0 0 0" />
     <parent
       link="base_link" />

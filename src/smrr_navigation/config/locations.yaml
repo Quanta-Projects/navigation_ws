@@ -24,6 +24,14 @@ floors:
         x: -9.9
         y: -3.0
         yaw: 3.14
+      left_front:
+        x: 6.15
+        y: 1.18
+        yaw: 3.14
+      right_front:
+        x: 6.19
+        y: -2.45
+        yaw: 3.14
       elevator_staging:
         x: -2.0
         y: 1.1
