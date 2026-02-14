@@ -285,12 +285,17 @@ class HumanInstanceTracker(Node):
         if cx < 0 or cx >= w or cy < 0 or cy >= h:
             return None
 
-        # Average depth in a region around center
-        region_size = 10
+        # Dynamic region size — scales with the bounding-box dimensions so
+        # distant (small) detections use a smaller depth window, preventing
+        # background depth from "bleeding" into the median calculation.
+        box_width = x2 - x1
+        box_height = y2 - y1
+        region_size = max(1, int(min(box_width, box_height) * 0.1))
+
         y_start = max(0, cy - region_size)
-        y_end = min(h, cy + region_size)
+        y_end = min(h, cy + region_size + 1)
         x_start = max(0, cx - region_size)
-        x_end = min(w, cx + region_size)
+        x_end = min(w, cx + region_size + 1)
 
         depth_region = depth_image[y_start:y_end, x_start:x_end]
         
@@ -356,13 +361,18 @@ class HumanInstanceTracker(Node):
             pose_camera.position.x = float(pos_3d[0])
             pose_camera.position.y = float(pos_3d[1])
             pose_camera.position.z = float(pos_3d[2])
-            pose_camera.orientation.z = float(human['confidence'])  # Encode confidence
+            pose_camera.orientation.x = 0.0
+            pose_camera.orientation.y = 0.0
+            pose_camera.orientation.z = 0.0
             pose_camera.orientation.w = 1.0
             
             # Transform pose to target frame (map/odom)
             pose_map = self.transform_pose_to_map(pose_camera, header)
             
             if pose_map is not None:
+                # Pack confidence into position.z AFTER frame transform
+                # (2D tracking; Z is unused in map frame)
+                pose_map.position.z = float(human['confidence'])
                 transform_success_count += 1
                 pose_array.poses.append(pose_map)
 
@@ -443,12 +453,12 @@ class HumanInstanceTracker(Node):
             # Create PoseStamped in camera frame
             pose_stamped = PoseStamped()
             pose_stamped.header.frame_id = header.frame_id
-            # Use current time (Time(0)) to get latest available transform
-            # This avoids extrapolation errors when camera timestamp is ahead of TF
-            pose_stamped.header.stamp = rclpy.time.Time().to_msg()
+            # Use the sensor message timestamp to anchor the transform to the
+            # moment the data was captured, preventing ego-motion latency.
+            pose_stamped.header.stamp = header.stamp
             pose_stamped.pose = pose
             
-            # Transform to target frame using latest available transform
+            # Transform to target frame using the sensor-time transform
             transformed_pose = self.tf_buffer.transform(
                 pose_stamped,
                 self.target_frame,

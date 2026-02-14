@@ -22,7 +22,18 @@ def generate_launch_description():
     default_yolo_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
     default_drspaam_model = os.path.join(pkg_share, 'models', 'ckpt_jrdb_ann_ft_dr_spaam_e20.pth')
     
+    # Simulation time — must be 'true' when running in Gazebo so that
+    # all nodes (and TF lookups / KF dt calculations) use /clock.
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    
     return LaunchDescription([
+        # ==================== Simulation Time ====================
+        DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='true',
+            description='Use simulation (Gazebo) clock for all nodes'
+        ),
+        
         # ==================== YOLO Vision Tracker Arguments ====================
         DeclareLaunchArgument(
             'yolo_model_path',
@@ -153,6 +164,7 @@ def generate_launch_description():
             name='human_tracker',
             output='screen',
             parameters=[{
+                'use_sim_time': use_sim_time,
                 'model_path': LaunchConfiguration('yolo_model_path'),
                 'confidence_threshold': LaunchConfiguration('yolo_confidence_threshold'),
                 'rgb_topic': LaunchConfiguration('rgb_topic'),
@@ -173,6 +185,7 @@ def generate_launch_description():
             name='dr_spaam_detector',
             output='screen',
             parameters=[{
+                'use_sim_time': use_sim_time,
                 'weight_file': LaunchConfiguration('drspaam_model_path'),
                 'detector_model': LaunchConfiguration('detector_model'),
                 'conf_thresh': LaunchConfiguration('lidar_conf_thresh'),
@@ -192,6 +205,7 @@ def generate_launch_description():
             name='human_fusion_kf',
             output='screen',
             parameters=[{
+                'use_sim_time': use_sim_time,
                 'camera_fov_degrees': LaunchConfiguration('camera_fov_degrees'),
                 'fusion_distance_threshold': LaunchConfiguration('fusion_distance_threshold'),
                 'track_timeout_sec': LaunchConfiguration('track_timeout_sec'),

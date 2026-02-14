@@ -16,7 +16,6 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         (os.path.join('share', package_name, 'models'), glob('models/*.pth')),
         (os.path.join('share', package_name, 'models'), glob('models/*.pt')),
-        (os.path.join('lib', package_name), glob('scripts/*.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,10 +24,6 @@ setup(
     description='Human detection and crowd navigation using YOLO11 and RGBD camera',
     license='Apache-2.0',
     tests_require=['pytest'],
-    scripts=[
-        'scripts/evaluate_fusion.py',
-        'scripts/check_evaluation_ready.py',
-    ],
     entry_points={
         'console_scripts': [
             'human_detector = smrr_crowdnav.human_detector:main',
@@ -36,6 +31,10 @@ setup(
             'human_tracker = smrr_crowdnav.human_tracker:main',
             'human_fusion_node = smrr_crowdnav.human_fusion_node:main',
             'human_fusion_kf = smrr_crowdnav.human_fusion_kf_node:main',
+            'evaluate_fusion = smrr_crowdnav.scripts.evaluate_fusion:main',
+            'evaluate_kf_only = smrr_crowdnav.scripts.evaluate_kf_only:main',
+            'check_evaluation_ready = smrr_crowdnav.scripts.check_evaluation_ready:main',
+            'check_kf_ready = smrr_crowdnav.scripts.check_kf_ready:main',
         ],
     },
 )

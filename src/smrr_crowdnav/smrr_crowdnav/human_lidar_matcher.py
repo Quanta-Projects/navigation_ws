@@ -127,6 +127,11 @@ class DrSpaamNode(Node):
         if self.target_frame and self.target_frame != msg.header.frame_id:
             dets_msg = self._transform_pose_array_to_target_frame(dets_msg)
         
+        # Pack confidence into position.z AFTER frame transform so tf2
+        # quaternion math cannot corrupt it (orientation is identity).
+        for pose, d_cls in zip(dets_msg.poses, dets_cls):
+            pose.position.z = float(d_cls)
+        
         self._dets_pub.publish(dets_msg)
 
         # Publish RViz markers (only if there are subscribers)
@@ -194,8 +199,10 @@ class DrSpaamNode(Node):
             p = Pose()
             p.position.x = float(d_xy[0])
             p.position.y = float(d_xy[1])
-            p.position.z = 0.0
-            p.orientation.z = float(d_cls)  # Encode confidence score
+            p.position.z = 0.0  # Confidence packed into position.z after frame transform
+            p.orientation.x = 0.0
+            p.orientation.y = 0.0
+            p.orientation.z = 0.0
             p.orientation.w = 1.0
             pose_array.poses.append(p)
 
@@ -204,12 +211,13 @@ class DrSpaamNode(Node):
     def _transform_pose_array_to_target_frame(self, pose_array):
         """Transform PoseArray to target frame using TF2 efficiently"""
         try:
-            # Get transform once for all poses (use latest available transform)
+            # Use the sensor message timestamp to anchor the transform to the
+            # moment the scan was captured, preventing ego-motion latency.
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 pose_array.header.frame_id,
-                rclpy.time.Time(),  # Use latest available transform
-                timeout=rclpy.duration.Duration(seconds=0.1)  # Reduced timeout
+                rclpy.time.Time.from_msg(pose_array.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.1)
             )
             
             # Transform each pose using the same transform
@@ -243,12 +251,13 @@ class DrSpaamNode(Node):
     def _transform_marker_to_target_frame(self, marker):
         """Transform marker points to target frame efficiently"""
         try:
-            # Get transform once for all points (use latest available transform)
+            # Use the sensor message timestamp to anchor the transform to the
+            # moment the scan was captured, preventing ego-motion latency.
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 marker.header.frame_id,
-                rclpy.time.Time(),  # Use latest available transform
-                timeout=rclpy.duration.Duration(seconds=0.1)  # Reduced timeout
+                rclpy.time.Time.from_msg(marker.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.1)
             )
             
             # Transform each point using the same transform
