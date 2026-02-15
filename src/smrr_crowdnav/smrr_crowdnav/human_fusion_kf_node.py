@@ -74,11 +74,11 @@ class IMMFilter:
         self.mu = np.array([0.2, 0.8])
 
         # ---------- Markov mode transition matrix ----------
-        # Rows = from-model, Cols = to-model.  Diagonal = 0.9 means
-        # strong persistence in the current mode.
+        # Rows = from-model, Cols = to-model.  High diagonal = aggressive
+        # mode commitment to prevent CP from dragging CV backward.
         self.M = np.array([
-            [0.90, 0.10],   # CP -> CP / CV
-            [0.10, 0.90]    # CV -> CP / CV
+            [0.98, 0.02],   # CP -> CP / CV
+            [0.05, 0.95]    # CV -> CP / CV
         ])
 
         # Base measurement noise (scaled dynamically in update())
@@ -234,8 +234,8 @@ class IMMFilter:
 
         mahal_sq = float(y_comb.T @ S_comb_inv @ y_comb)
 
-        if mahal_sq > 20.0:
-            # Relaxed gate — only reject extreme outliers.
+        if mahal_sq > 50.0:
+            # Near-disabled gate — only reject catastrophic outliers (NaN, 1000m).
             return
 
         # --- 3. Per-model Kalman update & likelihood computation ---
@@ -411,7 +411,7 @@ class HumanFusionKFNode(Node):
         # Kalman Filter parameters
         self.declare_parameter('process_noise_pos', 0.1)  # Position process noise (m²)
         self.declare_parameter('process_noise_vel', 0.5)  # Velocity process noise (m²/s²)
-        self.declare_parameter('measurement_noise', 0.3)  # Measurement noise (m²)
+        self.declare_parameter('measurement_noise', 0.15)  # Measurement noise (m²)
         
         self.camera_fov_rad = math.radians(self.get_parameter('camera_fov_degrees').value)
         self.fusion_threshold = self.get_parameter('fusion_distance_threshold').value
@@ -436,8 +436,8 @@ class HumanFusionKFNode(Node):
         
         self.ts = ApproximateTimeSynchronizer(
             [self.yolo_sub, self.lidar_sub],
-            queue_size=10,
-            slop=0.1  # 100 ms tolerance between YOLO and LiDAR stamps
+            queue_size=50,
+            slop=0.3  # 300 ms tolerance — relaxed to prevent data starvation
         )
         self.ts.registerCallback(self.fusion_callback)
         
@@ -460,7 +460,7 @@ class HumanFusionKFNode(Node):
         self.get_logger().info(f'Human Fusion IMM Node initialized')
         self.get_logger().info(f'  Camera FOV: {self.get_parameter("camera_fov_degrees").value}°')
         self.get_logger().info(f'  Fusion threshold: {self.fusion_threshold}m')
-        self.get_logger().info(f'  IMM models: CP / CV  |  Mahalanobis gate: 20.0')
+        self.get_logger().info(f'  IMM models: CP / CV  |  Mahalanobis gate: 50.0')
         self.get_logger().info(f'  Base measurement noise: {self.measurement_noise} m²')
         self.get_logger().info(f'  Publishing to: fused_humans_kf/poses, fused_humans_kf/markers')
     
@@ -516,7 +516,7 @@ class HumanFusionKFNode(Node):
         """Main fusion loop with Kalman Filter tracking.
         
         Called by ApproximateTimeSynchronizer with temporally matched
-        YOLO and LiDAR PoseArray messages (slop ≤ 100 ms).
+        YOLO and LiDAR PoseArray messages (slop ≤ 300 ms).
         """
         robot_pos, robot_yaw = self.get_robot_pose_and_yaw()
         if robot_pos is None:
