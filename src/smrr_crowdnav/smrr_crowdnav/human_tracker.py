@@ -45,7 +45,7 @@ class HumanInstanceTracker(Node):
         self.declare_parameter('publish_visualization', True)
         self.declare_parameter('max_detection_distance', 15.0)
         self.declare_parameter('tracker', 'bytetrack.yaml')
-        self.declare_parameter('iou_threshold', 0.5)
+        self.declare_parameter('iou_threshold', 0.3)
         self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
 
         # Get parameters
@@ -285,17 +285,12 @@ class HumanInstanceTracker(Node):
         if cx < 0 or cx >= w or cy < 0 or cy >= h:
             return None
 
-        # Dynamic region size — scales with the bounding-box dimensions so
-        # distant (small) detections use a smaller depth window, preventing
-        # background depth from "bleeding" into the median calculation.
-        box_width = x2 - x1
-        box_height = y2 - y1
-        region_size = max(1, int(min(box_width, box_height) * 0.1))
-
+        # Average depth in a region around center
+        region_size = 10
         y_start = max(0, cy - region_size)
-        y_end = min(h, cy + region_size + 1)
+        y_end = min(h, cy + region_size)
         x_start = max(0, cx - region_size)
-        x_end = min(w, cx + region_size + 1)
+        x_end = min(w, cx + region_size)
 
         depth_region = depth_image[y_start:y_end, x_start:x_end]
         
@@ -337,6 +332,19 @@ class HumanInstanceTracker(Node):
             throttle_duration_sec=1.0
         )
         
+        # --- Pre-fetch transform ONCE before the loop to fix Ego-Motion without dropping FPS ---
+        try:
+            self.tf_buffer.lookup_transform(
+                self.target_frame,
+                header.frame_id,
+                rclpy.time.Time.from_msg(header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.0) # Strictly 0.0 to prevent blocking
+            )
+            target_time = header.stamp  # Exact sensor time available
+        except (TransformException, tf2_ros.LookupException,
+                tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            target_time = rclpy.time.Time().to_msg()  # Fallback to latest if exact time isn't ready
+
         # Publish PoseArray in target frame
         pose_array = PoseArray()
         pose_array.header.frame_id = self.target_frame
@@ -366,14 +374,14 @@ class HumanInstanceTracker(Node):
             pose_camera.orientation.z = 0.0
             pose_camera.orientation.w = 1.0
             
-            # Transform pose to target frame (map/odom)
-            pose_map = self.transform_pose_to_map(pose_camera, header)
+            # Transform pose to target frame (map/odom) using the pre-fetched target_time
+            pose_map = self.transform_pose_to_map(pose_camera, header, target_time)
             
             if pose_map is not None:
-                # Pack confidence into position.z AFTER frame transform
-                # (2D tracking; Z is unused in map frame)
-                pose_map.position.z = float(human['confidence'])
                 transform_success_count += 1
+                
+                # Inject confidence AFTER the transform into the unused Z position
+                pose_map.position.z = float(human['confidence'])
                 pose_array.poses.append(pose_map)
 
                 # Add text marker with track ID in target frame
@@ -438,31 +446,22 @@ class HumanInstanceTracker(Node):
         self.pose_pub.publish(pose_array)
         self.marker_pub.publish(marker_array)
 
-    def transform_pose_to_map(self, pose, header):
+    def transform_pose_to_map(self, pose, header, target_time):
         """
         Transform pose from camera frame to target frame using TF2
-        
-        Args:
-            pose: Pose in camera frame
-            header: Original message header with camera frame and timestamp
-            
-        Returns:
-            Pose in target frame or None if transform fails
         """
         try:
             # Create PoseStamped in camera frame
             pose_stamped = PoseStamped()
             pose_stamped.header.frame_id = header.frame_id
-            # Use the sensor message timestamp to anchor the transform to the
-            # moment the data was captured, preventing ego-motion latency.
-            pose_stamped.header.stamp = header.stamp
+            pose_stamped.header.stamp = target_time
             pose_stamped.pose = pose
             
-            # Transform to target frame using the sensor-time transform
+            # Transform to target frame instantly using pre-fetched time (timeout=0.0)
             transformed_pose = self.tf_buffer.transform(
                 pose_stamped,
                 self.target_frame,
-                timeout=rclpy.duration.Duration(seconds=0.5)
+                timeout=rclpy.duration.Duration(seconds=0.0)
             )
             
             return transformed_pose.pose
@@ -472,8 +471,7 @@ class HumanInstanceTracker(Node):
             # Log warning for transform failures
             if isinstance(e, tf2_ros.LookupException):
                 self.get_logger().warn(
-                    f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. '
-                    f'Ensure TF tree is published and frames exist. Error: {e}',
+                    f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. Error: {e}',
                     throttle_duration_sec=5.0
                 )
             elif isinstance(e, tf2_ros.ExtrapolationException):

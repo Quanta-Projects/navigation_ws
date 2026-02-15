@@ -1,1 +1,1 @@
-# Scripts module for smrr_crowdnav package
+# Scripts module

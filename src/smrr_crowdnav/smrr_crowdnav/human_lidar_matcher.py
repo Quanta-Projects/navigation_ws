@@ -14,6 +14,8 @@ from dr_spaam.detector import Detector
 import tf2_ros
 from tf2_ros import TransformException
 import tf2_geometry_msgs
+import time
+from collections import deque
 
 
 class DrSpaamNode(Node):
@@ -80,6 +82,11 @@ class DrSpaamNode(Node):
             10
         )
 
+        # Performance metrics
+        self.frame_times = deque(maxlen=30)  # Store last 30 frame processing times
+        self.last_metrics_log = time.time()
+        self.frame_count = 0
+
         self.get_logger().info('DR-SPAAM Node initialized')
         self.get_logger().info(f'Subscribing to: {scan_topic}')
         self.get_logger().info(f'Publishing detections to: {detections_topic}')
@@ -92,6 +99,9 @@ class DrSpaamNode(Node):
         if (self._dets_pub.get_subscription_count() == 0 and 
             self._rviz_pub.get_subscription_count() == 0):
             return
+
+        # Start timing
+        start_time = time.time()
 
         # Set laser FOV if not set
         if not self._detector.is_ready():
@@ -144,6 +154,28 @@ class DrSpaamNode(Node):
                 rviz_msg = self._transform_marker_to_target_frame(rviz_msg)
             
             self._rviz_pub.publish(rviz_msg)
+
+        # Calculate performance metrics
+        processing_time = time.time() - start_time
+        self.frame_times.append(processing_time)
+        self.frame_count += 1
+        
+        # Log performance metrics every 5 seconds
+        current_time = time.time()
+        if current_time - self.last_metrics_log >= 5.0:
+            avg_time = np.mean(self.frame_times)
+            fps = 1.0 / avg_time if avg_time > 0 else 0
+            min_time = np.min(self.frame_times)
+            max_time = np.max(self.frame_times)
+            
+            self.get_logger().info(
+                f'[DR-SPAAM Performance] FPS: {fps:.2f} | '
+                f'Avg: {avg_time*1000:.1f}ms | '
+                f'Min: {min_time*1000:.1f}ms | '
+                f'Max: {max_time*1000:.1f}ms | '
+                f'Frames: {self.frame_count}'
+            )
+            self.last_metrics_log = current_time
 
     def _detections_to_rviz_marker(self, dets_xy, dets_cls):
         """

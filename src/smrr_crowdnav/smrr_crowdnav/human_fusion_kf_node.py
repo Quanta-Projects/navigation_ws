@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Human Detection Fusion Node with IMM (Interacting Multiple Model) Filter
+Human Detection Fusion Node with Kalman Filter
 
 Fuses vision-based (YOLO) and LiDAR-based (DR-SPAAM) human detections
-with a 2-model IMM filter: Constant Position (CP) and Constant Velocity
-(CV).  Includes Mahalanobis outlier gating and dynamic measurement noise.
+with Kalman Filter tracking using constant velocity model.
 
 Author: Achira Hansindu
 """
@@ -23,378 +22,207 @@ from scipy.optimize import linear_sum_assignment
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 
-class IMMFilter:
+class KalmanFilter:
     """
-    Interacting Multiple Model (IMM) Filter with 2 motion models.
-
-    Models:
-      0 — Constant Position (CP): human standing still
-      1 — Constant Velocity (CV): human walking steadily
-
-    State:       [x, y, vx, vy]  (4D)
-    Measurement: [x, y]          (2D)
+    Kalman Filter with constant velocity model for 2D tracking.
+    
+    State: [x, y, vx, vy]
+    Measurement: [x, y]
     """
-
-    def __init__(self, initial_position, initial_confidence=0.5,
-                 measurement_noise=0.3):
+    
+    def __init__(self, initial_position, initial_confidence=0.5, 
+                 process_noise_pos=0.1, process_noise_vel=0.5,
+                 measurement_noise=0.3, dt=0.1):
         """
-        Initialize the 2-model IMM filter.
-
+        Initialize Kalman Filter
+        
         Args:
             initial_position: [x, y] initial position
-            initial_confidence: Detection confidence (0-1)
-            measurement_noise: Base measurement noise variance (m²)
+            initial_confidence: Detection confidence
+            process_noise_pos: Process noise for position (m²)
+            process_noise_vel: Process noise for velocity (m²/s²)
+            measurement_noise: Measurement noise (m²)
+            dt: Time step (s)
         """
-        self.n_models = 2
-        self.state_dim = 4   # [x, y, vx, vy]
-        self.meas_dim = 2    # [x, y]
-
-        # ---------- Observation matrix (shared by all models) ---------
-        # We only observe position; velocity is hidden.
-        self.H = np.zeros((self.meas_dim, self.state_dim))
-        self.H[0, 0] = 1.0  # observe x
-        self.H[1, 1] = 1.0  # observe y
-
-        # ---------- Fast-Init P0 ----------
-        P0 = np.diag([0.3, 0.3, 2.0, 2.0])
-
-        # ---------- Per-model states and covariances ----------
-        x0 = np.array([
-            initial_position[0], initial_position[1],
-            0.0, 0.0   # velocity unknown
+        # State vector: [x, y, vx, vy]
+        self.x = np.array([
+            initial_position[0],
+            initial_position[1],
+            0.0,  # Initial velocity x
+            0.0   # Initial velocity y
         ])
-        self.x_models = [x0.copy() for _ in range(self.n_models)]
-        self.P_models = [P0.copy() for _ in range(self.n_models)]
-
-        # ---------- Combined (output) state ----------
-        self.x = x0.copy()
-        self.P = P0.copy()
-
-        # ---------- Mode probabilities: CP, CV ----------
-        self.mu = np.array([0.2, 0.8])
-
-        # ---------- Markov mode transition matrix ----------
-        # Rows = from-model, Cols = to-model.  High diagonal = aggressive
-        # mode commitment to prevent CP from dragging CV backward.
-        self.M = np.array([
-            [0.98, 0.02],   # CP -> CP / CV
-            [0.05, 0.95]    # CV -> CP / CV
+        
+        # State covariance matrix (initial uncertainty)
+        self.P = np.diag([
+            measurement_noise,  # x uncertainty
+            measurement_noise,  # y uncertainty
+            1.0,  # vx uncertainty
+            1.0   # vy uncertainty
         ])
-
-        # Base measurement noise (scaled dynamically in update())
-        self.base_R = measurement_noise
-
+        
+        # Time step
+        self.dt = dt
+        
+        # State transition matrix (constant velocity model)
+        self.F = np.array([
+            [1, 0, dt, 0],   # x = x + vx*dt
+            [0, 1, 0, dt],   # y = y + vy*dt
+            [0, 0, 1, 0],    # vx = vx
+            [0, 0, 0, 1]     # vy = vy
+        ])
+        
+        # Measurement matrix (measure position only)
+        self.H = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0]
+        ])
+        
+        # Process noise covariance
+        self.Q = np.diag([
+            process_noise_pos,  # Position noise x
+            process_noise_pos,  # Position noise y
+            process_noise_vel,  # Velocity noise x
+            process_noise_vel   # Velocity noise y
+        ])
+        
+        # Measurement noise covariance
+        self.R = np.eye(2) * measurement_noise
+        
         # Tracking metadata
         self.confidence = initial_confidence
         self.last_update = None
-
-    # ------------------------------------------------------------------
-    #                     TRANSITION MATRICES (F)                       
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _build_F_cp(dt):
-        """Constant Position: position stays, velocity -> 0."""
-        F = np.zeros((4, 4))
-        F[0, 0] = 1.0
-        F[1, 1] = 1.0
-        # velocity rows are zero -> forced to 0
-        return F
-
-    @staticmethod
-    def _build_F_cv(dt):
-        """Constant Velocity: x += v*dt, velocity stays."""
-        F = np.eye(4)
-        F[0, 2] = dt
-        F[1, 3] = dt
-        return F
-
-    # ------------------------------------------------------------------
-    #                        PROCESS NOISE (Q)                          
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _build_Q_cp(dt):
-        """CP process noise: very small position jitter, no v noise."""
-        Q = np.zeros((4, 4))
-        q_pos = 0.01 * dt   # near-zero positional noise
-        Q[0, 0] = q_pos
-        Q[1, 1] = q_pos
-        return Q
-
-    @staticmethod
-    def _build_Q_cv(dt):
-        """CV process noise: white-noise acceleration model for velocity."""
-        sigma_a = 0.5   # acceleration variance (m^2/s^4)
-        dt2 = dt * dt
-        dt3 = dt2 * dt
-        Q = np.zeros((4, 4))
-        # Position block
-        Q[0, 0] = dt3 / 3.0 * sigma_a
-        Q[1, 1] = dt3 / 3.0 * sigma_a
-        # Position-velocity cross
-        Q[0, 2] = dt2 / 2.0 * sigma_a
-        Q[2, 0] = dt2 / 2.0 * sigma_a
-        Q[1, 3] = dt2 / 2.0 * sigma_a
-        Q[3, 1] = dt2 / 2.0 * sigma_a
-        # Velocity block
-        Q[2, 2] = dt * sigma_a
-        Q[3, 3] = dt * sigma_a
-        return Q
-
-    # ------------------------------------------------------------------
-    #                            PREDICT                                
-    # ------------------------------------------------------------------
-
-    def predict(self, dt):
-        """
-        IMM predict step: mix models -> predict each model forward.
-
-        1. Compute mixing probabilities from the Markov transition matrix.
-        2. Mix per-model states and covariances.
-        3. Propagate each mixed state through its own F and Q.
-        4. Update predicted mode probabilities.
-        5. Combine into single output estimate.
-        """
-        # --- 1. Build transition & process-noise matrices ---
-        F_list = [self._build_F_cp(dt), self._build_F_cv(dt)]
-        Q_list = [self._build_Q_cp(dt), self._build_Q_cv(dt)]
-
-        # --- 2. Compute mixing probabilities ---
-        # c_bar[j] = sum_i( M[i,j] * mu[i] )  --> predicted prob of model j
-        c_bar = self.M.T @ self.mu                    # shape (2,)
-        c_bar = np.maximum(c_bar, 1e-30)              # prevent div-by-zero
-
-        # mu_mix[i,j] = M[i,j] * mu[i] / c_bar[j]
-        # "probability that model j was in model i at the previous step"
-        mu_mix = np.zeros((self.n_models, self.n_models))
-        for i in range(self.n_models):
-            for j in range(self.n_models):
-                mu_mix[i, j] = self.M[i, j] * self.mu[i] / c_bar[j]
-
-        # --- 3. Mix states and covariances for each target model j ---
-        x_mixed = []
-        P_mixed = []
-        for j in range(self.n_models):
-            # Mixed state: weighted sum of all model states
-            x_j = np.zeros(self.state_dim)
-            for i in range(self.n_models):
-                x_j += mu_mix[i, j] * self.x_models[i]
-
-            # Mixed covariance: weighted sum of (P_i + spread term)
-            P_j = np.zeros((self.state_dim, self.state_dim))
-            for i in range(self.n_models):
-                dx = self.x_models[i] - x_j
-                P_j += mu_mix[i, j] * (self.P_models[i] + np.outer(dx, dx))
-
-            x_mixed.append(x_j)
-            P_mixed.append(P_j)
-
-        # --- 4. Predict each model forward ---
-        for j in range(self.n_models):
-            self.x_models[j] = F_list[j] @ x_mixed[j]
-            self.P_models[j] = F_list[j] @ P_mixed[j] @ F_list[j].T + Q_list[j]
-
-        # Update mode probabilities to predicted values
-        self.mu = c_bar
-
-        # --- 5. Combine for output (pre-update combined estimate) ---
-        self._combine()
-
-    # ------------------------------------------------------------------
-    #                            UPDATE                                 
-    # ------------------------------------------------------------------
-
-    def update(self, measurement, confidence=0.5, distance=0.0):
-        """
-        IMM update step with dynamic R, Mahalanobis gating,
-        per-model Kalman updates, and probability recombination.
-
-        Args:
-            measurement: [x, y] observed position
-            confidence:  Detection confidence (0-1)
-            distance:    Range from robot to detection (metres)
-        """
+        
+    def predict(self, dt=None):
+        """Predict next state"""
+        if dt is not None:
+            # Update state transition matrix with new dt
+            self.F[0, 2] = dt
+            self.F[1, 3] = dt
+        
+        # Predict state: x = F * x
+        self.x = self.F @ self.x
+        
+        # Predict covariance: P = F * P * F^T + Q
+        self.P = self.F @ self.P @ self.F.T + self.Q
+        
+        return self.x[:2]  # Return predicted position
+    
+    def update(self, measurement, confidence=None):
+        """Update state with measurement"""
         z = np.array(measurement)
-
-        # --- 1. Dynamic measurement noise R ---
-        # Higher noise for low-confidence or far-away detections.
-        # Floor of 0.2 prevents over-confident R from causing jitter.
-        dynamic_r = max(0.2, self.base_R * (2.0 - confidence) * (1.0 + 0.1 * distance))
-        R = np.eye(self.meas_dim) * dynamic_r
-
-        # --- 2. Mahalanobis gating on the COMBINED predicted state ---
-        # Reject gross outliers before they can corrupt any model.
-        y_comb = z - self.H @ self.x
-        S_comb = self.H @ self.P @ self.H.T + R
-        try:
-            S_comb_inv = np.linalg.inv(S_comb)
-        except np.linalg.LinAlgError:
-            return   # Singular covariance -> skip update
-
-        mahal_sq = float(y_comb.T @ S_comb_inv @ y_comb)
-
-        if mahal_sq > 50.0:
-            # Near-disabled gate — only reject catastrophic outliers (NaN, 1000m).
-            return
-
-        # --- 3. Per-model Kalman update & likelihood computation ---
-        likelihoods = np.zeros(self.n_models)
-
-        for j in range(self.n_models):
-            x_j = self.x_models[j]
-            P_j = self.P_models[j]
-
-            # Innovation
-            y_j = z - self.H @ x_j
-
-            # Innovation covariance
-            S_j = self.H @ P_j @ self.H.T + R
-
-            try:
-                S_j_inv = np.linalg.inv(S_j)
-            except np.linalg.LinAlgError:
-                likelihoods[j] = 1e-30
-                continue
-
-            # Kalman gain
-            K_j = P_j @ self.H.T @ S_j_inv
-
-            # State update
-            self.x_models[j] = x_j + K_j @ y_j
-
-            # Covariance update (Joseph form for numerical stability)
-            I_KH = np.eye(self.state_dim) - K_j @ self.H
-            self.P_models[j] = I_KH @ P_j @ I_KH.T + K_j @ R @ K_j.T
-
-            # Gaussian likelihood for model probability update
-            det_S = np.linalg.det(S_j)
-            if det_S < 1e-30:
-                likelihoods[j] = 1e-30
-            else:
-                exponent = -0.5 * float(y_j.T @ S_j_inv @ y_j)
-                likelihoods[j] = np.exp(exponent) / np.sqrt(
-                    (2.0 * np.pi) ** self.meas_dim * det_S
-                )
-                likelihoods[j] = max(likelihoods[j], 1e-30)
-
-        # --- 4. Update mode probabilities ---
-        self.mu = self.mu * likelihoods
-        mu_sum = np.sum(self.mu)
-        if mu_sum > 1e-30:
-            self.mu /= mu_sum
-        else:
-            self.mu = np.array([0.2, 0.8])   # reset on degenerate case
-
-        # --- 5. Combine models into single output estimate ---
-        self._combine()
-
-        # Update confidence
-        self.confidence = confidence
-
-    # ------------------------------------------------------------------
-    #                         COMBINATION                               
-    # ------------------------------------------------------------------
-
-    def _combine(self):
-        """Combine per-model estimates into a single output state & covariance."""
-        self.x = np.zeros(self.state_dim)
-        for j in range(self.n_models):
-            self.x += self.mu[j] * self.x_models[j]
-
-        self.P = np.zeros((self.state_dim, self.state_dim))
-        for j in range(self.n_models):
-            dx = self.x_models[j] - self.x
-            self.P += self.mu[j] * (self.P_models[j] + np.outer(dx, dx))
-
-    # ------------------------------------------------------------------
-    #                          ACCESSORS                                
-    # ------------------------------------------------------------------
-
+        
+        # Innovation (measurement residual): y = z - H * x
+        y = z - self.H @ self.x
+        
+        # Innovation covariance: S = H * P * H^T + R
+        S = self.H @ self.P @ self.H.T + self.R
+        
+        # Kalman gain: K = P * H^T * S^-1
+        K = self.P @ self.H.T @ np.linalg.inv(S)
+        
+        # Update state: x = x + K * y
+        self.x = self.x + K @ y
+        
+        # Update covariance: P = (I - K * H) * P
+        I = np.eye(4)
+        self.P = (I - K @ self.H) @ self.P
+        
+        # Update confidence if provided
+        if confidence is not None:
+            self.confidence = confidence
+    
     def get_position(self):
-        """Get current position estimate [x, y]."""
+        """Get current position estimate"""
         return self.x[:2]
-
+    
     def get_velocity(self):
-        """Get current velocity estimate [vx, vy]."""
-        return self.x[2:4]
-
+        """Get current velocity estimate"""
+        return self.x[2:]
+    
     def get_state(self):
-        """Get full state [x, y, vx, vy]."""
+        """Get full state [x, y, vx, vy]"""
         return self.x.copy()
-
-    def get_dominant_mode(self):
-        """Return index and name of the most probable motion mode."""
-        mode_names = ['CP', 'CV']
-        idx = int(np.argmax(self.mu))
-        return idx, mode_names[idx]
 
 
 class HumanTrackKF:
-    """Represents a tracked human with an IMM (Interacting Multiple Model) filter."""
-
+    """Represents a tracked human with Kalman Filter."""
+    
     def __init__(self, track_id, position, timestamp, confidence=0.5,
+                 process_noise_pos=0.1, process_noise_vel=0.5,
                  measurement_noise=0.3):
         self.id = track_id
-        self.kf = IMMFilter(
-            position,
-            initial_confidence=confidence,
-            measurement_noise=measurement_noise
+        self.kf = KalmanFilter(
+            position, 
+            confidence,
+            process_noise_pos,
+            process_noise_vel,
+            measurement_noise
         )
         self.last_seen = timestamp
         self.confidence = confidence
-
+        
     def predict(self, current_time):
-        """Predict track state forward."""
+        """Predict track state (with Zero Delta-T guard)"""
         if self.kf.last_update is not None:
             dt = (current_time - self.kf.last_update).nanoseconds / 1e9
         else:
-            dt = 0.1  # Default 10 Hz
-
+            dt = 0.1  # Default 10Hz
+        
         # Guard: skip prediction if dt is negligibly small to prevent
-        # covariance inflation without meaningful state propagation.
+        # covariance inflation (P += Q) without meaningful state propagation.
         if dt < 1e-4:
             return
+        
+        # Dynamic Q: discrete white-noise acceleration model.
+        # Replaces the fixed diagonal Q so that process noise scales
+        # correctly with dt and captures position-velocity cross-covariance.
+        noise_accel = 0.5  # Variance of unknown acceleration (m²/s⁴), tuned for pedestrians
 
+        q_pos = (dt**3) / 3.0 * noise_accel
+        q_vel = dt * noise_accel
+        q_cov = (dt**2) / 2.0 * noise_accel
+
+        self.kf.Q = np.array([
+            [q_pos, 0.0,   q_cov, 0.0  ],
+            [0.0,   q_pos, 0.0,   q_cov],
+            [q_cov, 0.0,   q_vel, 0.0  ],
+            [0.0,   q_cov, 0.0,   q_vel]
+        ])
+        
         self.kf.predict(dt)
         self.kf.last_update = current_time
-
-    def update(self, measurement, timestamp, confidence=None, distance=0.0):
+        
+    def update(self, measurement, timestamp, confidence=None):
         """Update track with new measurement.
-
-        predict() is already called for all tracks in the fusion loop
-        before association.  Do NOT call self.kf.predict() here.
-
-        Args:
-            measurement: [x, y] observed position
-            timestamp:   ROS Time of the measurement
-            confidence:  Detection confidence (0-1)
-            distance:    Range from robot to detection (metres)
+        
+        NOTE: predict() is already called for all tracks in the fusion loop
+        before association. Do NOT call self.kf.predict() here — doing so
+        would double-predict: state projected by 2*dt and Q injected twice,
+        causing severe velocity noise.
         """
-        conf = confidence if confidence is not None else 0.5
-        self.kf.update(measurement, conf, distance)
-
+        # Measurement update only — no prediction step
+        self.kf.update(measurement, confidence)
+        
         self.last_seen = timestamp
         self.kf.last_update = timestamp
-
+        
         if confidence is not None:
             self.confidence = confidence
-
+    
     def get_position(self):
-        """Get current position [x, y]."""
+        """Get current position"""
         return self.kf.get_position()
-
+    
     def get_velocity(self):
-        """Get current velocity [vx, vy]."""
+        """Get current velocity"""
         return self.kf.get_velocity()
 
 
 class HumanFusionKFNode(Node):
     """
-    Fuses YOLO and LiDAR human detections with IMM tracking.
-
-    Uses a 2-model Interacting Multiple Model filter (CP / CV)
-    with Mahalanobis gating and dynamic measurement noise.
+    Fuses YOLO and LiDAR human detections with Kalman Filter tracking.
+    
+    Uses constant velocity model with Kalman Filter for optimal state estimation.
     """
     
     def __init__(self):
@@ -411,7 +239,7 @@ class HumanFusionKFNode(Node):
         # Kalman Filter parameters
         self.declare_parameter('process_noise_pos', 0.1)  # Position process noise (m²)
         self.declare_parameter('process_noise_vel', 0.5)  # Velocity process noise (m²/s²)
-        self.declare_parameter('measurement_noise', 0.15)  # Measurement noise (m²)
+        self.declare_parameter('measurement_noise', 0.3)  # Measurement noise (m²)
         
         self.camera_fov_rad = math.radians(self.get_parameter('camera_fov_degrees').value)
         self.fusion_threshold = self.get_parameter('fusion_distance_threshold').value
@@ -437,7 +265,7 @@ class HumanFusionKFNode(Node):
         self.ts = ApproximateTimeSynchronizer(
             [self.yolo_sub, self.lidar_sub],
             queue_size=50,
-            slop=0.3  # 300 ms tolerance — relaxed to prevent data starvation
+            slop=0.15  # 100 ms tolerance between YOLO and LiDAR stamps
         )
         self.ts.registerCallback(self.fusion_callback)
         
@@ -457,11 +285,12 @@ class HumanFusionKFNode(Node):
         self.tracks = {}  # track_id -> HumanTrackKF
         self.next_track_id = 0
         
-        self.get_logger().info(f'Human Fusion IMM Node initialized')
+        self.get_logger().info(f'Human Fusion KF Node initialized')
         self.get_logger().info(f'  Camera FOV: {self.get_parameter("camera_fov_degrees").value}°')
         self.get_logger().info(f'  Fusion threshold: {self.fusion_threshold}m')
-        self.get_logger().info(f'  IMM models: CP / CV  |  Mahalanobis gate: 50.0')
-        self.get_logger().info(f'  Base measurement noise: {self.measurement_noise} m²')
+        self.get_logger().info(f'  KF Process noise (pos): {self.process_noise_pos} m²')
+        self.get_logger().info(f'  KF Process noise (vel): {self.process_noise_vel} m²/s²')
+        self.get_logger().info(f'  KF Measurement noise: {self.measurement_noise} m²')
         self.get_logger().info(f'  Publishing to: fused_humans_kf/poses, fused_humans_kf/markers')
     
     def get_robot_pose_and_yaw(self):
@@ -516,7 +345,7 @@ class HumanFusionKFNode(Node):
         """Main fusion loop with Kalman Filter tracking.
         
         Called by ApproximateTimeSynchronizer with temporally matched
-        YOLO and LiDAR PoseArray messages (slop ≤ 300 ms).
+        YOLO and LiDAR PoseArray messages (slop ≤ 100 ms).
         """
         robot_pos, robot_yaw = self.get_robot_pose_and_yaw()
         if robot_pos is None:
@@ -619,14 +448,10 @@ class HumanFusionKFNode(Node):
                 for i, j in zip(row_ind, col_ind):
                     if cost_matrix[i, j] < self.max_track_dist:
                         tid = track_ids[i]
-                        dist_to_robot = float(np.linalg.norm(
-                            fused_positions[j] - robot_pos
-                        ))
                         self.tracks[tid].update(
                             fused_positions[j],
                             current_time,
-                            confidence=fused_confidences[j],
-                            distance=dist_to_robot
+                            confidence=fused_confidences[j]
                         )
                         matched_fused.add(j)
                 
@@ -638,6 +463,8 @@ class HumanFusionKFNode(Node):
                             fused_pos,
                             current_time,
                             confidence=fused_confidences[j],
+                            process_noise_pos=self.process_noise_pos,
+                            process_noise_vel=self.process_noise_vel,
                             measurement_noise=self.measurement_noise
                         )
                         self.next_track_id += 1
@@ -649,6 +476,8 @@ class HumanFusionKFNode(Node):
                         fused_pos,
                         current_time,
                         confidence=fused_confidences[i],
+                        process_noise_pos=self.process_noise_pos,
+                        process_noise_vel=self.process_noise_vel,
                         measurement_noise=self.measurement_noise
                     )
                     self.next_track_id += 1
@@ -682,11 +511,12 @@ class HumanFusionKFNode(Node):
             # Encode confidence in position.z (2D tracking, Z unused)
             pose.position.z = track.confidence
             
-            # Encode directional velocity for RL observation space
-            pose.orientation.x = float(vel[0])   # vx (m/s)
-            pose.orientation.y = float(vel[1])   # vy (m/s)
+            # Encode velocity magnitude in orientation.w
+            vel_mag = np.linalg.norm(vel)
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
             pose.orientation.z = 0.0
-            pose.orientation.w = 0.0
+            pose.orientation.w = min(vel_mag, 5.0)
             
             pose_array.poses.append(pose)
         
@@ -763,8 +593,7 @@ class HumanFusionKFNode(Node):
             text.pose.position.z = 2.0
             text.pose.orientation.w = 1.0
             
-            _, mode_name = track.kf.get_dominant_mode()
-            text.text = f'IMM-ID:{track.id}\n{vel_mag:.2f}m/s\nMode:{mode_name} Conf:{track.confidence:.2f}'
+            text.text = f'KF-ID:{track.id}\n{vel_mag:.2f}m/s\nConf:{track.confidence:.2f}'
             text.scale.z = 0.3
             
             # Color by confidence

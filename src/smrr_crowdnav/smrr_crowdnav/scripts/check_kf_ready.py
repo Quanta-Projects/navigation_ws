@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Pre-Evaluation Readiness Checker for KF-Only Evaluation
+KF-Only Evaluation Readiness Checker
 
-Verifies that ground truth and Kalman Filter fusion are publishing.
+Verifies that all required topics are publishing before running KF-only evaluation.
+Checks for ground truth actors and Kalman Filter fusion outputs only.
 """
 
 import rclpy
@@ -49,7 +50,7 @@ class KFReadinessChecker(Node):
         self.max_wait_time = 30.0  # Wait up to 30 seconds
         
         self.get_logger().info('=' * 70)
-        self.get_logger().info('KF-Only Evaluation Readiness Checker')
+        self.get_logger().info('KF-Only Evaluation Readiness Checker Started')
         self.get_logger().info('=' * 70)
         self.get_logger().info('Checking for required topics...')
         self.get_logger().info('')
@@ -86,7 +87,7 @@ class KFReadinessChecker(Node):
         # Ground truth status
         if gt_ready:
             self.get_logger().info(f'  [✓] Ground Truth: {len(gt_actors)} actor(s) detected')
-            for actor in sorted(gt_actors):
+            for actor in gt_actors:
                 self.get_logger().info(f'      • {actor}')
         else:
             self.get_logger().warn('  [✗] Ground Truth: No actors detected')
@@ -104,10 +105,10 @@ class KFReadinessChecker(Node):
         # Check if all ready
         if gt_ready and kf_ready:
             self.get_logger().info('═' * 70)
-            self.get_logger().info('✓✓✓ READY FOR KF-ONLY EVALUATION ✓✓✓')
+            self.get_logger().info('✓✓✓ ALL SYSTEMS READY FOR KF-ONLY EVALUATION ✓✓✓')
             self.get_logger().info('═' * 70)
             self.get_logger().info('')
-            self.get_logger().info('You can now run the KF-only evaluation:')
+            self.get_logger().info('You can now run the KF evaluation:')
             self.get_logger().info('  ros2 run smrr_crowdnav evaluate_kf_only')
             self.get_logger().info('')
             self.get_logger().info('With custom parameters:')
@@ -141,16 +142,15 @@ class KFReadinessChecker(Node):
                 self.get_logger().error('')
                 self.get_logger().error('2. Kalman Filter Fusion Missing:')
                 self.get_logger().error('   • Launch the KF fusion node:')
-                self.get_logger().error('     ros2 launch smrr_crowdnav human_fusion_kf.launch.py use_sim_time:=true')
+                self.get_logger().error('     ros2 launch smrr_crowdnav human_fusion_kf.launch.py')
                 self.get_logger().error('   • Or check if it\'s running:')
                 self.get_logger().error('     ros2 topic info /fused_humans_kf/poses')
-                self.get_logger().error('     ros2 topic echo /fused_humans_kf/poses --once')
             
             self.get_logger().error('')
             self.get_logger().error('General checks:')
-            self.get_logger().error('  • Verify nodes are running: ros2 node list')
+            self.get_logger().error('  • Verify all nodes are running: ros2 node list')
             self.get_logger().error('  • Check topic list: ros2 topic list')
-            self.get_logger().error('  • View logs: ros2 node info <node_name>')
+            self.get_logger().error('  • View node logs for errors: ros2 node info <node_name>')
             self.get_logger().error('')
             
             self.check_timer.cancel()

@@ -3,7 +3,7 @@
 Kalman Filter Only Evaluation Node
 
 Evaluates ONLY the Kalman Filter fusion against ground truth.
-Uses vector-based velocity comparison (IMM orientation.x/y vs Gazebo odom)
+Uses vector-based velocity comparison (KF orientation.x/y vs Gazebo odom)
 and Hungarian algorithm for globally optimal GT↔track association.
 """
 
@@ -70,7 +70,7 @@ class KFOnlyEvaluator(Node):
         self.get_logger().info(f'Test Duration: {self.test_duration} seconds')
         self.get_logger().info(f'Association Threshold: {self.association_threshold} meters')
         self.get_logger().info(f'Output File: {self.output_file}')
-        self.get_logger().info('Velocity: vector-based (IMM orientation.x/y vs odom twist)')
+        self.get_logger().info('Velocity: vector-based (KF orientation.x/y vs odom twist)')
         self.get_logger().info('Association: Hungarian algorithm (global optimal)')
         self.get_logger().info('=' * 60)
         self.get_logger().info('Collecting KF fusion data...')
@@ -161,7 +161,7 @@ class KFOnlyEvaluator(Node):
             gt_vx = gt_odom.twist.twist.linear.x
             gt_vy = gt_odom.twist.twist.linear.y
             
-            # Estimated velocity from IMM (packed in orientation.x/y)
+            # Estimated velocity from KF (packed in orientation.x/y)
             estimated_vx = detected_pose.orientation.x
             estimated_vy = detected_pose.orientation.y
             
@@ -190,7 +190,7 @@ class KFOnlyEvaluator(Node):
         results.append(f'Total Samples: {self.total_samples}')
         results.append(f'Association Threshold: {self.association_threshold} meters')
         results.append(f'Association Method: Hungarian (global optimal)')
-        results.append(f'Velocity Method: Vector Euclidean (IMM vx/vy vs odom vx/vy)')
+        results.append(f'Velocity Method: Vector Euclidean (KF vx/vy vs odom vx/vy)')
         results.append('=' * 80)
         results.append('')
         
@@ -206,7 +206,7 @@ class KFOnlyEvaluator(Node):
         for actor_name in sorted(self.ground_truth.keys()):
             # Position
             pos_errors = self.errors[actor_name]['pos']
-            if len(pos_errors) > 0:
+            if len(pos_errors)> 0:
                 pos_mean = np.mean(pos_errors)
                 pos_rmse = np.sqrt(np.mean(np.square(pos_errors)))
                 pos_std = np.std(pos_errors)
