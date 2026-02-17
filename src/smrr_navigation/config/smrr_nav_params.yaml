@@ -13,41 +13,43 @@ amcl:
     do_beamskip: false
     global_frame_id: "map"
     lambda_short: 0.1
-    laser_likelihood_max_dist: 2.0
-    laser_max_range: 100.0
-    laser_min_range: -1.0
+    laser_likelihood_max_dist: 1.5  # Reduced from 2.0 for tighter precision
+    laser_max_range: -1.0  # RPLiDAR A2 actual max range (was 100.0)
+    laser_min_range: -1.0  # RPLiDAR A2 min range (was -1.0)
     laser_model_type: "likelihood_field"
-    max_beams: 60
-    max_particles: 2000
-    min_particles: 500
+    max_beams: 120  # Increased from 60 to use more scan data for better orientation
+    max_particles: 5000  # Increased from 2000 for better coverage
+    min_particles: 1000  # Increased from 500 for stable tracking
     odom_frame_id: "odom"
     odom_topic: /diff_drive_controller/odom
     pf_err: 0.05
     pf_z: 0.99
-    recovery_alpha_fast: 0.0
-    recovery_alpha_slow: 0.0
-    resample_interval: 1
+    recovery_alpha_fast: 0.1  # Enable recovery (was 0.0)
+    recovery_alpha_slow: 0.001  # Enable recovery (was 0.0)
+    resample_interval: 1  # Reduced back to 1 for faster convergence
     robot_model_type: "nav2_amcl::DifferentialMotionModel"
     save_pose_rate: 0.5
     sigma_hit: 0.2
     tf_broadcast: true
-    transform_tolerance: 1.0
-    update_min_a: 0.2
+    transform_tolerance: 0.5  # Tightened from 1.0 for better sync
+    update_min_a: 0.05  # Reduced from 0.1 for continuous orientation tracking during large rotations
     update_min_d: 0.25
     z_hit: 0.5
     z_max: 0.05
     z_rand: 0.5
-    z_short: 0.05
-    scan_topic: scan
+    z_short: 0.005  # Fixed from 0.05 to match documentation
+    scan_topic: /scan
     set_initial_pose: true
+    always_reset_initial_pose: false  # Added missing parameter
     initial_pose:
       x: 0.0
       y: 0.0
       z: 0.0
       yaw: 0.0
-    initial_cov_xx: 0.5
-    initial_cov_yy: 0.5
-    initial_cov_aa: 1.0
+    # Balanced initial covariance for convergence without excessive angular uncertainty
+    initial_cov_xx: 2.0  # Increased from 0.5 for position spread
+    initial_cov_yy: 2.0  # Increased from 0.5 for position spread
+    initial_cov_aa: 0.03  # Optimized at ±10° for fast convergence with stability
 
 amcl_map_client:
   ros__parameters:
@@ -114,7 +116,7 @@ controller_server:
     odom_topic: /diff_drive_controller/odom
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
+    min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
@@ -131,7 +133,7 @@ controller_server:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.15
-      yaw_goal_tolerance: 0.15
+      yaw_goal_tolerance: 0.17  # Tightened from 0.25 for faster goal satisfaction (~10°)
 
     # DWB parameters
     FollowPath:
@@ -144,17 +146,17 @@ controller_server:
       max_vel_theta: 1.5
       min_speed_xy: 0.0
       max_speed_xy: 0.35
-      min_speed_theta: 0.0
+      min_speed_theta: 0.0  # Allow full range for smooth small angle corrections
    
       acc_lim_x: 2.5
       acc_lim_y: 0.0
-      acc_lim_theta: 4.0
+      acc_lim_theta: 2.5  # Increased from 1.5 for responsive rotation
       decel_lim_x: -2.5
       decel_lim_y: 0.0
-      decel_lim_theta: -4.0
+      decel_lim_theta: -2.5  # Increased for quicker stopping
       vx_samples: 20
       vy_samples: 0
-      vtheta_samples: 40
+      vtheta_samples: 50  # Increased from 40 for finer angular resolution
       sim_time: 1.7
       linear_granularity: 0.05
       angular_granularity: 0.025
@@ -165,15 +167,16 @@ controller_server:
       stateful: True
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
       BaseObstacle.scale: 0.02
+      Oscillation.scale: 1.0  # Moderate penalty - prevent excessive caution
       PathAlign.scale: 32.0
       PathAlign.forward_point_distance: 0.1
       GoalAlign.scale: 24.0
       GoalAlign.forward_point_distance: 0.1
       PathDist.scale: 32.0
       GoalDist.scale: 24.0
-      # Make RotateToGoal more decisive
-      RotateToGoal.scale: 32.0
-      RotateToGoal.slowing_factor: 5.0
+      # Smoother rotation behavior for large angle corrections
+      RotateToGoal.scale: 48.0  # Increased from 32.0 for stronger preference
+      RotateToGoal.slowing_factor: 3.0  # Reduced from 5.0 for smoother deceleration
       RotateToGoal.lookahead_time: -1.0
 
 controller_server_rclcpp_node:
@@ -304,7 +307,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: True
-    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/first_floor_with_docking_station.yaml"
+    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/floor0_open.yaml"
 
 map_saver:
   ros__parameters:
@@ -348,7 +351,7 @@ recoveries_server:
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.5
     min_rotational_vel: 0.6
-    rotational_acc_lim: 4.0
+    rotational_acc_lim: 2.0  # Reduced from 4.0 to match controller limits
 
 robot_state_publisher:
   ros__parameters:

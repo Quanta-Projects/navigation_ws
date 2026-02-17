@@ -78,6 +78,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/wait_for_door_open_depth_action.cpp
   src/bt_nodes/wait_for_door_open_model_action.cpp
   src/bt_nodes/update_pose_timestamp_action.cpp
+  src/bt_nodes/stop_robot_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 

@@ -381,12 +381,10 @@ class DoorClassifierNode(Node):
 
         if time_elapsed or label_changed:
             # Format output
-            state_icon = '🚪' if label == 'OPEN' else '🔒'
             prob_bar = '█' * int(open_prob * 20) + '░' * (20 - int(open_prob * 20))
 
             print(
-                f'{state_icon} Door: {label:6s} | '
-                f'Confidence: {confidence*100:5.1f}% | '
+                f'Door: {label:6s} | '
                 f'Open prob: [{prob_bar}] {open_prob*100:5.1f}%'
             )
 

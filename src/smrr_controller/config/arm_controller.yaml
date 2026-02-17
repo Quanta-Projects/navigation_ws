@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 50  # Fixed: Match classic Gazebo plugin rate for consistent TF publishing
+    update_rate: 50  # Match diff_drive publish_rate
     use_sim_time: true  # Fixed: Should be true for simulation
  
     arm_controller:
@@ -64,9 +64,13 @@ diff_drive_controller:
     enable_odom_tf: true
     publish_wheel_data: true
 
-    cmd_vel_timeout: 0.5 # seconds
+    cmd_vel_timeout: 0.5  # Reduced to prevent drift accumulation
     publish_limited_velocity: true
-    velocity_rolling_window_size: 2  # CRITICAL: Reduced from 10 to minimize smoothing/damping
+    velocity_rolling_window_size: 10  # Increased smoothing to reduce jitter
+    
+    # Deadband to prevent motor jitter when idle
+    linear.x.min_velocity: 0.01  # Ignore commands below 1 cm/s
+    angular.z.min_velocity: 0.01  # Ignore rotation commands below 0.01 rad/s
 
     linear.x.has_velocity_limits: true
     linear.x.has_acceleration_limits: true

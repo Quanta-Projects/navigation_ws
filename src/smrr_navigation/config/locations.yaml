@@ -24,6 +24,14 @@ floors:
         x: -9.9
         y: -3.0
         yaw: 3.14
+      left_front:
+        x: 6.15
+        y: 1.18
+        yaw: 3.14
+      right_front:
+        x: 6.19
+        y: -2.45
+        yaw: 3.14
       elevator_staging:
         x: -2.0
         y: 1.1
@@ -63,8 +71,8 @@ floors:
         y: 0.38080
         yaw: -1.57
       office_101:
-        x: 7.926
-        y: -4.290
+        x: 5.896
+        y: -2.293
         yaw: 0.0
       office_102:
         x: 5.0
