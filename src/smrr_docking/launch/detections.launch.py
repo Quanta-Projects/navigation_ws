@@ -155,7 +155,12 @@ def generate_launch_description():
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            arguments=['0', '-0.35', '0.23', '0', '-1.57', '-1.57', 'tag36h11:0', 'dock_link'],
+            arguments=[
+                '--frame-id', 'tag36h11:0',
+                '--child-frame-id', 'dock_link',
+                '--x', '0', '--y', '-0.35', '--z', '0.23',
+                '--roll', '0', '--pitch', '-1.57', '--yaw', '-1.57'
+            ],
             output='screen'
         ),
 

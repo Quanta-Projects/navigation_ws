@@ -39,7 +39,7 @@ def generate_launch_description():
         os.path.join(
             get_package_share_directory("sllidar_ros2"),
             "launch",
-            "sllidar_a1_launch.py"
+            "sllidar_a2m8_launch.py"
         ),
         launch_arguments={
             'frame_id': 'rplidar_link'

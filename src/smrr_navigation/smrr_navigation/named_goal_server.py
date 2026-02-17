@@ -13,6 +13,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped
 from smrr_interfaces.srv import GoToNamedPose
+from std_msgs.msg import Bool
 import yaml
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -65,6 +66,13 @@ class NamedGoalServer(Node):
             NavigateToPose,
             'navigate_to_pose',
             callback_group=self.callback_group
+        )
+        
+        # Create publisher for arrival status
+        self.arrived_publisher = self.create_publisher(
+            Bool,
+            'arrived',
+            10
         )
         
         # Wait for action server
@@ -232,6 +240,11 @@ class NamedGoalServer(Node):
         
         if status == 4:  # SUCCEEDED
             self.get_logger().info(f'Successfully navigated to {location_name}')
+            # Publish arrival status
+            arrived_msg = Bool()
+            arrived_msg.data = True
+            self.arrived_publisher.publish(arrived_msg)
+            self.get_logger().info('Published arrived=true')
         elif status == 5:  # CANCELED
             self.get_logger().warn(f'Navigation to {location_name} was canceled')
         elif status == 6:  # ABORTED

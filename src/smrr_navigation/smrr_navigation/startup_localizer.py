@@ -141,6 +141,8 @@ class StartupLocalizer(Node):
     
     def publish_velocity(self, linear_x=0.0, angular_z=0.0):
         """Helper function to publish velocity commands"""
+        if not rclpy.ok() or self.cmd_vel_pub is None:
+            return
         msg = Twist()
         msg.linear.x = linear_x
         msg.angular.z = angular_z
@@ -302,8 +304,9 @@ def main(args=None):
     except Exception as e:
         node.get_logger().error(f'Exception in startup_localizer: {e}')
     finally:
-        # Ensure robot is stopped
-        node.publish_velocity(0.0, 0.0)
+        # Ensure robot is stopped before shutdown
+        if rclpy.ok():
+            node.publish_velocity(0.0, 0.0)
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

@@ -66,7 +66,7 @@ bt_navigator:
     robot_base_frame: base_footprint
     odom_topic: /diff_drive_controller/odom
     default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
-    bt_loop_duration: 10
+    bt_loop_duration: 20
     default_server_timeout: 20
     enable_groot_monitoring: False
     groot_zmq_publisher_port: 1666
@@ -114,7 +114,7 @@ controller_server:
     robot_base_frame: base_link
     odom_frame: odom
     odom_topic: /diff_drive_controller/odom
-    controller_frequency: 10.0
+    controller_frequency: 8.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
@@ -187,8 +187,8 @@ local_costmap:
     ros__parameters:
       publish_downsampled_costmap: True   
       downsample_scale: 2                  
-      update_frequency: 5.0
-      publish_frequency: 2.0
+      update_frequency: 3.0
+      publish_frequency: 1.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: False
@@ -245,15 +245,15 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 1.0
-      publish_frequency: 1.0
+      update_frequency: 0.5
+      publish_frequency: 0.5
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
       robot_radius: 0.25
       resolution: 0.05
       track_unknown_space: True
-      plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -318,7 +318,7 @@ map_saver:
 
 planner_server:
   ros__parameters:
-    expected_planner_frequency: 10.0
+    expected_planner_frequency: 5.0
     use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
