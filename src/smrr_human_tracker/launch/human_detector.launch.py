@@ -8,7 +8,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     # Get package directory
-    pkg_dir = get_package_share_directory('smrr_crowdnav')
+    pkg_dir = get_package_share_directory('smrr_human_tracker')
     default_model = os.path.join(pkg_dir, 'models', 'yolo26n.pt')
     
     # Declare launch arguments
@@ -56,7 +56,7 @@ def generate_launch_description():
 
     # Human detector node
     human_detector_node = Node(
-        package='smrr_crowdnav',
+        package='smrr_human_tracker',
         executable='human_detector',
         name='human_detector',
         output='screen',

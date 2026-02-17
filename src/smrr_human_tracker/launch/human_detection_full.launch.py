@@ -16,7 +16,7 @@ def generate_launch_description():
     2. Human-LiDAR matcher (fusion)
     """
     
-    pkg_dir = get_package_share_directory('smrr_crowdnav')
+    pkg_dir = get_package_share_directory('smrr_human_tracker')
     default_model = os.path.join(pkg_dir, 'models', 'yolo26n.pt')
     
     # Arguments
@@ -58,7 +58,7 @@ def generate_launch_description():
 
     # Human-LiDAR matcher node
     matcher_node = Node(
-        package='smrr_crowdnav',
+        package='smrr_human_tracker',
         executable='human_lidar_matcher',
         name='human_lidar_matcher',
         output='screen',

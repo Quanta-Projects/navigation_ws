@@ -7,19 +7,15 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    """
-    Launch DR-SPAAM 2D LiDAR Person Detector
-    """
-    
-    # Get model path from smrr_crowdnav package
-    package_share_dir = get_package_share_directory('smrr_crowdnav')
+    # Get model path from smrr_human_tracker package
+    package_share_dir = get_package_share_directory('smrr_human_tracker')
     default_weight_file = os.path.join(package_share_dir, 'models', 'ckpt_jrdb_ann_ft_dr_spaam_e20.pth')
     
     # Declare launch arguments
     weight_file_arg = DeclareLaunchArgument(
         'weight_file',
         default_value=default_weight_file,
-        description='Path to pre-trained model checkpoint (.pth file)'
+        description='Path to pre-trained DR-SPAAM model checkpoint (.pth file)'
     )
     
     detector_model_arg = DeclareLaunchArgument(
@@ -30,7 +26,7 @@ def generate_launch_description():
     
     conf_thresh_arg = DeclareLaunchArgument(
         'conf_thresh',
-        default_value='0.3',
+        default_value='0.5',
         description='Detection confidence threshold (0.0-1.0)'
     )
     
@@ -46,35 +42,29 @@ def generate_launch_description():
         description='Set to True for 360-degree scans'
     )
     
-    scan_topic_arg = DeclareLaunchArgument(
-        'scan_topic',
-        default_value='/scan',
-        description='Input laser scan topic'
+    matching_threshold_arg = DeclareLaunchArgument(
+        'matching_distance_threshold',
+        default_value='0.5',
+        description='Maximum distance (m) between camera and LiDAR detection for matching'
     )
     
-    target_frame_arg = DeclareLaunchArgument(
-        'target_frame',
-        default_value='map',
-        description='Target frame for detections (map/odom/base_link)'
+    cluster_distance_arg = DeclareLaunchArgument(
+        'cluster_distance_threshold',
+        default_value='0.3',
+        description='Maximum distance (m) between points to form a cluster'
     )
     
-    detections_topic_arg = DeclareLaunchArgument(
-        'detections_topic',
-        default_value='detected_people',
-        description='Output detections topic (PoseArray)'
-    )
-    
-    marker_topic_arg = DeclareLaunchArgument(
-        'marker_topic',
-        default_value='detected_people_markers',
-        description='Output marker topic for RViz visualization'
+    min_cluster_points_arg = DeclareLaunchArgument(
+        'min_cluster_points',
+        default_value='3',
+        description='Minimum points required to form a cluster'
     )
 
-    # DR-SPAAM detector node
-    detector_node = Node(
-        package='smrr_crowdnav',
+    # Human-LiDAR matcher node
+    matcher_node = Node(
+        package='smrr_human_tracker',
         executable='human_lidar_matcher',
-        name='dr_spaam_detector',
+        name='human_lidar_matcher',
         output='screen',
         parameters=[{
             'weight_file': LaunchConfiguration('weight_file'),
@@ -82,10 +72,16 @@ def generate_launch_description():
             'conf_thresh': LaunchConfiguration('conf_thresh'),
             'stride': LaunchConfiguration('stride'),
             'panoramic_scan': LaunchConfiguration('panoramic_scan'),
-            'scan_topic': LaunchConfiguration('scan_topic'),
-            'target_frame': LaunchConfiguration('target_frame'),
-            'detections_topic': LaunchConfiguration('detections_topic'),
-            'marker_topic': LaunchConfiguration('marker_topic'),
+            'scan_topic': '/scan',
+            'human_poses_topic': '/detected_humans/poses',
+            'matching_distance_threshold': LaunchConfiguration('matching_distance_threshold'),
+            'cluster_distance_threshold': LaunchConfiguration('cluster_distance_threshold'),
+            'min_cluster_points': LaunchConfiguration('min_cluster_points'),
+            'human_leg_width_min': 0.1,
+            'human_leg_width_max': 0.6,
+            'min_range': 0.2,
+            'max_range': 10.0,
+            'publish_rate': 10.0,
         }]
     )
 
@@ -95,9 +91,8 @@ def generate_launch_description():
         conf_thresh_arg,
         stride_arg,
         panoramic_scan_arg,
-        scan_topic_arg,
-        target_frame_arg,
-        detections_topic_arg,
-        marker_topic_arg,
-        detector_node,
+        matching_threshold_arg,
+        cluster_distance_arg,
+        min_cluster_points_arg,
+        matcher_node,
     ])

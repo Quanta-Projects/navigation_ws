@@ -12,7 +12,7 @@ def generate_launch_description():
     """
     
     # Get model path from package
-    pkg_share = get_package_share_directory('smrr_crowdnav')
+    pkg_share = get_package_share_directory('smrr_human_tracker')
     default_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
     
     # Declare launch arguments
@@ -66,7 +66,7 @@ def generate_launch_description():
 
     # Human tracker node
     tracker_node = Node(
-        package='smrr_crowdnav',
+        package='smrr_human_tracker',
         executable='human_tracker',
         name='human_tracker',
         output='screen',

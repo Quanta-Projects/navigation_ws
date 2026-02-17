@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>smrr_crowdnav</name>
+  <name>smrr_human_tracker</name>
   <version>0.0.0</version>
   <description>Human detection and crowd navigation using YOLO11 and RGBD camera</description>
   <maintainer email="achirahansindu52@gmail.com">achiraubuntu</maintainer>

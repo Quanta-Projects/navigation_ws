@@ -26,7 +26,7 @@ class DrSpaamNode(Node):
 
         # Declare parameters
         self.declare_parameter('weight_file', '')
-        self.declare_parameter('conf_thresh', 0.8)
+        self.declare_parameter('conf_thresh', 0.5)
         self.declare_parameter('stride', 1)
         self.declare_parameter('detector_model', 'DR-SPAAM')  # or 'DROW3'
         self.declare_parameter('panoramic_scan', True)
@@ -95,85 +95,63 @@ class DrSpaamNode(Node):
 
     def _scan_callback(self, msg):
         """Process incoming laser scan and detect people"""
-        # Skip if no subscribers
         if (self._dets_pub.get_subscription_count() == 0 and 
             self._rviz_pub.get_subscription_count() == 0):
             return
 
-        # Start timing
         start_time = time.time()
 
-        # Set laser FOV if not set
         if not self._detector.is_ready():
             fov_deg = np.rad2deg(msg.angle_increment * len(msg.ranges))
             self._detector.set_laser_fov(fov_deg)
             self.get_logger().info(f'Laser FOV set to: {fov_deg:.2f} degrees')
 
-        # Prepare scan data
         scan = np.array(msg.ranges)
         scan[scan == 0.0] = 29.99
         scan[np.isinf(scan)] = 29.99
         scan[np.isnan(scan)] = 29.99
 
-        # Run detection
         dets_xy, dets_cls, _ = self._detector(scan)
 
-        # Apply confidence threshold
         conf_mask = (dets_cls >= self.conf_thresh).reshape(-1)
         dets_xy = dets_xy[conf_mask]
         dets_cls = dets_cls[conf_mask]
 
-        # Debug logging
-        self.get_logger().info(
-            f'Detected {len(dets_xy)} people',
-            throttle_duration_sec=1.0
-        )
+        self.get_logger().info(f'Detected {len(dets_xy)} people', throttle_duration_sec=1.0)
 
-        # Convert and publish detections
         dets_msg = self._detections_to_pose_array(dets_xy, dets_cls)
         dets_msg.header = msg.header
         
-        # Transform to target frame if specified (optimized - single lookup)
         if self.target_frame and self.target_frame != msg.header.frame_id:
             dets_msg = self._transform_pose_array_to_target_frame(dets_msg)
         
-        # Pack confidence into position.z AFTER frame transform so tf2
-        # quaternion math cannot corrupt it (orientation is identity).
+        # Inject confidence AFTER frame transform to prevent quaternion corruption
         for pose, d_cls in zip(dets_msg.poses, dets_cls):
             pose.position.z = float(d_cls)
         
         self._dets_pub.publish(dets_msg)
 
-        # Publish RViz markers (only if there are subscribers)
         if self._rviz_pub.get_subscription_count() > 0:
             rviz_msg = self._detections_to_rviz_marker(dets_xy, dets_cls)
             rviz_msg.header = msg.header
             
-            # Transform markers to target frame if specified
             if self.target_frame and self.target_frame != msg.header.frame_id:
                 rviz_msg = self._transform_marker_to_target_frame(rviz_msg)
             
             self._rviz_pub.publish(rviz_msg)
 
-        # Calculate performance metrics
         processing_time = time.time() - start_time
         self.frame_times.append(processing_time)
         self.frame_count += 1
         
-        # Log performance metrics every 5 seconds
         current_time = time.time()
         if current_time - self.last_metrics_log >= 5.0:
             avg_time = np.mean(self.frame_times)
             fps = 1.0 / avg_time if avg_time > 0 else 0
             min_time = np.min(self.frame_times)
             max_time = np.max(self.frame_times)
-            
             self.get_logger().info(
-                f'[DR-SPAAM Performance] FPS: {fps:.2f} | '
-                f'Avg: {avg_time*1000:.1f}ms | '
-                f'Min: {min_time*1000:.1f}ms | '
-                f'Max: {max_time*1000:.1f}ms | '
-                f'Frames: {self.frame_count}'
+                f'[DR-SPAAM Performance] FPS: {fps:.2f} | Avg: {avg_time*1000:.1f}ms'
             )
             self.last_metrics_log = current_time
 
@@ -224,56 +202,53 @@ class DrSpaamNode(Node):
         return msg
 
     def _detections_to_pose_array(self, dets_xy, dets_cls):
-        """Convert detections to PoseArray message"""
+        """Convert detections to PoseArray message with pure identity quaternions"""
         pose_array = PoseArray()
-        for d_xy, d_cls in zip(dets_xy, dets_cls):
-            # Detector frame convention: x forward, y rightward, z downward
+        for d_xy in dets_xy:
             p = Pose()
             p.position.x = float(d_xy[0])
             p.position.y = float(d_xy[1])
-            p.position.z = 0.0  # Confidence packed into position.z after frame transform
+            p.position.z = 0.0
             p.orientation.x = 0.0
             p.orientation.y = 0.0
-            p.orientation.z = 0.0
+            p.orientation.z = 0.0  # Clean quaternion!
             p.orientation.w = 1.0
             pose_array.poses.append(p)
-
         return pose_array
 
     def _transform_pose_array_to_target_frame(self, pose_array):
-        """Transform PoseArray to target frame using TF2 efficiently"""
+        """Transform PoseArray using zero-wait Ego-Motion fix"""
         try:
-            # Use the sensor message timestamp to anchor the transform to the
-            # moment the scan was captured, preventing ego-motion latency.
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                pose_array.header.frame_id,
-                rclpy.time.Time.from_msg(pose_array.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.1)
-            )
+            try:
+                # Try exact sensor time instantly
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    pose_array.header.frame_id,
+                    rclpy.time.Time.from_msg(pose_array.header.stamp),
+                    timeout=rclpy.duration.Duration(seconds=0.0)
+                )
+            except (TransformException, tf2_ros.LookupException, 
+                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                # Fallback to latest instantly
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    pose_array.header.frame_id,
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=0.0)
+                )
             
-            # Transform each pose using the same transform
             transformed_poses = []
             for pose in pose_array.poses:
-                # Create PoseStamped for transformation
                 pose_stamped = PoseStamped()
                 pose_stamped.header = pose_array.header
                 pose_stamped.pose = pose
-                
-                # Apply transform
-                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(
-                    pose_stamped,
-                    transform
-                )
-                
+                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
                 transformed_poses.append(transformed_pose_stamped.pose)
             
-            # Create new PoseArray with transformed poses
             transformed_pose_array = PoseArray()
             transformed_pose_array.header.stamp = pose_array.header.stamp
             transformed_pose_array.header.frame_id = self.target_frame
             transformed_pose_array.poses = transformed_poses
-            
             return transformed_pose_array
             
         except Exception as e:
@@ -281,38 +256,35 @@ class DrSpaamNode(Node):
             return pose_array
 
     def _transform_marker_to_target_frame(self, marker):
-        """Transform marker points to target frame efficiently"""
+        """Transform markers using zero-wait Ego-Motion fix"""
         try:
-            # Use the sensor message timestamp to anchor the transform to the
-            # moment the scan was captured, preventing ego-motion latency.
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                marker.header.frame_id,
-                rclpy.time.Time.from_msg(marker.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.1)
-            )
+            try:
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    marker.header.frame_id,
+                    rclpy.time.Time.from_msg(marker.header.stamp),
+                    timeout=rclpy.duration.Duration(seconds=0.0)
+                )
+            except (TransformException, tf2_ros.LookupException, 
+                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    marker.header.frame_id,
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=0.0)
+                )
             
-            # Transform each point using the same transform
             transformed_points = []
             for point in marker.points:
-                # Create PoseStamped for transformation
                 point_stamped = PoseStamped()
                 point_stamped.header = marker.header
                 point_stamped.pose.position = point
                 point_stamped.pose.orientation.w = 1.0
-                
-                # Apply transform
-                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose_stamped(
-                    point_stamped,
-                    transform
-                )
-                
+                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose_stamped(point_stamped, transform)
                 transformed_points.append(transformed_point_stamped.pose.position)
             
-            # Update marker with transformed points
             marker.header.frame_id = self.target_frame
             marker.points = transformed_points
-            
             return marker
             
         except Exception as e:

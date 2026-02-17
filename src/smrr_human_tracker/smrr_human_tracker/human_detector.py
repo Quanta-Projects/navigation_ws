@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """
-YOLO26 Instance Segmentation and Tracking Node
-Tracks humans using YOLO26 instance segmentation with persistent IDs
+YOLO26-based Human Detection Node for RGBD Camera
+Detects humans and estimates their 3D positions using depth information
 """
 
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import PoseArray, Pose
+from geometry_msgs.msg import PoseArray, Pose, Point
 from visualization_msgs.msg import MarkerArray, Marker
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from ultralytics import YOLO
 import message_filters
+from scipy.spatial.distance import cdist
 import time
 from collections import deque
 import tf2_ros
@@ -24,17 +25,17 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 
-class HumanInstanceTracker(Node):
+class HumanDetector(Node):
     """
-    ROS 2 Node for tracking humans using YOLO26 instance segmentation
+    ROS 2 Node for detecting humans using YOLO26 and RGBD camera
     """
 
     def __init__(self):
-        super().__init__('human_tracker')
+        super().__init__('human_detector')
 
         # Get default model path from package share directory
-        pkg_share = get_package_share_directory('smrr_crowdnav')
-        default_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
+        pkg_share = get_package_share_directory('smrr_human_tracker')
+        default_model = os.path.join(pkg_share, 'models', 'yolo26n.pt')
 
         # Declare parameters
         self.declare_parameter('model_path', default_model)
@@ -44,8 +45,7 @@ class HumanInstanceTracker(Node):
         self.declare_parameter('camera_info_topic', '/zed2_left_camera/camera_info')
         self.declare_parameter('publish_visualization', True)
         self.declare_parameter('max_detection_distance', 15.0)
-        self.declare_parameter('tracker', 'bytetrack.yaml')
-        self.declare_parameter('iou_threshold', 0.3)
+        self.declare_parameter('tracking_distance_threshold', 3.0)  # Max distance to match same person
         self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
 
         # Get parameters
@@ -56,16 +56,16 @@ class HumanInstanceTracker(Node):
         camera_info_topic = self.get_parameter('camera_info_topic').value
         self.publish_viz = self.get_parameter('publish_visualization').value
         self.max_distance = self.get_parameter('max_detection_distance').value
-        tracker_type = self.get_parameter('tracker').value
-        iou_threshold = self.get_parameter('iou_threshold').value
+        self.tracking_threshold = self.get_parameter('tracking_distance_threshold').value
         self.target_frame = self.get_parameter('target_frame').value
 
-        # TF2 for frame transformations
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-
-        # Predefined colors for different tracked instances (BGR format)
-        self.track_colors = [
+        # Instance tracking
+        self.tracked_humans = {}  # {id: {'position': [x,y,z], 'last_seen': timestamp, 'color': (r,g,b)}}
+        self.next_id = 1
+        self.max_tracking_age = 2.0  # seconds before removing lost tracks
+        
+        # Predefined colors for different persons (BGR format for OpenCV)
+        self.person_colors = [
             (255, 0, 0),      # Blue
             (0, 255, 0),      # Green
             (0, 0, 255),      # Red
@@ -76,30 +76,17 @@ class HumanInstanceTracker(Node):
             (0, 128, 255),    # Orange
             (255, 128, 0),    # Sky Blue
             (128, 255, 0),    # Spring Green
-            (255, 128, 128),  # Light Blue
-            (128, 255, 128),  # Light Green
-            (128, 128, 255),  # Light Red
-            (0, 165, 255),    # Deep Orange
-            (255, 191, 0),    # Deep Sky Blue
         ]
 
-        # Initialize YOLO26 Instance Segmentation with built-in tracking
+        # TF2 for frame transformations
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
+        # Initialize YOLO26 model
         self.get_logger().info(f'Loading YOLO26 model: {model_path}')
-        
-        # Check GPU availability
-        import torch
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-        self.get_logger().info(f'Using device: {self.device}')
-        if torch.cuda.is_available():
-            self.get_logger().info(f'GPU: {torch.cuda.get_device_name(0)}')
-        
         try:
-            # Load YOLO26 model for direct access to tracking results
             self.model = YOLO(model_path)
-            self.model.to(self.device)
-            self.tracker_type = tracker_type
-            self.iou_threshold = iou_threshold
-            self.get_logger().info(f'YOLO26 Instance Segmentation loaded on {self.device}. Using tracker: {tracker_type}')
+            self.get_logger().info('YOLO26 model loaded successfully')
         except Exception as e:
             self.get_logger().error(f'Failed to load YOLO26 model: {e}')
             raise
@@ -129,18 +116,19 @@ class HumanInstanceTracker(Node):
         self.ts.registerCallback(self.synchronized_callback)
 
         # Publishers
-        self.pose_pub = self.create_publisher(PoseArray, 'tracked_humans/poses', 10)
-        self.marker_pub = self.create_publisher(MarkerArray, 'tracked_humans/markers', 10)
+        self.pose_pub = self.create_publisher(PoseArray, 'detected_humans/poses', 10)
+        self.marker_pub = self.create_publisher(MarkerArray, 'detected_humans/markers', 10)
         
         if self.publish_viz:
-            self.viz_pub = self.create_publisher(Image, 'tracked_humans/visualization', 10)
+            self.viz_pub = self.create_publisher(Image, 'detected_humans/visualization', 10)
 
         # Performance metrics
         self.frame_times = deque(maxlen=30)  # Store last 30 frame processing times
         self.last_metrics_log = time.time()
         self.frame_count = 0
 
-        self.get_logger().info('Human Instance Tracker Node initialized')
+        self.get_logger().info('Human Detector Node initialized')
+        self.get_logger().info(f'Publishing poses in frame: {self.target_frame}')
 
     def camera_info_callback(self, msg):
         """Store camera intrinsics"""
@@ -159,65 +147,42 @@ class HumanInstanceTracker(Node):
             rgb_image = self.bridge.imgmsg_to_cv2(rgb_msg, desired_encoding='bgr8')
             depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
 
-            # Run YOLO26 instance segmentation with tracking
-            results = self.model.track(
-                rgb_image,
-                persist=True,
-                tracker=self.tracker_type,
-                conf=self.confidence_threshold,
-                iou=self.iou_threshold,
-                classes=[0],  # Only track persons
-                verbose=False,
-                device=self.device
-            )
+            # Run YOLO26 detection
+            results = self.model(rgb_image, verbose=False)
 
-            # Extract tracked instances from the results
-            tracked_humans = []
-            if results is not None and len(results) > 0:
-                result = results[0]
-                
-                # Check if we have tracking IDs
-                if result.boxes is not None and result.boxes.id is not None:
-                    track_ids = result.boxes.id.cpu().numpy().astype(int)
-                    confidences = result.boxes.conf.cpu().numpy()
-                    xyxy = result.boxes.xyxy.cpu().numpy()
-                    
-                    # Get segmentation masks if available
-                    masks = None
-                    if hasattr(result, 'masks') and result.masks is not None:
-                        masks = result.masks.data.cpu().numpy()
-                    
-                    for idx, track_id in enumerate(track_ids):
-                        x1, y1, x2, y2 = xyxy[idx]
-                        
+            # Process detections
+            detected_humans = []
+            for result in results:
+                boxes = result.boxes
+                for box in boxes:
+                    # Filter for person class (class 0 in COCO)
+                    if int(box.cls) == 0 and float(box.conf) >= self.confidence_threshold:
+                        # Get bounding box coordinates
+                        x1, y1, x2, y2 = map(int, box.xyxy[0])
+                        confidence = float(box.conf)
+
                         # Calculate 3D position using depth
-                        position_3d = self.calculate_3d_position(
-                            int(x1), int(y1), int(x2), int(y2), depth_image
+                        human_3d_pos = self.calculate_3d_position(
+                            x1, y1, x2, y2, depth_image
                         )
-                        
-                        if position_3d is not None:
-                            # Get color for this track ID
-                            color_idx = track_id % len(self.track_colors)
-                            color = self.track_colors[color_idx]
-                            
-                            # Get mask for this instance if available
-                            mask = masks[idx] if masks is not None else None
-                            
-                            tracked_humans.append({
-                                'track_id': int(track_id),
-                                'bbox': (int(x1), int(y1), int(x2), int(y2)),
-                                'confidence': float(confidences[idx]),
-                                'position_3d': position_3d,
-                                'color': color,
-                                'mask': mask
+
+                        if human_3d_pos is not None:
+                            detected_humans.append({
+                                'bbox': (x1, y1, x2, y2),
+                                'confidence': confidence,
+                                'position_3d': human_3d_pos
                             })
 
-            # Publish results
-            self.publish_detections(tracked_humans, rgb_msg.header)
+            # Track instances and assign IDs
+            current_time = self.get_clock().now().nanoseconds / 1e9
+            tracked_detections = self.track_humans(detected_humans, current_time)
 
-            # Publish visualization
+            # Publish results
+            self.publish_detections(tracked_detections, rgb_msg.header)
+
+            # Publish visualization with tracking info
             if self.publish_viz:
-                viz_image = self.create_visualization(rgb_image, tracked_humans)
+                viz_image = self.create_visualization(rgb_image, tracked_detections)
                 viz_msg = self.bridge.cv2_to_imgmsg(viz_image, encoding='bgr8')
                 viz_msg.header = rgb_msg.header
                 self.viz_pub.publish(viz_msg)
@@ -228,8 +193,8 @@ class HumanInstanceTracker(Node):
             self.frame_count += 1
             
             # Log performance metrics every 5 seconds
-            current_time = time.time()
-            if current_time - self.last_metrics_log >= 5.0:
+            current_time_metrics = time.time()
+            if current_time_metrics - self.last_metrics_log >= 5.0:
                 avg_time = np.mean(self.frame_times)
                 fps = 1.0 / avg_time if avg_time > 0 else 0
                 min_time = np.min(self.frame_times)
@@ -242,29 +207,109 @@ class HumanInstanceTracker(Node):
                     f'Max: {max_time*1000:.1f}ms | '
                     f'Frames: {self.frame_count}'
                 )
-                self.last_metrics_log = current_time
-
-            if len(tracked_humans) > 0:
-                self.get_logger().info(
-                    f'Tracking {len(tracked_humans)} humans: ' + 
-                    ', '.join([f'ID {h["track_id"]}' for h in tracked_humans]),
-                    throttle_duration_sec=1.0
-                )
-            else:
-                # Debug: No detections
-                self.get_logger().debug(
-                    'No humans detected in current frame',
-                    throttle_duration_sec=2.0
-                )
+                self.last_metrics_log = current_time_metrics
 
         except Exception as e:
             self.get_logger().error(f'Error processing images: {e}')
-            import traceback
-            self.get_logger().error(traceback.format_exc())
+
+    def track_humans(self, detected_humans, current_time):
+        """
+        Track human instances across frames using distance-based matching
+        Returns list of detections with assigned IDs and colors
+        """
+        if len(detected_humans) == 0:
+            return []
+
+        # Remove stale tracks
+        stale_ids = []
+        for track_id, track_data in self.tracked_humans.items():
+            if current_time - track_data['last_seen'] > self.max_tracking_age:
+                stale_ids.append(track_id)
+        
+        for track_id in stale_ids:
+            del self.tracked_humans[track_id]
+            self.get_logger().info(f'Lost track of Person {track_id}')
+
+        # If no existing tracks, assign new IDs to all
+        if len(self.tracked_humans) == 0:
+            tracked_detections = []
+            for human in detected_humans:
+                person_id = self.next_id
+                color_idx = (person_id - 1) % len(self.person_colors)
+                color = self.person_colors[color_idx]
+                
+                self.tracked_humans[person_id] = {
+                    'position': human['position_3d'],
+                    'last_seen': current_time,
+                    'color': color
+                }
+                
+                human['id'] = person_id
+                human['color'] = color
+                tracked_detections.append(human)
+                
+                self.next_id += 1
+                self.get_logger().info(f'New track: Person {person_id}')
+            
+            return tracked_detections
+
+        # Match detections to existing tracks
+        track_ids = list(self.tracked_humans.keys())
+        track_positions = np.array([self.tracked_humans[tid]['position'] for tid in track_ids])
+        detection_positions = np.array([h['position_3d'] for h in detected_humans])
+
+        # Calculate distance matrix
+        distances = cdist(detection_positions, track_positions)
+
+        # Simple greedy assignment
+        matched_detections = []
+        unmatched_detections = list(range(len(detected_humans)))
+        matched_tracks = set()
+
+        # Sort by minimum distance for each detection
+        for det_idx in range(len(detected_humans)):
+            min_dist_idx = np.argmin(distances[det_idx])
+            min_dist = distances[det_idx, min_dist_idx]
+            
+            if min_dist < self.tracking_threshold and min_dist_idx not in matched_tracks:
+                # Match found
+                track_id = track_ids[min_dist_idx]
+                matched_tracks.add(min_dist_idx)
+                unmatched_detections.remove(det_idx)
+                
+                # Update track
+                self.tracked_humans[track_id]['position'] = detected_humans[det_idx]['position_3d']
+                self.tracked_humans[track_id]['last_seen'] = current_time
+                
+                # Add ID and color to detection
+                detected_humans[det_idx]['id'] = track_id
+                detected_humans[det_idx]['color'] = self.tracked_humans[track_id]['color']
+                matched_detections.append(detected_humans[det_idx])
+
+        # Create new tracks for unmatched detections
+        for det_idx in unmatched_detections:
+            person_id = self.next_id
+            color_idx = (person_id - 1) % len(self.person_colors)
+            color = self.person_colors[color_idx]
+            
+            self.tracked_humans[person_id] = {
+                'position': detected_humans[det_idx]['position_3d'],
+                'last_seen': current_time,
+                'color': color
+            }
+            
+            detected_humans[det_idx]['id'] = person_id
+            detected_humans[det_idx]['color'] = color
+            matched_detections.append(detected_humans[det_idx])
+            
+            self.next_id += 1
+            self.get_logger().info(f'New track: Person {person_id}')
+
+        return matched_detections
 
     def calculate_3d_position(self, x1, y1, x2, y2, depth_image):
         """
-        Calculate 3D position of tracked human using depth information
+        Calculate 3D position of detected human using depth information
         
         Args:
             x1, y1, x2, y2: Bounding box coordinates
@@ -280,12 +325,12 @@ class HumanInstanceTracker(Node):
         cx = (x1 + x2) // 2
         cy = (y1 + y2) // 2
 
-        # Get depth value at center
+        # Get depth value at center (with averaging for robustness)
         h, w = depth_image.shape[:2]
         if cx < 0 or cx >= w or cy < 0 or cy >= h:
             return None
 
-        # Average depth in a region around center
+        # Average depth in a small region around center
         region_size = 10
         y_start = max(0, cy - region_size)
         y_end = min(h, cy + region_size)
@@ -294,7 +339,7 @@ class HumanInstanceTracker(Node):
 
         depth_region = depth_image[y_start:y_end, x_start:x_end]
         
-        # Filter out invalid depth values
+        # Filter out invalid depth values (0 or NaN)
         valid_depths = depth_region[(depth_region > 0) & np.isfinite(depth_region)]
         
         if len(valid_depths) == 0:
@@ -303,8 +348,8 @@ class HumanInstanceTracker(Node):
         # Use median for robustness
         depth = np.median(valid_depths)
 
-        # Convert depth from mm to meters if needed
-        if depth > 100:
+        # Convert depth from mm to meters (if needed, adjust based on your camera)
+        if depth > 100:  # Likely in millimeters
             depth = depth / 1000.0
 
         # Check if within max distance
@@ -324,28 +369,15 @@ class HumanInstanceTracker(Node):
 
         return np.array([x, y, z])
 
-    def publish_detections(self, tracked_humans, header):
-        """Publish tracked humans as PoseArray and MarkerArray with frame transformation"""
-        # Debug: Log number of tracked humans
+    def publish_detections(self, detected_humans, header):
+        """Publish detected humans as PoseArray and MarkerArray with tracking info"""
+        # Debug: Log number of detected humans
         self.get_logger().info(
-            f'Publishing {len(tracked_humans)} humans from frame {header.frame_id} to {self.target_frame}',
+            f'Publishing {len(detected_humans)} humans from frame {header.frame_id} to {self.target_frame}',
             throttle_duration_sec=1.0
         )
         
-        # --- Pre-fetch transform ONCE before the loop to fix Ego-Motion without dropping FPS ---
-        try:
-            self.tf_buffer.lookup_transform(
-                self.target_frame,
-                header.frame_id,
-                rclpy.time.Time.from_msg(header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.0) # Strictly 0.0 to prevent blocking
-            )
-            target_time = header.stamp  # Exact sensor time available
-        except (TransformException, tf2_ros.LookupException,
-                tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            target_time = rclpy.time.Time().to_msg()  # Fallback to latest if exact time isn't ready
-
-        # Publish PoseArray in target frame
+        # Publish PoseArray in map frame
         pose_array = PoseArray()
         pose_array.header.frame_id = self.target_frame
         pose_array.header.stamp = header.stamp
@@ -356,9 +388,9 @@ class HumanInstanceTracker(Node):
         transform_success_count = 0
         transform_fail_count = 0
 
-        for human in tracked_humans:
+        for human in detected_humans:
             pos_3d = human['position_3d']
-            track_id = human['track_id']
+            person_id = human['id']
             color_bgr = human['color']
             
             # Convert BGR to RGB and normalize to 0-1
@@ -369,27 +401,21 @@ class HumanInstanceTracker(Node):
             pose_camera.position.x = float(pos_3d[0])
             pose_camera.position.y = float(pos_3d[1])
             pose_camera.position.z = float(pos_3d[2])
-            pose_camera.orientation.x = 0.0
-            pose_camera.orientation.y = 0.0
-            pose_camera.orientation.z = 0.0
             pose_camera.orientation.w = 1.0
             
-            # Transform pose to target frame (map/odom) using the pre-fetched target_time
-            pose_map = self.transform_pose_to_map(pose_camera, header, target_time)
+            # Transform pose to map frame
+            pose_map = self.transform_pose_to_map(pose_camera, header)
             
             if pose_map is not None:
                 transform_success_count += 1
-                
-                # Inject confidence AFTER the transform into the unused Z position
-                pose_map.position.z = float(human['confidence'])
                 pose_array.poses.append(pose_map)
 
-                # Add text marker with track ID in target frame
+                # Add text marker with person ID in map frame
                 text_marker = Marker()
                 text_marker.header.frame_id = self.target_frame
                 text_marker.header.stamp = header.stamp
-                text_marker.ns = "track_labels"
-                text_marker.id = track_id + 10000
+                text_marker.ns = "human_labels"
+                text_marker.id = person_id + 1000
                 text_marker.type = Marker.TEXT_VIEW_FACING
                 text_marker.action = Marker.ADD
                 text_marker.pose.position.x = pose_map.position.x
@@ -397,11 +423,11 @@ class HumanInstanceTracker(Node):
                 text_marker.pose.position.z = 0.5  # Position text above footprint
                 text_marker.pose.orientation.w = 1.0
                 text_marker.scale.z = 0.3
-                text_marker.color.r = 0.0
-                text_marker.color.g = 0.0
+                text_marker.color.r = 1.0
+                text_marker.color.g = 1.0
                 text_marker.color.b = 1.0
                 text_marker.color.a = 1.0
-                text_marker.text = f"ID {track_id}"
+                text_marker.text = f"Person {person_id}"
                 text_marker.lifetime.sec = 0
                 text_marker.lifetime.nanosec = 500000000
                 
@@ -409,8 +435,8 @@ class HumanInstanceTracker(Node):
                 footprint_marker = Marker()
                 footprint_marker.header.frame_id = self.target_frame
                 footprint_marker.header.stamp = header.stamp
-                footprint_marker.ns = "track_footprints"
-                footprint_marker.id = track_id
+                footprint_marker.ns = "human_footprints"
+                footprint_marker.id = person_id
                 footprint_marker.type = Marker.CYLINDER
                 footprint_marker.action = Marker.ADD
                 # Position at ground level (z=0)
@@ -436,7 +462,7 @@ class HumanInstanceTracker(Node):
                 transform_fail_count += 1
 
         # Log transform results
-        if len(tracked_humans) > 0:
+        if len(detected_humans) > 0:
             self.get_logger().info(
                 f'Transform results: {transform_success_count} succeeded, {transform_fail_count} failed. '
                 f'Publishing {len(pose_array.poses)} poses in {self.target_frame} frame.',
@@ -446,22 +472,80 @@ class HumanInstanceTracker(Node):
         self.pose_pub.publish(pose_array)
         self.marker_pub.publish(marker_array)
 
-    def transform_pose_to_map(self, pose, header, target_time):
+    def create_visualization(self, image, detected_humans):
+        """Create visualization image with bounding boxes and tracking info"""
+        viz_image = image.copy()
+
+        for human in detected_humans:
+            x1, y1, x2, y2 = human['bbox']
+            pos_3d = human['position_3d']
+            person_id = human['id']
+            color = human['color']
+            distance = np.linalg.norm(pos_3d)
+
+            # Draw bounding box with person-specific color
+            cv2.rectangle(viz_image, (x1, y1), (x2, y2), color, 2)
+            
+            # Draw label with person ID and distance
+            label = f"Person {person_id}: {distance:.2f}m"
+            
+            # Calculate text size for background
+            (text_width, text_height), baseline = cv2.getTextSize(
+                label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+            )
+            
+            # Draw background rectangle for text
+            cv2.rectangle(
+                viz_image,
+                (x1, y1 - text_height - 10),
+                (x1 + text_width, y1),
+                color,
+                -1
+            )
+            
+            # Draw text in white
+            cv2.putText(
+                viz_image,
+                label,
+                (x1, y1 - 5),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (255, 255, 255),
+                2
+            )
+
+            # Draw center point (red dot)
+            cx = (x1 + x2) // 2
+            cy = (y1 + y2) // 2
+            cv2.circle(viz_image, (cx, cy), 4, (0, 0, 255), -1)
+
+        return viz_image
+
+    def transform_pose_to_map(self, pose, header):
         """
-        Transform pose from camera frame to target frame using TF2
+        Transform pose from camera frame to map frame using TF2
+        
+        Args:
+            pose: Pose in camera frame
+            header: Original message header with camera frame and timestamp
+            
+        Returns:
+            Pose in map frame or None if transform fails
         """
         try:
             # Create PoseStamped in camera frame
             pose_stamped = PoseStamped()
             pose_stamped.header.frame_id = header.frame_id
-            pose_stamped.header.stamp = target_time
+            # Use current time (Time(0)) to get latest available transform
+            # This avoids extrapolation errors when camera timestamp is ahead of TF
+            pose_stamped.header.stamp = rclpy.time.Time().to_msg()
             pose_stamped.pose = pose
             
-            # Transform to target frame instantly using pre-fetched time (timeout=0.0)
+            # Transform to map frame using latest available transform
             transformed_pose = self.tf_buffer.transform(
                 pose_stamped,
                 self.target_frame,
-                timeout=rclpy.duration.Duration(seconds=0.0)
+                timeout=rclpy.duration.Duration(seconds=0.5)
             )
             
             return transformed_pose.pose
@@ -471,83 +555,21 @@ class HumanInstanceTracker(Node):
             # Log warning for transform failures
             if isinstance(e, tf2_ros.LookupException):
                 self.get_logger().warn(
-                    f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. Error: {e}',
-                    throttle_duration_sec=5.0
-                )
-            elif isinstance(e, tf2_ros.ExtrapolationException):
-                self.get_logger().warn(
-                    f'Transform extrapolation error: {e}',
+                    f'Transform from {header.frame_id} to {self.target_frame} not available. '
+                    f'Is localization/AMCL running? Set target_frame parameter to "odom" or "base_link" if map is not available.',
                     throttle_duration_sec=5.0
                 )
             else:
                 self.get_logger().warn(
-                    f'Transform failed from {header.frame_id} to {self.target_frame}: {e}',
-                    throttle_duration_sec=5.0
+                    f'Failed to transform pose from {header.frame_id} to {self.target_frame}: {type(e).__name__}: {e}',
+                    throttle_duration_sec=0.5
                 )
             return None
-
-    def create_visualization(self, image, tracked_humans):
-        """Create visualization image with bounding boxes and track IDs"""
-        viz_image = image.copy()
-
-        # Draw bounding boxes and labels
-        for human in tracked_humans:
-            x1, y1, x2, y2 = human['bbox']
-            track_id = human['track_id']
-            color = human['color']
-            pos_3d = human['position_3d']
-            distance = np.linalg.norm(pos_3d)
-            
-            # Draw bounding box
-            cv2.rectangle(viz_image, (x1, y1), (x2, y2), color, 2)
-            
-            # Calculate center point
-            cx = (x1 + x2) // 2
-            cy = (y1 + y2) // 2
-            
-            # Draw center point
-            cv2.circle(viz_image, (cx, cy), 5, color, -1)
-            cv2.circle(viz_image, (cx, cy), 6, (255, 255, 255), 2)
-
-            # Draw label with track ID
-            label = f"ID {track_id}: {distance:.2f}m"
-            
-            # Calculate text size for background
-            (text_width, text_height), baseline = cv2.getTextSize(
-                label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
-            )
-            
-            # Draw background rectangle for text above bbox
-            cv2.rectangle(
-                viz_image,
-                (x1, y1 - text_height - 10),
-                (x1 + text_width + 10, y1),
-                color,
-                -1
-            )
-            
-            # Draw text in white
-            cv2.putText(
-                viz_image,
-                label,
-                (x1 + 5, y1 - 5),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                (255, 255, 255),
-                2
-            )
-
-            # Draw center point
-            cx = (x1 + x2) // 2
-            cy = (y1 + y2) // 2
-            cv2.circle(viz_image, (cx, cy), 5, color, -1)
-
-        return viz_image
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = HumanInstanceTracker()
+    node = HumanDetector()
     
     try:
         rclpy.spin(node)

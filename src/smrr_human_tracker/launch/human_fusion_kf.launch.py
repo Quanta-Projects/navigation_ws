@@ -18,7 +18,7 @@ import os
 
 def generate_launch_description():
     # Get package directories and default model paths
-    pkg_share = get_package_share_directory('smrr_crowdnav')
+    pkg_share = get_package_share_directory('smrr_human_tracker')
     default_yolo_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
     default_drspaam_model = os.path.join(pkg_share, 'models', 'ckpt_jrdb_ann_ft_dr_spaam_e20.pth')
     
@@ -159,7 +159,7 @@ def generate_launch_description():
         
         # ==================== Node 1: YOLO Vision Tracker ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_tracker',
             name='human_tracker',
             output='screen',
@@ -180,7 +180,7 @@ def generate_launch_description():
         
         # ==================== Node 2: DR-SPAAM LiDAR Detector ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_lidar_matcher',
             name='dr_spaam_detector',
             output='screen',
@@ -200,7 +200,7 @@ def generate_launch_description():
         
         # ==================== Node 3: Kalman Filter Fusion ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_fusion_kf',
             name='human_fusion_kf',
             output='screen',

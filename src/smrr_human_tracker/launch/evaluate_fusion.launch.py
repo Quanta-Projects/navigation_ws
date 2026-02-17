@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-Launch file for Complete Human Detection System
+Launch file for fusion evaluation.
 
-Launches all three detection nodes:
-- YOLO26 vision tracker
-- DR-SPAAM LiDAR detector  
-- Sensor fusion node with velocity estimation
+Launches detector nodes (YOLO, LiDAR) once, both fusion approaches, and the evaluation node.
+Requires Gazebo simulation with ground truth plugin to be running.
 """
 
 from launch import LaunchDescription
@@ -18,11 +16,28 @@ import os
 
 def generate_launch_description():
     # Get package directories and default model paths
-    pkg_share = get_package_share_directory('smrr_crowdnav')
+    pkg_share = get_package_share_directory('smrr_human_tracker')
     default_yolo_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
     default_drspaam_model = os.path.join(pkg_share, 'models', 'ckpt_jrdb_ann_ft_dr_spaam_e20.pth')
     
     return LaunchDescription([
+        # ==================== Evaluation Arguments ====================
+        DeclareLaunchArgument(
+            'test_duration',
+            default_value='300.0',
+            description='Duration of the evaluation test in seconds'
+        ),
+        DeclareLaunchArgument(
+            'association_threshold',
+            default_value='2.0',
+            description='Maximum distance (meters) for associating detections with ground truth'
+        ),
+        DeclareLaunchArgument(
+            'output_file',
+            default_value='/tmp/fusion_evaluation_results.txt',
+            description='Path to save evaluation results'
+        ),
+        
         # ==================== YOLO Vision Tracker Arguments ====================
         DeclareLaunchArgument(
             'yolo_model_path',
@@ -97,7 +112,7 @@ def generate_launch_description():
             description='True for 360-degree scans'
         ),
         
-        # ==================== Fusion Node Arguments ====================
+        # ==================== Standard Fusion Arguments ====================
         DeclareLaunchArgument(
             'camera_fov_degrees',
             default_value='110.0',
@@ -111,7 +126,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'velocity_alpha',
             default_value='0.3',
-            description='Low-pass filter coefficient for velocity smoothing'
+            description='Low-pass filter coefficient for velocity smoothing (Standard fusion only)'
         ),
         DeclareLaunchArgument(
             'track_timeout_sec',
@@ -122,6 +137,23 @@ def generate_launch_description():
             'max_track_distance',
             default_value='2.0',
             description='Max distance (m) to associate tracks between frames'
+        ),
+        
+        # ==================== KF Fusion Arguments ====================
+        DeclareLaunchArgument(
+            'process_noise_pos',
+            default_value='0.1',
+            description='KF process noise for position (m²)'
+        ),
+        DeclareLaunchArgument(
+            'process_noise_vel',
+            default_value='0.5',
+            description='KF process noise for velocity (m²/s²)'
+        ),
+        DeclareLaunchArgument(
+            'measurement_noise',
+            default_value='0.3',
+            description='KF measurement noise (m²)'
         ),
         
         # ==================== Common Arguments ====================
@@ -136,9 +168,9 @@ def generate_launch_description():
             description='Global reference frame'
         ),
         
-        # ==================== Node 1: YOLO Vision Tracker ====================
+        # ==================== Node 1: YOLO Vision Tracker (SHARED) ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_tracker',
             name='human_tracker',
             output='screen',
@@ -156,9 +188,9 @@ def generate_launch_description():
             }]
         ),
         
-        # ==================== Node 2: DR-SPAAM LiDAR Detector ====================
+        # ==================== Node 2: DR-SPAAM LiDAR Detector (SHARED) ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_lidar_matcher',
             name='dr_spaam_detector',
             output='screen',
@@ -175,9 +207,9 @@ def generate_launch_description():
             }]
         ),
         
-        # ==================== Node 3: Sensor Fusion ====================
+        # ==================== Node 3: Standard EMA Fusion ====================
         Node(
-            package='smrr_crowdnav',
+            package='smrr_human_tracker',
             executable='human_fusion_node',
             name='human_fusion_node',
             output='screen',
@@ -189,6 +221,38 @@ def generate_launch_description():
                 'max_track_distance': LaunchConfiguration('max_track_distance'),
                 'base_frame': LaunchConfiguration('base_frame'),
                 'map_frame': LaunchConfiguration('map_frame'),
+            }]
+        ),
+        
+        # ==================== Node 4: Kalman Filter Fusion ====================
+        Node(
+            package='smrr_human_tracker',
+            executable='human_fusion_kf',
+            name='human_fusion_kf',
+            output='screen',
+            parameters=[{
+                'camera_fov_degrees': LaunchConfiguration('camera_fov_degrees'),
+                'fusion_distance_threshold': LaunchConfiguration('fusion_distance_threshold'),
+                'track_timeout_sec': LaunchConfiguration('track_timeout_sec'),
+                'max_track_distance': LaunchConfiguration('max_track_distance'),
+                'base_frame': LaunchConfiguration('base_frame'),
+                'map_frame': LaunchConfiguration('map_frame'),
+                'process_noise_pos': LaunchConfiguration('process_noise_pos'),
+                'process_noise_vel': LaunchConfiguration('process_noise_vel'),
+                'measurement_noise': LaunchConfiguration('measurement_noise'),
+            }]
+        ),
+        
+        # ==================== Node 5: Evaluation Node ====================
+        Node(
+            package='smrr_human_tracker',
+            executable='evaluate_fusion',
+            name='fusion_evaluator',
+            output='screen',
+            parameters=[{
+                'test_duration': LaunchConfiguration('test_duration'),
+                'association_threshold': LaunchConfiguration('association_threshold'),
+                'output_file': LaunchConfiguration('output_file'),
             }]
         ),
     ])
