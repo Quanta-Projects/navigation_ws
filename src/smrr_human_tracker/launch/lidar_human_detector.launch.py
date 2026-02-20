@@ -30,8 +30,8 @@ def generate_launch_description():
     
     conf_thresh_arg = DeclareLaunchArgument(
         'conf_thresh',
-        default_value='0.3',
-        description='Detection confidence threshold (0.0-1.0)'
+        default_value='0.95',
+        description='Detection confidence threshold (0.0-1.0), higher = fewer false positives'
     )
     
     stride_arg = DeclareLaunchArgument(
@@ -46,6 +46,18 @@ def generate_launch_description():
         description='Set to True for 360-degree scans'
     )
     
+    min_range_arg = DeclareLaunchArgument(
+        'min_detection_range',
+        default_value='0.5',
+        description='Minimum range for person detections in meters'
+    )
+    
+    max_range_arg = DeclareLaunchArgument(
+        'max_detection_range',
+        default_value='5.0',
+        description='Maximum range for person detections in meters'
+    )
+    
     scan_topic_arg = DeclareLaunchArgument(
         'scan_topic',
         default_value='/scan',
@@ -54,7 +66,7 @@ def generate_launch_description():
     
     target_frame_arg = DeclareLaunchArgument(
         'target_frame',
-        default_value='map',
+        default_value='odom',
         description='Target frame for detections (map/odom/base_link)'
     )
     
@@ -86,6 +98,8 @@ def generate_launch_description():
             'target_frame': LaunchConfiguration('target_frame'),
             'detections_topic': LaunchConfiguration('detections_topic'),
             'marker_topic': LaunchConfiguration('marker_topic'),
+            'min_detection_range': LaunchConfiguration('min_detection_range'),
+            'max_detection_range': LaunchConfiguration('max_detection_range'),
         }]
     )
 
@@ -95,6 +109,8 @@ def generate_launch_description():
         conf_thresh_arg,
         stride_arg,
         panoramic_scan_arg,
+        min_range_arg,
+        max_range_arg,
         scan_topic_arg,
         target_frame_arg,
         detections_topic_arg,

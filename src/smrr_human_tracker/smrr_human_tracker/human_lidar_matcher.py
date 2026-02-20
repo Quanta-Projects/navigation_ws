@@ -26,7 +26,7 @@ class DrSpaamNode(Node):
 
         # Declare parameters
         self.declare_parameter('weight_file', '')
-        self.declare_parameter('conf_thresh', 0.5)
+        self.declare_parameter('conf_thresh', 0.95)  # Increased from 0.9 to reduce false positives
         self.declare_parameter('stride', 1)
         self.declare_parameter('detector_model', 'DR-SPAAM')  # or 'DROW3'
         self.declare_parameter('panoramic_scan', True)
@@ -34,6 +34,8 @@ class DrSpaamNode(Node):
         self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
         self.declare_parameter('detections_topic', 'detected_people')
         self.declare_parameter('marker_topic', 'detected_people_markers')
+        self.declare_parameter('min_detection_range', 0.5)  # Minimum range for detections (meters)
+        self.declare_parameter('max_detection_range', 5.0)  # Maximum range for detections (meters)
 
         # Get parameters
         weight_file = self.get_parameter('weight_file').value
@@ -45,6 +47,8 @@ class DrSpaamNode(Node):
         self.target_frame = self.get_parameter('target_frame').value
         detections_topic = self.get_parameter('detections_topic').value
         marker_topic = self.get_parameter('marker_topic').value
+        self.min_range = self.get_parameter('min_detection_range').value
+        self.max_range = self.get_parameter('max_detection_range').value
 
         # TF2 buffer and listener for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
@@ -59,11 +63,11 @@ class DrSpaamNode(Node):
         self.get_logger().info(f'Loading {detector_model} model: {weight_file}')
         try:
             self._detector = Detector(
-                weight_file,
-                model=detector_model,
+                model_name=detector_model,
+                ckpt_file=weight_file,
                 gpu=True,
                 stride=stride,
-                panoramic_scan=panoramic_scan,
+                tracking=False
             )
             self.get_logger().info(f'{detector_model} detector initialized')
         except Exception as e:
@@ -92,6 +96,8 @@ class DrSpaamNode(Node):
         self.get_logger().info(f'Publishing detections to: {detections_topic}')
         self.get_logger().info(f'Publishing markers to: {marker_topic}')
         self.get_logger().info(f'Target frame: {self.target_frame}')
+        self.get_logger().info(f'Confidence threshold: {self.conf_thresh}')
+        self.get_logger().info(f'Detection range: {self.min_range}m - {self.max_range}m')
 
     def _scan_callback(self, msg):
         """Process incoming laser scan and detect people"""
@@ -101,11 +107,13 @@ class DrSpaamNode(Node):
 
         start_time = time.time()
 
-        if not self._detector.is_ready():
-            fov_deg = np.rad2deg(msg.angle_increment * len(msg.ranges))
-            self._detector.set_laser_fov(fov_deg)
-            self.get_logger().info(f'Laser FOV set to: {fov_deg:.2f} degrees')
+        if not self._detector.laser_spec_set():
+            num_pts = len(msg.ranges)
+            self._detector.set_laser_spec(msg.angle_increment, num_pts)
+            fov_deg = np.rad2deg(msg.angle_increment * num_pts)
+            self.get_logger().info(f'Laser spec set: {num_pts} points, FOV: {fov_deg:.2f} degrees')
 
+        # Preprocess scan data (following original ROS 1 implementation)
         scan = np.array(msg.ranges)
         scan[scan == 0.0] = 29.99
         scan[np.isinf(scan)] = 29.99
@@ -113,9 +121,17 @@ class DrSpaamNode(Node):
 
         dets_xy, dets_cls, _ = self._detector(scan)
 
+        # Apply confidence threshold
         conf_mask = (dets_cls >= self.conf_thresh).reshape(-1)
         dets_xy = dets_xy[conf_mask]
         dets_cls = dets_cls[conf_mask]
+        
+        # Apply range filtering to reduce false positives
+        if len(dets_xy) > 0:
+            dets_dist = np.linalg.norm(dets_xy, axis=1)
+            range_mask = (dets_dist >= self.min_range) & (dets_dist <= self.max_range)
+            dets_xy = dets_xy[range_mask]
+            dets_cls = dets_cls[range_mask]
 
         self.get_logger().info(f'Detected {len(dets_xy)} people', throttle_duration_sec=1.0)
 
@@ -124,10 +140,6 @@ class DrSpaamNode(Node):
         
         if self.target_frame and self.target_frame != msg.header.frame_id:
             dets_msg = self._transform_pose_array_to_target_frame(dets_msg)
-        
-        # Inject confidence AFTER frame transform to prevent quaternion corruption
-        for pose, d_cls in zip(dets_msg.poses, dets_cls):
-            pose.position.z = float(d_cls)
         
         self._dets_pub.publish(dets_msg)
 
@@ -183,19 +195,20 @@ class DrSpaamNode(Node):
         xy_offsets = r * np.stack((np.cos(ang), np.sin(ang)), axis=1)
 
         # Create circle for each detection
+        # Swap coordinates: DR-SPAAM outputs Y-forward, we need X-forward (REP 103)
         for d_xy, d_cls in zip(dets_xy, dets_cls):
             for i in range(len(xy_offsets) - 1):
                 # Start point of segment
                 p0 = Point()
-                p0.x = float(d_xy[0] + xy_offsets[i, 0])
-                p0.y = float(d_xy[1] + xy_offsets[i, 1])
+                p0.x = float(d_xy[1] + xy_offsets[i, 0])
+                p0.y = float(d_xy[0] + xy_offsets[i, 1])
                 p0.z = 0.0
                 msg.points.append(p0)
 
                 # End point
                 p1 = Point()
-                p1.x = float(d_xy[0] + xy_offsets[i + 1, 0])
-                p1.y = float(d_xy[1] + xy_offsets[i + 1, 1])
+                p1.x = float(d_xy[1] + xy_offsets[i + 1, 0])
+                p1.y = float(d_xy[0] + xy_offsets[i + 1, 1])
                 p1.z = 0.0
                 msg.points.append(p1)
 
@@ -204,10 +217,11 @@ class DrSpaamNode(Node):
     def _detections_to_pose_array(self, dets_xy, dets_cls):
         """Convert detections to PoseArray message with pure identity quaternions"""
         pose_array = PoseArray()
+        # Swap coordinates: DR-SPAAM outputs Y-forward, we need X-forward (REP 103)
         for d_xy in dets_xy:
             p = Pose()
-            p.position.x = float(d_xy[0])
-            p.position.y = float(d_xy[1])
+            p.position.x = float(d_xy[1])
+            p.position.y = float(d_xy[0])
             p.position.z = 0.0
             p.orientation.x = 0.0
             p.orientation.y = 0.0
@@ -242,7 +256,7 @@ class DrSpaamNode(Node):
                 pose_stamped = PoseStamped()
                 pose_stamped.header = pose_array.header
                 pose_stamped.pose = pose
-                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
+                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose(pose_stamped, transform)
                 transformed_poses.append(transformed_pose_stamped.pose)
             
             transformed_pose_array = PoseArray()
@@ -280,7 +294,7 @@ class DrSpaamNode(Node):
                 point_stamped.header = marker.header
                 point_stamped.pose.position = point
                 point_stamped.pose.orientation.w = 1.0
-                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose_stamped(point_stamped, transform)
+                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose(point_stamped, transform)
                 transformed_points.append(transformed_point_stamped.pose.position)
             
             marker.header.frame_id = self.target_frame

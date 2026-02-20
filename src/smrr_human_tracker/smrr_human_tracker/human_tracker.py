@@ -160,6 +160,8 @@ class HumanInstanceTracker(Node):
             depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
 
             # Run YOLO26 instance segmentation with tracking
+            # YOLO will use default imgsz=640 and automatically resize input images
+            # Optimal input: 640x480 (VGA) from ZED camera
             results = self.model.track(
                 rgb_image,
                 persist=True,

@@ -531,28 +531,36 @@ class HumanFusionKFNode(Node):
             pos = track.get_position()
             vel = track.get_velocity()
             
-            # Cylinder marker
-            cylinder = Marker()
-            cylinder.header.stamp = timestamp.to_msg()
-            cylinder.header.frame_id = self.map_frame
-            cylinder.ns = 'fused_humans_kf'
-            cylinder.id = marker_id
+            # Circle circumference marker (LINE_STRIP)
+            circle = Marker()
+            circle.header.stamp = timestamp.to_msg()
+            circle.header.frame_id = self.map_frame
+            circle.ns = 'fused_humans_kf'
+            circle.id = marker_id
             marker_id += 1
-            cylinder.type = Marker.CYLINDER
-            cylinder.action = Marker.ADD
-            
-            cylinder.pose.position.x = float(pos[0])
-            cylinder.pose.position.y = float(pos[1])
-            cylinder.pose.position.z = 0.9
-            cylinder.pose.orientation.w = 1.0
-            
-            cylinder.scale.x = 0.4
-            cylinder.scale.y = 0.4
-            cylinder.scale.z = 1.8
-            
-            cylinder.color = ColorRGBA(r=1.0, g=0.5, b=0.0, a=0.8)  # Orange for KF
-            cylinder.lifetime = Duration(seconds=0.5).to_msg()
-            marker_array.markers.append(cylinder)
+            circle.type = Marker.LINE_STRIP
+            circle.action = Marker.ADD
+
+            circle.pose.position.x = float(pos[0])
+            circle.pose.position.y = float(pos[1])
+            circle.pose.position.z = 0.0
+            circle.pose.orientation.w = 1.0
+
+            circle.scale.x = 0.05  # Line width in metres
+
+            radius = 0.4  # Person bounding radius (metres)
+            n_pts = 36
+            for i in range(n_pts + 1):           # +1 closes the loop
+                angle = 2.0 * math.pi * i / n_pts
+                p = Point()
+                p.x = radius * math.cos(angle)
+                p.y = radius * math.sin(angle)
+                p.z = 1.0                        # Waist height for visibility
+                circle.points.append(p)
+
+            circle.color = ColorRGBA(r=1.0, g=0.5, b=0.0, a=1.0)  # Orange for KF
+            circle.lifetime = Duration(seconds=0.5).to_msg()
+            marker_array.markers.append(circle)
             
             # Velocity arrow
             vel_mag = np.linalg.norm(vel)

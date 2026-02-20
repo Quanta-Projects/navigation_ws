@@ -1,0 +1,16 @@
+# ZED camera parameter overrides for human tracker (combined launch)
+# 
+# When running with the full robot bringup, we must:
+# - Disable publish_tf to avoid multi-parent TF conflict
+#   (robot's odom->base_link vs ZED's odom->zed2_camera_link)
+# - BUT still enable positional tracking, because the ZED SDK's grab()
+#   function requires it to start the video stream on ZED 2 cameras.
+#
+# Without pos_tracking_enabled=true and publish_tf=false, the grab()
+# blocks forever waiting for video frames that never arrive.
+---
+/**:
+    ros__parameters:
+        pos_tracking:
+            pos_tracking_enabled: true
+            set_as_static: true  # Reduces processing since we don't need visual odometry

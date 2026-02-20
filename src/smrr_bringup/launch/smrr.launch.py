@@ -14,7 +14,7 @@ def generate_launch_description():
             "launch",
             "hardware_interface.launch.py"
         ),
-        launch_arguments={'port': '/dev/ttyACM2'}.items()
+        launch_arguments={'port': '/dev/ttyACM0'}.items()
     )
     
     controller = IncludeLaunchDescription(
@@ -34,15 +34,18 @@ def generate_launch_description():
         ),
     )
     
-    # SLLidar ROS2 launch (using sllidar_ros2 package)
+    # SLLidar ROS2 launch (RPLIDAR S2L)
     sllidar = IncludeLaunchDescription(
         os.path.join(
             get_package_share_directory("sllidar_ros2"),
             "launch",
-            "sllidar_a2m8_launch.py"
+            "sllidar_s2_launch.py"
         ),
         launch_arguments={
-            'frame_id': 'rplidar_link'
+            'serial_port': '/dev/ttyUSB0',
+            'serial_baudrate': '1000000',
+            'frame_id': 'rplidar_link',
+            'scan_mode': 'DenseBoost'
         }.items()
     )
     
