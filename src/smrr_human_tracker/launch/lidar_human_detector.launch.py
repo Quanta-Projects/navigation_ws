@@ -30,7 +30,7 @@ def generate_launch_description():
     
     conf_thresh_arg = DeclareLaunchArgument(
         'conf_thresh',
-        default_value='0.3',
+        default_value='0.5',
         description='Detection confidence threshold (0.0-1.0)'
     )
     
