@@ -2,10 +2,10 @@ amcl:
   ros__parameters:
     use_sim_time: True 
     alpha1: 0.2
-    alpha2: 0.2
-    alpha3: 0.2
+    alpha2: 0.05
+    alpha3: 0.05
     alpha4: 0.2
-    alpha5: 0.2
+    alpha5: 0.05
     base_frame_id: "base_footprint"
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
@@ -14,10 +14,10 @@ amcl:
     global_frame_id: "map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 1.5  # Reduced from 2.0 for tighter precision
-    laser_max_range: -1.0  # RPLiDAR A2 actual max range (was 100.0)
-    laser_min_range: -1.0  # RPLiDAR A2 min range (was -1.0)
+    laser_max_range: 18.0  # RPLiDAR S2L max range
+    laser_min_range: 0.05  # RPLiDAR S2L min range
     laser_model_type: "likelihood_field"
-    max_beams: 120  # Increased from 60 to use more scan data for better orientation
+    max_beams: 360  # Increased from 120 to use more scan data for better orientation
     max_particles: 5000  # Increased from 2000 for better coverage
     min_particles: 1000  # Increased from 500 for stable tracking
     odom_frame_id: "odom"
@@ -29,14 +29,14 @@ amcl:
     resample_interval: 1  # Reduced back to 1 for faster convergence
     robot_model_type: "nav2_amcl::DifferentialMotionModel"
     save_pose_rate: 0.5
-    sigma_hit: 0.2
+    sigma_hit: 0.05  # Reduced from 0.2 for sharper likelihood field
     tf_broadcast: true
-    transform_tolerance: 0.5  # Tightened from 1.0 for better sync
-    update_min_a: 0.05  # Reduced from 0.1 for continuous orientation tracking during large rotations
+    transform_tolerance: 0.2  # Tightened from 1.0 for better sync
+    update_min_a: 0.1  # Reduced from 0.1 for continuous orientation tracking during large rotations
     update_min_d: 0.25
-    z_hit: 0.5
+    z_hit: 0.85
     z_max: 0.05
-    z_rand: 0.5
+    z_rand: 0.15
     z_short: 0.005  # Fixed from 0.05 to match documentation
     scan_topic: /scan
     set_initial_pose: true
@@ -111,7 +111,7 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: True
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_frame: odom
     odom_topic: /diff_drive_controller/odom
     controller_frequency: 20.0
@@ -143,7 +143,7 @@ controller_server:
       min_vel_y: 0.0
       max_vel_x: 0.35
       max_vel_y: 0.0
-      max_vel_theta: 1.5
+      max_vel_theta: 0.75
       min_speed_xy: 0.0
       max_speed_xy: 0.35
       min_speed_theta: 0.0  # Allow full range for smooth small angle corrections
@@ -191,7 +191,7 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: True
       width: 4
@@ -213,6 +213,10 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.05
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.05
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -229,10 +233,10 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 3.0
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.05
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.05
       static_layer:
         map_subscribe_transient_local: True
       always_send_full_costmap: True
@@ -249,7 +253,7 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: map
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       robot_radius: 0.25
       resolution: 0.05
@@ -265,10 +269,10 @@ global_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 3.0
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.05
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.05
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -285,10 +289,10 @@ global_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 3.0
-          raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
-          obstacle_min_range: 0.0
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.05
+          obstacle_max_range: 8.0
+          obstacle_min_range: 0.05
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -345,7 +349,7 @@ recoveries_server:
     wait:
       plugin: "nav2_recoveries/Wait"
     global_frame: map
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     transform_timeout: 0.1
     use_sim_time: True
     simulate_ahead_time: 2.0

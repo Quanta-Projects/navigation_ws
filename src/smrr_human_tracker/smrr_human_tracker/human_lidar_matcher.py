@@ -16,6 +16,9 @@ import tf2_ros
 from tf2_ros import TransformException
 import tf2_geometry_msgs
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+from scipy.spatial import cKDTree
 import time
 import math
 from collections import deque
@@ -79,11 +82,16 @@ class DrSpaamNode(Node):
         self._filtered_scan_pub = self.create_publisher(LaserScan, '/filtered_scan', 10)
 
         # Subscriber
+        # MutuallyExclusiveCallbackGroup serializes scan callbacks — prevents concurrent
+        # CUDA access (CUBLAS_STATUS_ALLOC_FAILED) while MultiThreadedExecutor still
+        # serves TF and map callbacks in parallel threads.
+        self.cb_group = MutuallyExclusiveCallbackGroup()
         self._scan_sub = self.create_subscription(
             LaserScan,
             scan_topic,
             self._scan_callback,
-            10
+            10,
+            callback_group=self.cb_group
         )
 
         # Map state variables for static obstacle filtering
@@ -115,10 +123,8 @@ class DrSpaamNode(Node):
 
     def _scan_callback(self, msg):
         """Process incoming laser scan and detect people"""
-        if (self._dets_pub.get_subscription_count() == 0 and 
-            self._rviz_pub.get_subscription_count() == 0):
-            return
-
+        # Do NOT gate on subscriber count — DR-SPAAM's auto-regressive temporal
+        # attention must be updated every frame to stay synchronised with robot motion.
         start_time = time.time()
 
         if not self._detector.is_ready():
@@ -132,22 +138,27 @@ class DrSpaamNode(Node):
         scan[np.isnan(scan)] = 29.99
 
         # Filter out static obstacles using map grid masking
-        scan = self._filter_static_obstacles(scan, msg)
+        filtered_scan = self._filter_static_obstacles(scan, msg)
+        if filtered_scan is None:
+            return  # STRICT: Skip frame if TF fails to prevent hallucinating walls
+        scan = filtered_scan
 
-        # Lazily publish filtered scan for RViz debugging
-        if self._filtered_scan_pub.get_subscription_count() > 0:
-            filtered_msg = LaserScan()
-            filtered_msg.header = msg.header
-            filtered_msg.angle_min = msg.angle_min
-            filtered_msg.angle_max = msg.angle_max
-            filtered_msg.angle_increment = msg.angle_increment
-            filtered_msg.time_increment = msg.time_increment
-            filtered_msg.scan_time = msg.scan_time
-            filtered_msg.range_min = msg.range_min
-            filtered_msg.range_max = msg.range_max
-            filtered_msg.intensities = msg.intensities
-            filtered_msg.ranges = [float(r) for r in scan.tolist()]
-            self._filtered_scan_pub.publish(filtered_msg)
+        # Always publish filtered scan — unconditional publish eliminates the
+        # "blinking" caused by gating on subscriber count. Explicitly setting
+        # the stamp preserves temporal alignment with /scan.
+        filtered_msg = LaserScan()
+        filtered_msg.header = msg.header
+        filtered_msg.header.stamp = msg.header.stamp  # explicit for temporal alignment
+        filtered_msg.angle_min = msg.angle_min
+        filtered_msg.angle_max = msg.angle_max
+        filtered_msg.angle_increment = msg.angle_increment
+        filtered_msg.time_increment = msg.time_increment
+        filtered_msg.scan_time = msg.scan_time
+        filtered_msg.range_min = msg.range_min
+        filtered_msg.range_max = msg.range_max
+        filtered_msg.intensities = msg.intensities
+        filtered_msg.ranges = [float(r) for r in scan.tolist()]
+        self._filtered_scan_pub.publish(filtered_msg)
 
         dets_xy, dets_cls, _ = self._detector(scan)
 
@@ -198,52 +209,55 @@ class DrSpaamNode(Node):
             self.last_metrics_log = current_time
 
     def _map_callback(self, msg):
-        """Store the occupancy grid map as a 2D numpy array."""
-        self.map_data = np.array(msg.data, dtype=np.int8).reshape(
-            (msg.info.height, msg.info.width)
-        )
+        """Store the map and build a high-performance KD-Tree of all static obstacles."""
         self.map_info = msg.info
-        self.get_logger().info(
-            f'Map received: {msg.info.width}x{msg.info.height}, '
-            f'resolution={msg.info.resolution:.3f}m/cell',
-            throttle_duration_sec=10.0
-        )
+        grid = np.array(msg.data, dtype=np.int8).reshape((msg.info.height, msg.info.width))
+
+        # Find grid indices of walls (>50) and unknown space (-1)
+        y_indices, x_indices = np.where((grid > 50) | (grid == -1))
+        
+        # Convert grid indices to global physical coordinates
+        res = self.map_info.resolution
+        orig_x = self.map_info.origin.position.x
+        orig_y = self.map_info.origin.position.y
+        
+        # Calculate physical center of each occupied cell
+        world_x = (x_indices * res) + orig_x + (res / 2.0)
+        world_y = (y_indices * res) + orig_y + (res / 2.0)
+        
+        obstacle_points = np.column_stack((world_x, world_y))
+        
+        if len(obstacle_points) > 0:
+            self.map_kd_tree = cKDTree(obstacle_points)
+            self.get_logger().info(
+                f'Map KD-Tree built with {len(obstacle_points)} obstacle points.', 
+                throttle_duration_sec=10.0
+            )
+        else:
+            self.map_kd_tree = None
 
     def _filter_static_obstacles(self, scan_ranges, msg):
-        """
-        Vectorized Map Grid Masking with 3x3 Software Dilation.
-        Filters out LiDAR points that hit known occupied or unknown cells in
-        the occupancy grid (checking a 3x3 window to tolerate AMCL jitter),
-        so DR-SPAAM only sees dynamic objects (people).
-        """
-        if self.map_data is None:
+        """Filters out LiDAR points within 0.25m of a mapped obstacle using a KD-Tree."""
+        if not hasattr(self, 'map_kd_tree') or self.map_kd_tree is None:
             return scan_ranges
 
-        # --- 1. Get transform from laser frame to map frame (zero-wait) ---
+        # --- 1. Get STRICT exact-time transform from laser to map ---
         try:
-            try:
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    msg.header.frame_id,
-                    rclpy.time.Time.from_msg(msg.header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            except (TransformException, tf2_ros.LookupException,
-                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    msg.header.frame_id,
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
+            # 0.1s timeout is safe here because the subscriber is in a ReentrantCallbackGroup
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                msg.header.frame_id,
+                rclpy.time.Time.from_msg(msg.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.1)
+            )
         except Exception as e:
             self.get_logger().warn(
-                f'Map filter: TF lookup failed, skipping filter: {e}',
+                f'Map filter TF dropped frame: {e}',
                 throttle_duration_sec=5.0
             )
-            return scan_ranges
+            return None  # STRICT: Drop frame to prevent wall hallucinations
 
-        # --- 2. Identify valid (non-max-range) points ---
+        # --- 2. Identify valid points ---
         valid_mask = scan_ranges < 29.99
         valid_indices = np.where(valid_mask)[0]
 
@@ -251,61 +265,35 @@ class DrSpaamNode(Node):
             return scan_ranges
 
         valid_ranges = scan_ranges[valid_indices]
-
-        # Compute angles for valid points
         angles = msg.angle_min + valid_indices.astype(np.float64) * msg.angle_increment
 
         # --- 3. Polar to local Cartesian ---
         local_x = valid_ranges * np.cos(angles)
         local_y = valid_ranges * np.sin(angles)
 
-        # --- 4. Apply TF transform (translation + yaw rotation) ---
+        # --- 4. Transform to global Map frame ---
         t = transform.transform.translation
         q = transform.transform.rotation
         yaw = math.atan2(
             2.0 * (q.w * q.z + q.x * q.y),
             1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         )
-        cos_yaw = math.cos(yaw)
-        sin_yaw = math.sin(yaw)
+        
+        global_x = math.cos(yaw) * local_x - math.sin(yaw) * local_y + t.x
+        global_y = math.sin(yaw) * local_x + math.cos(yaw) * local_y + t.y
 
-        global_x = cos_yaw * local_x - sin_yaw * local_y + t.x
-        global_y = sin_yaw * local_x + cos_yaw * local_y + t.y
+        global_points = np.column_stack((global_x, global_y))
 
-        # --- 5. Convert global coordinates to map grid indices ---
-        origin_x = self.map_info.origin.position.x
-        origin_y = self.map_info.origin.position.y
-        resolution = self.map_info.resolution
+        # --- 5. Vectorized KD-Tree Query (The HEIGHT Framework Approach) ---
+        # Find the exact distance from every LiDAR point to the nearest wall.
+        # workers=-1 utilizes all CPU cores for maximum performance.
+        dists, _ = self.map_kd_tree.query(global_points, k=1, workers=-1)
 
-        grid_x = ((global_x - origin_x) / resolution).astype(np.int32)
-        grid_y = ((global_y - origin_y) / resolution).astype(np.int32)
+        # Apply a strict 0.25-meter physical threshold (prox_thre from findloc_bgrm.py)
+        obstacle_mask = dists <= 0.25
 
-        # --- 6. Boundary check with 1-pixel safe margin for 3x3 window ---
-        in_bounds = (
-            (grid_x >= 1) & (grid_x < self.map_info.width - 1) &
-            (grid_y >= 1) & (grid_y < self.map_info.height - 1)
-        )
-
-        bounded_indices = np.where(in_bounds)[0]
-        if len(bounded_indices) == 0:
-            return scan_ranges
-
-        valid_grid_x = grid_x[bounded_indices]
-        valid_grid_y = grid_y[bounded_indices]
-
-        # --- 7. 3x3 Dilation Check ---
-        # A point is filtered if ANY cell in its 3x3 neighbourhood is
-        # occupied (> 50) or unknown (-1), tolerating AMCL localisation jitter.
-        occupied = np.zeros(len(bounded_indices), dtype=bool)
-        for dy in [-1, 0, 1]:
-            for dx in [-1, 0, 1]:
-                ny = valid_grid_y + dy
-                nx = valid_grid_x + dx
-                occ_values = self.map_data[ny, nx]
-                occupied |= (occ_values > 50) | (occ_values == -1)
-
-        # --- 8. Overwrite occupied scan points with max range ---
-        original_indices = valid_indices[bounded_indices[occupied]]
+        # Overwrite points close to walls with max range
+        original_indices = valid_indices[obstacle_mask]
         scan_ranges[original_indices] = 29.99
 
         return scan_ranges
@@ -317,6 +305,12 @@ class DrSpaamNode(Node):
         and confidences of all raw detections within the cluster radius.
         """
         dets_cls = dets_cls.reshape(-1)
+
+        # HARD PRE-FILTER: Drop absolute garbage noise to save CPU in the while loop
+        valid_mask = dets_cls > 0.05
+        dets_xy = dets_xy[valid_mask]
+        dets_cls = dets_cls[valid_mask]
+
         if len(dets_cls) == 0:
             return dets_xy, dets_cls
 
@@ -408,25 +402,14 @@ class DrSpaamNode(Node):
         return pose_array
 
     def _transform_pose_array_to_target_frame(self, pose_array):
-        """Transform PoseArray using zero-wait Ego-Motion fix"""
+        """Transform PoseArray with strict exact-time TF lookup"""
         try:
-            try:
-                # Try exact sensor time instantly
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    pose_array.header.frame_id,
-                    rclpy.time.Time.from_msg(pose_array.header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            except (TransformException, tf2_ros.LookupException, 
-                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                # Fallback to latest instantly
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    pose_array.header.frame_id,
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                pose_array.header.frame_id,
+                rclpy.time.Time.from_msg(pose_array.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.05)
+            )
             
             transformed_poses = []
             for pose in pose_array.poses:
@@ -447,23 +430,14 @@ class DrSpaamNode(Node):
             return pose_array
 
     def _transform_marker_to_target_frame(self, marker):
-        """Transform markers using zero-wait Ego-Motion fix"""
+        """Transform markers with strict exact-time TF lookup"""
         try:
-            try:
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    marker.header.frame_id,
-                    rclpy.time.Time.from_msg(marker.header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            except (TransformException, tf2_ros.LookupException, 
-                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    marker.header.frame_id,
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                marker.header.frame_id,
+                rclpy.time.Time.from_msg(marker.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.05)
+            )
             
             transformed_points = []
             for point in marker.points:
@@ -486,9 +460,11 @@ class DrSpaamNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = DrSpaamNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
 
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:

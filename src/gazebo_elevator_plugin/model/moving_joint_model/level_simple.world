@@ -427,7 +427,7 @@
         <floor_offset>0.078</floor_offset>
 
         <!-- Time the elevator door will stay open in seconds -->
-        <door_wait_time>10</door_wait_time>
+        <door_wait_time>100000</door_wait_time>
 
         <!-- This topic is used to control the elevator -->
         <topic>~/elevator</topic>

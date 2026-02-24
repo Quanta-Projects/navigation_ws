@@ -143,13 +143,24 @@ class KalmanFilter:
         """Get full state [x, y, vx, vy]"""
         return self.x.copy()
 
+    def mahalanobis_distance(self, measurement):
+        """Calculate Mahalanobis distance between measurement and predicted state"""
+        z = np.array(measurement)
+        y = z - self.H @ self.x  # Innovation
+        S = self.H @ self.P @ self.H.T + self.R  # Innovation covariance
+        try:
+            S_inv = np.linalg.inv(S)
+            return np.sqrt(y.T @ S_inv @ y)
+        except np.linalg.LinAlgError:
+            return float('inf')
+
 
 class HumanTrackKF:
     """Represents a tracked human with Kalman Filter."""
     
     def __init__(self, track_id, position, timestamp, confidence=0.5,
                  process_noise_pos=0.1, process_noise_vel=0.5,
-                 measurement_noise=0.3):
+                 measurement_noise=0.3, visually_confirmed=False):
         self.id = track_id
         self.kf = KalmanFilter(
             position, 
@@ -160,7 +171,10 @@ class HumanTrackKF:
         )
         self.last_seen = timestamp
         self.confidence = confidence
-        
+        self.static_time_start = None
+        self.is_static_false_positive = False
+        self.visually_confirmed = visually_confirmed
+
     def predict(self, current_time):
         """Predict track state (with Zero Delta-T guard)"""
         if self.kf.last_update is not None:
@@ -192,22 +206,38 @@ class HumanTrackKF:
         self.kf.predict(dt)
         self.kf.last_update = current_time
         
-    def update(self, measurement, timestamp, confidence=None):
-        """Update track with new measurement.
-        
-        NOTE: predict() is already called for all tracks in the fusion loop
-        before association. Do NOT call self.kf.predict() here — doing so
-        would double-predict: state projected by 2*dt and Q injected twice,
-        causing severe velocity noise.
-        """
-        # Measurement update only — no prediction step
+    def update(self, measurement, timestamp, confidence=None, visually_confirmed=False):
+        """Update track with new measurement."""
         self.kf.update(measurement, confidence)
-        
+
         self.last_seen = timestamp
         self.kf.last_update = timestamp
-        
+
         if confidence is not None:
             self.confidence = confidence
+
+        self.visually_confirmed = visually_confirmed
+
+        # Velocity-Based Static Gating with Visual Immunity
+        vel_mag = np.linalg.norm(self.kf.get_velocity())
+
+        # If YOLO sees it, it is definitely a human. Grant immunity.
+        if self.visually_confirmed:
+            self.static_time_start = None
+            self.is_static_false_positive = False
+        elif vel_mag < 0.1:  # LiDAR-only and moving slower than 0.1 m/s
+            if self.static_time_start is None:
+                self.static_time_start = timestamp
+            else:
+                # If stationary for more than 2.0 seconds, flag as potential static clutter
+                time_stationary = (timestamp - self.static_time_start).nanoseconds / 1e9
+                if time_stationary > 2.0:
+                    self.is_static_false_positive = True
+                    self.confidence = min(self.confidence, 0.2)  # Severely downgrade confidence
+        else:
+            # Reset if they start moving again
+            self.static_time_start = None
+            self.is_static_false_positive = False
     
     def get_position(self):
         """Get current position"""
@@ -265,7 +295,7 @@ class HumanFusionKFNode(Node):
         self.ts = ApproximateTimeSynchronizer(
             [self.yolo_sub, self.lidar_sub],
             queue_size=50,
-            slop=0.15  # 100 ms tolerance between YOLO and LiDAR stamps
+            slop=0.03  # Tightened to 30 ms tolerance
         )
         self.ts.registerCallback(self.fusion_callback)
         
@@ -366,6 +396,7 @@ class HumanFusionKFNode(Node):
         
         fused_positions = []
         fused_confidences = []
+        fused_visual_flags = []
         # Use the synchronized sensor timestamp instead of wall-clock
         current_time = rclpy.time.Time.from_msg(yolo_msg.header.stamp)
         
@@ -403,6 +434,7 @@ class HumanFusionKFNode(Node):
                     
                     fused_positions.append(fused_point)
                     fused_confidences.append(fused_confidence)
+                    fused_visual_flags.append(True)
                     matched_yolo.add(r)
                     matched_lidar.add(c)
         
@@ -411,6 +443,7 @@ class HumanFusionKFNode(Node):
             if idx not in matched_yolo:
                 fused_positions.append(yolo_points[idx])
                 fused_confidences.append(float(yolo_conf[idx]))
+                fused_visual_flags.append(True)
         
         # ======== STEP B: Unmatched LiDAR → blind-spot coverage ========
         for i in range(n_lidar):
@@ -420,6 +453,7 @@ class HumanFusionKFNode(Node):
                 if not self.is_in_camera_fov(lidar_points[i], robot_pos, robot_yaw):
                     fused_positions.append(lidar_points[i])
                     fused_confidences.append(float(lidar_conf[i]))
+                    fused_visual_flags.append(False)
         
         # ======== STEP C: Kalman Filter Tracking ========
         fused_positions = np.array(fused_positions) if fused_positions else np.empty((0, 2))
@@ -431,27 +465,30 @@ class HumanFusionKFNode(Node):
         
         if len(fused_positions) > 0:
             track_ids = list(self.tracks.keys())
-            
+
             if len(track_ids) > 0:
-                # Build cost matrix using predicted positions
+                # Build cost matrix using Mahalanobis distance instead of Euclidean
                 cost_matrix = np.zeros((len(track_ids), len(fused_positions)))
                 for i, tid in enumerate(track_ids):
-                    track_pos = self.tracks[tid].get_position()
                     for j, fused_pos in enumerate(fused_positions):
-                        cost_matrix[i, j] = np.linalg.norm(track_pos - fused_pos)
-                
+                        m_dist = self.tracks[tid].kf.mahalanobis_distance(fused_pos)
+                        cost_matrix[i, j] = m_dist
+
                 # Hungarian algorithm
                 row_ind, col_ind = linear_sum_assignment(cost_matrix)
-                
-                # Update matched tracks
+
+                # Update matched tracks (threshold tuned for Mahalanobis, ~3 std devs)
                 matched_fused = set()
+                mahalanobis_threshold = 3.0
+
                 for i, j in zip(row_ind, col_ind):
-                    if cost_matrix[i, j] < self.max_track_dist:
+                    if cost_matrix[i, j] < mahalanobis_threshold:
                         tid = track_ids[i]
                         self.tracks[tid].update(
                             fused_positions[j],
                             current_time,
-                            confidence=fused_confidences[j]
+                            confidence=fused_confidences[j],
+                            visually_confirmed=fused_visual_flags[j]
                         )
                         matched_fused.add(j)
                 
@@ -465,7 +502,8 @@ class HumanFusionKFNode(Node):
                             confidence=fused_confidences[j],
                             process_noise_pos=self.process_noise_pos,
                             process_noise_vel=self.process_noise_vel,
-                            measurement_noise=self.measurement_noise
+                            measurement_noise=self.measurement_noise,
+                            visually_confirmed=fused_visual_flags[j]
                         )
                         self.next_track_id += 1
             else:
@@ -478,7 +516,8 @@ class HumanFusionKFNode(Node):
                         confidence=fused_confidences[i],
                         process_noise_pos=self.process_noise_pos,
                         process_noise_vel=self.process_noise_vel,
-                        measurement_noise=self.measurement_noise
+                        measurement_noise=self.measurement_noise,
+                        visually_confirmed=fused_visual_flags[i]
                     )
                     self.next_track_id += 1
         
@@ -502,6 +541,9 @@ class HumanFusionKFNode(Node):
         pose_array.header.frame_id = self.map_frame
         
         for track in self.tracks.values():
+            if track.confidence < 0.3:
+                continue  # Skip gated static false positives
+
             pose = Pose()
             pos = track.get_position()
             vel = track.get_velocity()
@@ -528,9 +570,12 @@ class HumanFusionKFNode(Node):
         marker_id = 0
         
         for track in self.tracks.values():
+            if track.confidence < 0.3:
+                continue  # Skip gated static false positives
+
             pos = track.get_position()
             vel = track.get_velocity()
-            
+
             # Cylinder marker
             cylinder = Marker()
             cylinder.header.stamp = timestamp.to_msg()
