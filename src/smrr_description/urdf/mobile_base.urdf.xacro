@@ -286,12 +286,6 @@
       </material>
     </visual>
 
-    <collision>
-      <origin xyz="-0.41401 -0.9544 -0.96557" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://smrr_description/meshes/Docking_assembly.STL" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
   </link>
 
   <joint name="docking_mount_joint" type="fixed">
@@ -368,14 +362,13 @@
     name="front_caster_joint"
     type="fixed">
     <origin
-      xyz="0.245 0 -0.0414"
+      xyz="0.245 0 -0.0384"
       rpy="0 0 0" />
     <parent
       link="base_link" />
     <child
       link="front_caster" />
-    <axis
-      xyz="1 0 0" />
+    <axis xyz="0 1 0" />
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 
@@ -450,8 +443,7 @@
       link="base_link" />
     <child
       link="back_caster" />
-    <axis
-      xyz="1 0 0" />
+    <axis xyz="0 1 0" />
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
 

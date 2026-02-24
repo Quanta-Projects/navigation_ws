@@ -123,9 +123,22 @@ class DrSpaamNode(Node):
 
     def _scan_callback(self, msg):
         """Process incoming laser scan and detect people"""
-        # Do NOT gate on subscriber count — DR-SPAAM's auto-regressive temporal
-        # attention must be updated every frame to stay synchronised with robot motion.
         start_time = time.time()
+
+        # SINGLE STRICT TF LOOKUP FOR THE ENTIRE FRAME
+        # One lookup per frame eliminates cascading timeout overhead from
+        # _filter_static_obstacles, _transform_pose_array, and _transform_marker
+        # each blocking independently.
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                msg.header.frame_id,
+                rclpy.time.Time.from_msg(msg.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.02)  # Max 20ms wait
+            )
+        except Exception as e:
+            self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=5.0)
+            return
 
         if not self._detector.is_ready():
             fov_deg = np.rad2deg(msg.angle_increment * len(msg.ranges))
@@ -138,7 +151,7 @@ class DrSpaamNode(Node):
         scan[np.isnan(scan)] = 29.99
 
         # Filter out static obstacles using map grid masking
-        filtered_scan = self._filter_static_obstacles(scan, msg)
+        filtered_scan = self._filter_static_obstacles(scan, msg, transform)
         if filtered_scan is None:
             return  # STRICT: Skip frame if TF fails to prevent hallucinating walls
         scan = filtered_scan
@@ -176,7 +189,7 @@ class DrSpaamNode(Node):
         dets_msg.header = msg.header
         
         if self.target_frame and self.target_frame != msg.header.frame_id:
-            dets_msg = self._transform_pose_array_to_target_frame(dets_msg)
+            dets_msg = self._transform_pose_array_to_target_frame(dets_msg, transform)
         
         # Inject confidence AFTER frame transform to prevent quaternion corruption
         for pose, d_cls in zip(dets_msg.poses, dets_cls):
@@ -189,7 +202,7 @@ class DrSpaamNode(Node):
             rviz_msg.header = msg.header
             
             if self.target_frame and self.target_frame != msg.header.frame_id:
-                rviz_msg = self._transform_marker_to_target_frame(rviz_msg)
+                rviz_msg = self._transform_marker_to_target_frame(rviz_msg, transform)
             
             self._rviz_pub.publish(rviz_msg)
 
@@ -236,28 +249,15 @@ class DrSpaamNode(Node):
         else:
             self.map_kd_tree = None
 
-    def _filter_static_obstacles(self, scan_ranges, msg):
-        """Filters out LiDAR points within 0.25m of a mapped obstacle using a KD-Tree."""
+    def _filter_static_obstacles(self, scan_ranges, msg, transform):
+        """Filters out LiDAR points within 0.25m of a mapped obstacle using a KD-Tree.
+        
+        Uses the pre-computed transform from _scan_callback — no second TF lookup.
+        """
         if not hasattr(self, 'map_kd_tree') or self.map_kd_tree is None:
             return scan_ranges
 
-        # --- 1. Get STRICT exact-time transform from laser to map ---
-        try:
-            # 0.1s timeout is safe here because the subscriber is in a ReentrantCallbackGroup
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                msg.header.frame_id,
-                rclpy.time.Time.from_msg(msg.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.1)
-            )
-        except Exception as e:
-            self.get_logger().warn(
-                f'Map filter TF dropped frame: {e}',
-                throttle_duration_sec=5.0
-            )
-            return None  # STRICT: Drop frame to prevent wall hallucinations
-
-        # --- 2. Identify valid points ---
+        # --- 1. Identify valid points ---
         valid_mask = scan_ranges < 29.99
         valid_indices = np.where(valid_mask)[0]
 
@@ -284,10 +284,10 @@ class DrSpaamNode(Node):
 
         global_points = np.column_stack((global_x, global_y))
 
-        # --- 5. Vectorized KD-Tree Query (The HEIGHT Framework Approach) ---
-        # Find the exact distance from every LiDAR point to the nearest wall.
-        # workers=-1 utilizes all CPU cores for maximum performance.
-        dists, _ = self.map_kd_tree.query(global_points, k=1, workers=-1)
+        # --- 5. Vectorized KD-Tree Query ---
+        # workers=1 avoids spawning additional threads inside the callback,
+        # which prevents CPU thread thrashing under MutuallyExclusiveCallbackGroup.
+        dists, _ = self.map_kd_tree.query(global_points, k=1, workers=1)
 
         # Apply a strict 0.25-meter physical threshold (prox_thre from findloc_bgrm.py)
         obstacle_mask = dists <= 0.25
@@ -401,16 +401,9 @@ class DrSpaamNode(Node):
             pose_array.poses.append(p)
         return pose_array
 
-    def _transform_pose_array_to_target_frame(self, pose_array):
-        """Transform PoseArray with strict exact-time TF lookup"""
+    def _transform_pose_array_to_target_frame(self, pose_array, transform):
+        """Transform PoseArray using the pre-computed per-frame transform."""
         try:
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                pose_array.header.frame_id,
-                rclpy.time.Time.from_msg(pose_array.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.05)
-            )
-            
             transformed_poses = []
             for pose in pose_array.poses:
                 pose_stamped = PoseStamped()
@@ -429,16 +422,9 @@ class DrSpaamNode(Node):
             self.get_logger().warn(f'Failed to transform pose array: {e}', throttle_duration_sec=5.0)
             return pose_array
 
-    def _transform_marker_to_target_frame(self, marker):
-        """Transform markers with strict exact-time TF lookup"""
+    def _transform_marker_to_target_frame(self, marker, transform):
+        """Transform markers using the pre-computed per-frame transform."""
         try:
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                marker.header.frame_id,
-                rclpy.time.Time.from_msg(marker.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.05)
-            )
-            
             transformed_points = []
             for point in marker.points:
                 point_stamped = PoseStamped()
