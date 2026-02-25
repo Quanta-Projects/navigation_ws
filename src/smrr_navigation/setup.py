@@ -9,6 +9,10 @@ setup(
     version='0.0.0',
     # packages=find_packages(exclude=['test']),
     packages=[package_name],
+    package_data={
+        package_name: ['models/*.onnx', 'models/*.onnx.data'],
+    },
+    include_package_data=True,
 
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -16,8 +20,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share',package_name,'launch') , glob('launch/*')),
         (os.path.join('share',package_name,'config') , glob('config/*')),
-        (os.path.join('share',package_name,'maps') , glob('maps/*.yaml') + glob('maps/*.pgm')),
-        (os.path.join('share',package_name,'maps','physical_maps') , glob('maps/physical_maps/*')),
+        (os.path.join('share',package_name,'maps') , glob('maps/*')),
         (os.path.join('share',package_name,'srv') , glob('srv/*.srv')),
     ],
     install_requires=['setuptools'],
@@ -37,6 +40,8 @@ setup(
             'named_goal_server = smrr_navigation.named_goal_server:main',
             'named_goal_client = smrr_navigation.named_goal_client:main',
             'location_subscriber = smrr_navigation.location_subscriber:main',
+            'smrr_multifloor_bt_navigator = smrr_navigation.smrr_multifloor_bt_navigator:main',
+            'door_classifier_node = smrr_navigation.door_classifier_node:main',
         ],
     },
 )
