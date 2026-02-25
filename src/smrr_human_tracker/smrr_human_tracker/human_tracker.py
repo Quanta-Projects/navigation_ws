@@ -124,7 +124,7 @@ class HumanInstanceTracker(Node):
         self.ts = message_filters.ApproximateTimeSynchronizer(
             [self.rgb_sub, self.depth_sub],
             queue_size=10,
-            slop=0.1
+            slop=0.03
         )
         self.ts.registerCallback(self.synchronized_callback)
 
@@ -160,8 +160,6 @@ class HumanInstanceTracker(Node):
             depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding='passthrough')
 
             # Run YOLO26 instance segmentation with tracking
-            # YOLO will use default imgsz=640 and automatically resize input images
-            # Optimal input: 640x480 (VGA) from ZED camera
             results = self.model.track(
                 rgb_image,
                 persist=True,
@@ -194,7 +192,8 @@ class HumanInstanceTracker(Node):
                         
                         # Calculate 3D position using depth
                         position_3d = self.calculate_3d_position(
-                            int(x1), int(y1), int(x2), int(y2), depth_image
+                            int(x1), int(y1), int(x2), int(y2), depth_image,
+                            mask=masks[idx] if masks is not None else None
                         )
                         
                         if position_3d is not None:
@@ -264,44 +263,49 @@ class HumanInstanceTracker(Node):
             import traceback
             self.get_logger().error(traceback.format_exc())
 
-    def calculate_3d_position(self, x1, y1, x2, y2, depth_image):
+    def calculate_3d_position(self, x1, y1, x2, y2, depth_image, mask=None):
         if self.camera_matrix is None:
             return None
 
         h, w = depth_image.shape[:2]
-        box_w = x2 - x1
-        box_h = y2 - y1
-        
-        # 20% padding on all sides to isolate the core torso (60% of the body)
-        x_pad = int(box_w * 0.20)
-        y_pad = int(box_h * 0.20)
 
-        y_start = max(0, y1 + y_pad)
-        y_end = min(h, y2 - y_pad)
-        x_start = max(0, x1 + x_pad)
-        x_end = min(w, x2 - x_pad)
+        # Ensure bounding box is within image bounds
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, x2), min(h, y2)
 
-        if y_end <= y_start or x_end <= x_start:
+        if y2 <= y1 or x2 <= x1:
             return None
 
-        depth_region = depth_image[y_start:y_end, x_start:x_end]
-        valid_depths = depth_region[(depth_region > 0) & np.isfinite(depth_region)]
-        
-        # FALLBACK: If torso is a blind spot, search the entire bounding box
-        if len(valid_depths) == 0:
-            depth_region_full = depth_image[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
-            valid_depths = depth_region_full[(depth_region_full > 0) & np.isfinite(depth_region_full)]
-            if len(valid_depths) == 0:
-                return None
+        # Extract the depth region corresponding to the bounding box
+        depth_region = depth_image[y1:y2, x1:x2]
 
+        # Use the precise segmentation mask if available
+        if mask is not None:
+            # Resize the mask to match the bounding box dimensions exactly
+            mask_resized = cv2.resize(mask, (x2 - x1, y2 - y1), interpolation=cv2.INTER_NEAREST)
+            # Only consider depth pixels where the mask is positive (human body)
+            valid_depths = depth_region[(mask_resized > 0) & (depth_region > 0) & np.isfinite(depth_region)]
+        else:
+            # Fallback to 20% padded center if no mask is available
+            box_w, box_h = x2 - x1, y2 - y1
+            x_pad, y_pad = int(box_w * 0.20), int(box_h * 0.20)
+            center_region = depth_region[y_pad:box_h - y_pad, x_pad:box_w - x_pad]
+            valid_depths = center_region[(center_region > 0) & np.isfinite(center_region)]
+
+        if len(valid_depths) == 0:
+            return None
+
+        # Calculate exact median depth of the human's body pixels
         depth = np.median(valid_depths)
 
+        # Convert mm to meters if necessary
         if depth > 100:
             depth = depth / 1000.0
 
         if depth > self.max_distance or depth <= 0:
             return None
 
+        # De-project pixel coordinates to 3D space
         fx = self.camera_matrix[0, 0]
         fy = self.camera_matrix[1, 1]
         cx_cam = self.camera_matrix[0, 2]

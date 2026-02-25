@@ -9,12 +9,18 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Pose, PoseArray, Point, PoseStamped
+from nav_msgs.msg import OccupancyGrid
 from visualization_msgs.msg import Marker
 from dr_spaam.detector import Detector
 import tf2_ros
 from tf2_ros import TransformException
 import tf2_geometry_msgs
+from rclpy.qos import QoSProfile, QoSDurabilityPolicy
+from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
+from scipy.spatial import cKDTree
 import time
+import math
 from collections import deque
 
 
@@ -26,7 +32,7 @@ class DrSpaamNode(Node):
 
         # Declare parameters
         self.declare_parameter('weight_file', '')
-        self.declare_parameter('conf_thresh', 0.95)  # Increased from 0.9 to reduce false positives
+        self.declare_parameter('conf_thresh', 0.5)
         self.declare_parameter('stride', 1)
         self.declare_parameter('detector_model', 'DR-SPAAM')  # or 'DROW3'
         self.declare_parameter('panoramic_scan', True)
@@ -34,8 +40,6 @@ class DrSpaamNode(Node):
         self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
         self.declare_parameter('detections_topic', 'detected_people')
         self.declare_parameter('marker_topic', 'detected_people_markers')
-        self.declare_parameter('min_detection_range', 0.5)  # Minimum range for detections (meters)
-        self.declare_parameter('max_detection_range', 5.0)  # Maximum range for detections (meters)
 
         # Get parameters
         weight_file = self.get_parameter('weight_file').value
@@ -47,8 +51,6 @@ class DrSpaamNode(Node):
         self.target_frame = self.get_parameter('target_frame').value
         detections_topic = self.get_parameter('detections_topic').value
         marker_topic = self.get_parameter('marker_topic').value
-        self.min_range = self.get_parameter('min_detection_range').value
-        self.max_range = self.get_parameter('max_detection_range').value
 
         # TF2 buffer and listener for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
@@ -63,11 +65,11 @@ class DrSpaamNode(Node):
         self.get_logger().info(f'Loading {detector_model} model: {weight_file}')
         try:
             self._detector = Detector(
-                model_name=detector_model,
-                ckpt_file=weight_file,
+                weight_file,
+                model=detector_model,
                 gpu=True,
                 stride=stride,
-                tracking=False
+                panoramic_scan=panoramic_scan,
             )
             self.get_logger().info(f'{detector_model} detector initialized')
         except Exception as e:
@@ -77,13 +79,35 @@ class DrSpaamNode(Node):
         # Publishers
         self._dets_pub = self.create_publisher(PoseArray, detections_topic, 10)
         self._rviz_pub = self.create_publisher(Marker, marker_topic, 10)
+        self._filtered_scan_pub = self.create_publisher(LaserScan, '/filtered_scan', 10)
 
         # Subscriber
+        # MutuallyExclusiveCallbackGroup serializes scan callbacks — prevents concurrent
+        # CUDA access (CUBLAS_STATUS_ALLOC_FAILED) while MultiThreadedExecutor still
+        # serves TF and map callbacks in parallel threads.
+        self.cb_group = MutuallyExclusiveCallbackGroup()
         self._scan_sub = self.create_subscription(
             LaserScan,
             scan_topic,
             self._scan_callback,
-            10
+            10,
+            callback_group=self.cb_group
+        )
+
+        # Map state variables for static obstacle filtering
+        self.map_data = None
+        self.map_info = None
+
+        # Map subscriber with Transient Local QoS (for latched map topics)
+        map_qos = QoSProfile(
+            depth=1,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL
+        )
+        self._map_sub = self.create_subscription(
+            OccupancyGrid,
+            '/map',
+            self._map_callback,
+            map_qos
         )
 
         # Performance metrics
@@ -96,42 +120,68 @@ class DrSpaamNode(Node):
         self.get_logger().info(f'Publishing detections to: {detections_topic}')
         self.get_logger().info(f'Publishing markers to: {marker_topic}')
         self.get_logger().info(f'Target frame: {self.target_frame}')
-        self.get_logger().info(f'Confidence threshold: {self.conf_thresh}')
-        self.get_logger().info(f'Detection range: {self.min_range}m - {self.max_range}m')
 
     def _scan_callback(self, msg):
         """Process incoming laser scan and detect people"""
-        if (self._dets_pub.get_subscription_count() == 0 and 
-            self._rviz_pub.get_subscription_count() == 0):
-            return
-
         start_time = time.time()
 
-        if not self._detector.laser_spec_set():
-            num_pts = len(msg.ranges)
-            self._detector.set_laser_spec(msg.angle_increment, num_pts)
-            fov_deg = np.rad2deg(msg.angle_increment * num_pts)
-            self.get_logger().info(f'Laser spec set: {num_pts} points, FOV: {fov_deg:.2f} degrees')
+        # SINGLE STRICT TF LOOKUP FOR THE ENTIRE FRAME
+        # One lookup per frame eliminates cascading timeout overhead from
+        # _filter_static_obstacles, _transform_pose_array, and _transform_marker
+        # each blocking independently.
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                self.target_frame,
+                msg.header.frame_id,
+                rclpy.time.Time.from_msg(msg.header.stamp),
+                timeout=rclpy.duration.Duration(seconds=0.02)  # Max 20ms wait
+            )
+        except Exception as e:
+            self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=5.0)
+            return
 
-        # Preprocess scan data (following original ROS 1 implementation)
+        if not self._detector.is_ready():
+            fov_deg = np.rad2deg(msg.angle_increment * len(msg.ranges))
+            self._detector.set_laser_fov(fov_deg)
+            self.get_logger().info(f'Laser FOV set to: {fov_deg:.2f} degrees')
+
         scan = np.array(msg.ranges)
         scan[scan == 0.0] = 29.99
         scan[np.isinf(scan)] = 29.99
         scan[np.isnan(scan)] = 29.99
 
+        # Filter out static obstacles using map grid masking
+        filtered_scan = self._filter_static_obstacles(scan, msg, transform)
+        if filtered_scan is None:
+            return  # STRICT: Skip frame if TF fails to prevent hallucinating walls
+        scan = filtered_scan
+
+        # Always publish filtered scan — unconditional publish eliminates the
+        # "blinking" caused by gating on subscriber count. Explicitly setting
+        # the stamp preserves temporal alignment with /scan.
+        filtered_msg = LaserScan()
+        filtered_msg.header = msg.header
+        filtered_msg.header.stamp = msg.header.stamp  # explicit for temporal alignment
+        filtered_msg.angle_min = msg.angle_min
+        filtered_msg.angle_max = msg.angle_max
+        filtered_msg.angle_increment = msg.angle_increment
+        filtered_msg.time_increment = msg.time_increment
+        filtered_msg.scan_time = msg.scan_time
+        filtered_msg.range_min = msg.range_min
+        filtered_msg.range_max = msg.range_max
+        filtered_msg.intensities = msg.intensities
+        filtered_msg.ranges = [float(r) for r in scan.tolist()]
+        self._filtered_scan_pub.publish(filtered_msg)
+
         dets_xy, dets_cls, _ = self._detector(scan)
 
-        # Apply confidence threshold
+        # Apply nms* centroid averaging on raw output BEFORE confidence threshold
+        # so cluster averaging can dilute false positive spikes across soft detections
+        dets_xy, dets_cls = self._nms_star(dets_xy, dets_cls)
+
         conf_mask = (dets_cls >= self.conf_thresh).reshape(-1)
         dets_xy = dets_xy[conf_mask]
         dets_cls = dets_cls[conf_mask]
-        
-        # Apply range filtering to reduce false positives
-        if len(dets_xy) > 0:
-            dets_dist = np.linalg.norm(dets_xy, axis=1)
-            range_mask = (dets_dist >= self.min_range) & (dets_dist <= self.max_range)
-            dets_xy = dets_xy[range_mask]
-            dets_cls = dets_cls[range_mask]
 
         self.get_logger().info(f'Detected {len(dets_xy)} people', throttle_duration_sec=1.0)
 
@@ -139,7 +189,11 @@ class DrSpaamNode(Node):
         dets_msg.header = msg.header
         
         if self.target_frame and self.target_frame != msg.header.frame_id:
-            dets_msg = self._transform_pose_array_to_target_frame(dets_msg)
+            dets_msg = self._transform_pose_array_to_target_frame(dets_msg, transform)
+        
+        # Inject confidence AFTER frame transform to prevent quaternion corruption
+        for pose, d_cls in zip(dets_msg.poses, dets_cls):
+            pose.position.z = float(d_cls)
         
         self._dets_pub.publish(dets_msg)
 
@@ -148,7 +202,7 @@ class DrSpaamNode(Node):
             rviz_msg.header = msg.header
             
             if self.target_frame and self.target_frame != msg.header.frame_id:
-                rviz_msg = self._transform_marker_to_target_frame(rviz_msg)
+                rviz_msg = self._transform_marker_to_target_frame(rviz_msg, transform)
             
             self._rviz_pub.publish(rviz_msg)
 
@@ -166,6 +220,125 @@ class DrSpaamNode(Node):
                 f'[DR-SPAAM Performance] FPS: {fps:.2f} | Avg: {avg_time*1000:.1f}ms'
             )
             self.last_metrics_log = current_time
+
+    def _map_callback(self, msg):
+        """Store the map and build a high-performance KD-Tree of all static obstacles."""
+        self.map_info = msg.info
+        grid = np.array(msg.data, dtype=np.int8).reshape((msg.info.height, msg.info.width))
+
+        # Find grid indices of walls (>50) and unknown space (-1)
+        y_indices, x_indices = np.where((grid > 50) | (grid == -1))
+        
+        # Convert grid indices to global physical coordinates
+        res = self.map_info.resolution
+        orig_x = self.map_info.origin.position.x
+        orig_y = self.map_info.origin.position.y
+        
+        # Calculate physical center of each occupied cell
+        world_x = (x_indices * res) + orig_x + (res / 2.0)
+        world_y = (y_indices * res) + orig_y + (res / 2.0)
+        
+        obstacle_points = np.column_stack((world_x, world_y))
+        
+        if len(obstacle_points) > 0:
+            self.map_kd_tree = cKDTree(obstacle_points)
+            self.get_logger().info(
+                f'Map KD-Tree built with {len(obstacle_points)} obstacle points.', 
+                throttle_duration_sec=10.0
+            )
+        else:
+            self.map_kd_tree = None
+
+    def _filter_static_obstacles(self, scan_ranges, msg, transform):
+        """Filters out LiDAR points within 0.25m of a mapped obstacle using a KD-Tree.
+        
+        Uses the pre-computed transform from _scan_callback — no second TF lookup.
+        """
+        if not hasattr(self, 'map_kd_tree') or self.map_kd_tree is None:
+            return scan_ranges
+
+        # --- 1. Identify valid points ---
+        valid_mask = scan_ranges < 29.99
+        valid_indices = np.where(valid_mask)[0]
+
+        if len(valid_indices) == 0:
+            return scan_ranges
+
+        valid_ranges = scan_ranges[valid_indices]
+        angles = msg.angle_min + valid_indices.astype(np.float64) * msg.angle_increment
+
+        # --- 3. Polar to local Cartesian ---
+        local_x = valid_ranges * np.cos(angles)
+        local_y = valid_ranges * np.sin(angles)
+
+        # --- 4. Transform to global Map frame ---
+        t = transform.transform.translation
+        q = transform.transform.rotation
+        yaw = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        )
+        
+        global_x = math.cos(yaw) * local_x - math.sin(yaw) * local_y + t.x
+        global_y = math.sin(yaw) * local_x + math.cos(yaw) * local_y + t.y
+
+        global_points = np.column_stack((global_x, global_y))
+
+        # --- 5. Vectorized KD-Tree Query ---
+        # workers=1 avoids spawning additional threads inside the callback,
+        # which prevents CPU thread thrashing under MutuallyExclusiveCallbackGroup.
+        dists, _ = self.map_kd_tree.query(global_points, k=1, workers=1)
+
+        # Apply a strict 0.25-meter physical threshold (prox_thre from findloc_bgrm.py)
+        obstacle_mask = dists <= 0.25
+
+        # Overwrite points close to walls with max range
+        original_indices = valid_indices[obstacle_mask]
+        scan_ranges[original_indices] = 29.99
+
+        return scan_ranges
+
+    def _nms_star(self, dets_xy, dets_cls, radius=0.5):
+        """
+        ETH Zurich nms* Centroid Averaging.
+        Replaces naive winner-takes-all NMS by averaging the spatial coordinates
+        and confidences of all raw detections within the cluster radius.
+        """
+        dets_cls = dets_cls.reshape(-1)
+
+        # HARD PRE-FILTER: Drop absolute garbage noise to save CPU in the while loop
+        valid_mask = dets_cls > 0.05
+        dets_xy = dets_xy[valid_mask]
+        dets_cls = dets_cls[valid_mask]
+
+        if len(dets_cls) == 0:
+            return dets_xy, dets_cls
+
+        order = np.argsort(dets_cls)[::-1]
+        dets_xy = dets_xy[order]
+        dets_cls = dets_cls[order]
+
+        keep_xy = []
+        keep_cls = []
+
+        while len(dets_cls) > 0:
+            center_xy = dets_xy[0]
+            distances = np.linalg.norm(dets_xy - center_xy, axis=1)
+            cluster_indices = np.where(distances <= radius)[0]
+
+            cluster_xy = dets_xy[cluster_indices]
+            cluster_cls = dets_cls[cluster_indices]
+
+            avg_xy = np.mean(cluster_xy, axis=0)
+            avg_cls = np.mean(cluster_cls)
+
+            keep_xy.append(avg_xy)
+            keep_cls.append(avg_cls)
+
+            dets_xy = np.delete(dets_xy, cluster_indices, axis=0)
+            dets_cls = np.delete(dets_cls, cluster_indices, axis=0)
+
+        return np.array(keep_xy), np.array(keep_cls)
 
     def _detections_to_rviz_marker(self, dets_xy, dets_cls):
         """
@@ -195,20 +368,19 @@ class DrSpaamNode(Node):
         xy_offsets = r * np.stack((np.cos(ang), np.sin(ang)), axis=1)
 
         # Create circle for each detection
-        # Swap coordinates: DR-SPAAM outputs Y-forward, we need X-forward (REP 103)
         for d_xy, d_cls in zip(dets_xy, dets_cls):
             for i in range(len(xy_offsets) - 1):
                 # Start point of segment
                 p0 = Point()
-                p0.x = float(d_xy[1] + xy_offsets[i, 0])
-                p0.y = float(d_xy[0] + xy_offsets[i, 1])
+                p0.x = float(d_xy[0] + xy_offsets[i, 0])
+                p0.y = float(d_xy[1] + xy_offsets[i, 1])
                 p0.z = 0.0
                 msg.points.append(p0)
 
                 # End point
                 p1 = Point()
-                p1.x = float(d_xy[1] + xy_offsets[i + 1, 0])
-                p1.y = float(d_xy[0] + xy_offsets[i + 1, 1])
+                p1.x = float(d_xy[0] + xy_offsets[i + 1, 0])
+                p1.y = float(d_xy[1] + xy_offsets[i + 1, 1])
                 p1.z = 0.0
                 msg.points.append(p1)
 
@@ -217,11 +389,10 @@ class DrSpaamNode(Node):
     def _detections_to_pose_array(self, dets_xy, dets_cls):
         """Convert detections to PoseArray message with pure identity quaternions"""
         pose_array = PoseArray()
-        # Swap coordinates: DR-SPAAM outputs Y-forward, we need X-forward (REP 103)
         for d_xy in dets_xy:
             p = Pose()
-            p.position.x = float(d_xy[1])
-            p.position.y = float(d_xy[0])
+            p.position.x = float(d_xy[0])
+            p.position.y = float(d_xy[1])
             p.position.z = 0.0
             p.orientation.x = 0.0
             p.orientation.y = 0.0
@@ -230,33 +401,15 @@ class DrSpaamNode(Node):
             pose_array.poses.append(p)
         return pose_array
 
-    def _transform_pose_array_to_target_frame(self, pose_array):
-        """Transform PoseArray using zero-wait Ego-Motion fix"""
+    def _transform_pose_array_to_target_frame(self, pose_array, transform):
+        """Transform PoseArray using the pre-computed per-frame transform."""
         try:
-            try:
-                # Try exact sensor time instantly
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    pose_array.header.frame_id,
-                    rclpy.time.Time.from_msg(pose_array.header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            except (TransformException, tf2_ros.LookupException, 
-                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                # Fallback to latest instantly
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    pose_array.header.frame_id,
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            
             transformed_poses = []
             for pose in pose_array.poses:
                 pose_stamped = PoseStamped()
                 pose_stamped.header = pose_array.header
                 pose_stamped.pose = pose
-                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose(pose_stamped, transform)
+                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
                 transformed_poses.append(transformed_pose_stamped.pose)
             
             transformed_pose_array = PoseArray()
@@ -269,32 +422,16 @@ class DrSpaamNode(Node):
             self.get_logger().warn(f'Failed to transform pose array: {e}', throttle_duration_sec=5.0)
             return pose_array
 
-    def _transform_marker_to_target_frame(self, marker):
-        """Transform markers using zero-wait Ego-Motion fix"""
+    def _transform_marker_to_target_frame(self, marker, transform):
+        """Transform markers using the pre-computed per-frame transform."""
         try:
-            try:
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    marker.header.frame_id,
-                    rclpy.time.Time.from_msg(marker.header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            except (TransformException, tf2_ros.LookupException, 
-                    tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                transform = self.tf_buffer.lookup_transform(
-                    self.target_frame,
-                    marker.header.frame_id,
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.0)
-                )
-            
             transformed_points = []
             for point in marker.points:
                 point_stamped = PoseStamped()
                 point_stamped.header = marker.header
                 point_stamped.pose.position = point
                 point_stamped.pose.orientation.w = 1.0
-                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose(point_stamped, transform)
+                transformed_point_stamped = tf2_geometry_msgs.do_transform_pose_stamped(point_stamped, transform)
                 transformed_points.append(transformed_point_stamped.pose.position)
             
             marker.header.frame_id = self.target_frame
@@ -309,9 +446,11 @@ class DrSpaamNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = DrSpaamNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
 
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
