@@ -11,6 +11,7 @@
 #include "smrr_navigation/bt_nodes/wait_for_door_open_model_action.hpp"
 #include "smrr_navigation/bt_nodes/update_pose_timestamp_action.hpp"
 #include "smrr_navigation/bt_nodes/stop_robot_action.hpp"
+#include "smrr_navigation/bt_nodes/set_controller_params_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -27,4 +28,5 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::WaitForDoorOpenModelAction>("WaitForDoorOpenModel");
   factory.registerNodeType<smrr_navigation::UpdatePoseTimestampAction>("UpdatePoseTimestamp");
   factory.registerNodeType<smrr_navigation::StopRobotAction>("StopRobot");
+  factory.registerNodeType<smrr_navigation::SetControllerParamsAction>("SetControllerParams");
 }

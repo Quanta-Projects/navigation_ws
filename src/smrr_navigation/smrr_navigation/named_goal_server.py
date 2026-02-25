@@ -321,6 +321,12 @@ class NamedGoalServer(Node):
             if mission_response.accepted:
                 response.accepted = True
                 if mission_response.success:
+                    # Update tracked floor so the next mission uses the correct current_floor_id
+                    if self.initial_floor_id != floor_id:
+                        self.get_logger().info(
+                            f'Floor updated: {self.initial_floor_id} -> {floor_id}'
+                        )
+                    self.initial_floor_id = floor_id
                     response.message = f'Navigation to {location_name} completed: {mission_response.message}'
                     self.get_logger().info(response.message)
                 else:

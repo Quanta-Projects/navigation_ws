@@ -22,6 +22,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(behaviortree_cpp_v3 REQUIRED)
 find_package(smrr_interfaces REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 # ONNX Runtime - try find_package, fallback to manual linking
@@ -79,6 +80,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/wait_for_door_open_model_action.cpp
   src/bt_nodes/update_pose_timestamp_action.cpp
   src/bt_nodes/stop_robot_action.cpp
+  src/bt_nodes/set_controller_params_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 
@@ -91,6 +93,7 @@ ament_target_dependencies(smrr_bt_nodes
   tf2_geometry_msgs
   ament_index_cpp
   nav2_msgs
+  rcl_interfaces
 )
 
 # Add ONNX Runtime include directories

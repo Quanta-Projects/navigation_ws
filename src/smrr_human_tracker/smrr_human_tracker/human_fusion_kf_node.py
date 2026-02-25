@@ -207,6 +207,13 @@ class IMMFilter:
         # 4. Independent EKF Updates & Likelihood calculation
         for i in range(self.num_models):
             y = z - self.H @ self.x[i]
+
+            # ROBUST KALMAN FILTERING: Innovation Clamping
+            # Caps the physical pull of a single measurement to 0.4 meters (~4.0 m/s at 10Hz)
+            y_norm = np.linalg.norm(y)
+            if y_norm > 0.4:
+                y = y * (0.4 / y_norm)
+
             S = self.H @ self.P[i] @ self.H.T + self.R
             try:
                 S_inv = np.linalg.inv(S)
@@ -243,6 +250,13 @@ class IMMFilter:
             )
             for i in range(self.num_models)
         )
+
+    def set_state(self, pos, vel):
+        """Forcefully inject position and velocity into all model hypotheses."""
+        for i in range(self.num_models):
+            self.x[i][0:2] = pos
+            self.x[i][2:4] = vel
+        self._update_mixed_estimate()
 
     def get_position(self):
         return self.x_mixed[:2]
@@ -283,8 +297,15 @@ class HumanTrackKF:
         self.static_time_start = None
         self.is_static_false_positive = False
 
+        # Two-Point Initialization cache
+        self.initial_pos = np.array(position)
+        self.is_initialized = False
+
     def predict(self, current_time):
         """Predict track state using IMM."""
+        if not self.is_initialized:
+            return  # Do not predict until we have a valid velocity vector
+
         if self.kf.last_update is not None:
             # Calculate time since the last actual measurement update
             dt = (current_time - self.kf.last_update).nanoseconds / 1e9
@@ -300,7 +321,26 @@ class HumanTrackKF:
 
     def update(self, measurement, timestamp, confidence=None, visually_confirmed=False):
         """Update track with new measurement (MATCHED)."""
-        self.kf.update(measurement)  # IMM update handles likelihoods internally
+
+        if not self.is_initialized:
+            # TWO-POINT INITIALIZATION
+            # Calculate physical velocity between the 1st and 2nd frame
+            dt = (timestamp - self.last_seen).nanoseconds / 1e9
+            if dt > 0.01:
+                meas_arr = np.array(measurement)
+                initial_vel = (meas_arr - self.initial_pos) / dt
+
+                # Cap the initial velocity guess to a fast walk to prevent noise spikes
+                v_mag = np.linalg.norm(initial_vel)
+                if v_mag > 2.0:
+                    initial_vel = initial_vel * (2.0 / v_mag)
+
+                self.kf.set_state(meas_arr, initial_vel)
+                self.is_initialized = True
+        else:
+            # Standard IMM Update
+            self.kf.update(measurement)
+
         self.last_seen = timestamp
         self.kf.last_update = timestamp
 
@@ -504,9 +544,6 @@ class HumanFusionKFNode(Node):
         current_time = rclpy.time.Time.from_msg(lidar_msg.header.stamp)
         
         # ======== STEP A: Optimal YOLO↔LiDAR Association (Hungarian) ========
-        # Build a full Euclidean distance cost matrix (rows=YOLO, cols=LiDAR)
-        # and solve the global optimal assignment to prevent greedy mis-pairing
-        # when two humans stand close together.
         matched_yolo = set()
         matched_lidar = set()
         
@@ -514,26 +551,18 @@ class HumanFusionKFNode(Node):
         n_lidar = len(lidar_points)
         
         if n_yolo > 0 and n_lidar > 0:
-            # Cost matrix: pairwise Euclidean distances
             cost_matrix = np.linalg.norm(
                 yolo_points[:, np.newaxis, :] - lidar_points[np.newaxis, :, :],
                 axis=2
-            )  # shape (n_yolo, n_lidar)
-            
-            # Solve optimal assignment via Hungarian algorithm
+            )
             row_ind, col_ind = linear_sum_assignment(cost_matrix)
             
-            # Accept only pairs within the fusion distance threshold
             for r, c in zip(row_ind, col_ind):
                 if cost_matrix[r, c] < self.fusion_threshold:
-                    # Confidence-weighted fusion (confidence in position.z)
-                    y_conf = float(yolo_conf[r])
-                    l_conf = float(lidar_conf[c])
-                    
-                    fused_point = (
-                        yolo_points[r] * y_conf + lidar_points[c] * l_conf
-                    ) / (y_conf + l_conf)
-                    fused_confidence = (y_conf + l_conf) / 2.0
+                    # FIX: Trust LiDAR 100% for exact spatial positioning to prevent YOLO noise from ruining velocity.
+                    fused_point = lidar_points[c]
+                    # Boost confidence because both sensors agree
+                    fused_confidence = min(float(yolo_conf[r]) + float(lidar_conf[c]), 1.0)
                     
                     fused_positions.append(fused_point)
                     fused_confidences.append(fused_confidence)
@@ -551,8 +580,7 @@ class HumanFusionKFNode(Node):
         # ======== STEP B: Unmatched LiDAR → blind-spot coverage ========
         for i in range(n_lidar):
             if i not in matched_lidar:
-                # Only keep LiDAR detections that are outside the camera FOV;
-                # inside-FOV unmatched LiDAR is discarded (no camera corroboration).
+                # Semantic Override: If YOLO doesn't see it inside the FOV, it's a DR-SPAAM false positive. Discard it.
                 if not self.is_in_camera_fov(lidar_points[i], robot_pos, robot_yaw):
                     fused_positions.append(lidar_points[i])
                     fused_confidences.append(float(lidar_conf[i]))
@@ -570,62 +598,54 @@ class HumanFusionKFNode(Node):
             track_ids = list(self.tracks.keys())
 
             if len(track_ids) > 0:
-                # Build cost matrix using Mahalanobis distance instead of Euclidean
                 cost_matrix = np.zeros((len(track_ids), len(fused_positions)))
                 for i, tid in enumerate(track_ids):
                     for j, fused_pos in enumerate(fused_positions):
-                        m_dist = self.tracks[tid].kf.mahalanobis_distance(fused_pos)
-                        cost_matrix[i, j] = m_dist
+                        cost_matrix[i, j] = self.tracks[tid].kf.mahalanobis_distance(fused_pos)
 
-                # Reset all existing published tracks to MISSED before association
-                for track in self.tracks.values():
-                    if track.status != TrackStatus.TENTATIVE:
-                        track.status = TrackStatus.MISSED
-
-                # Hungarian algorithm
                 row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
-                # Update matched tracks (threshold tuned for Mahalanobis, ~2 std devs)
                 matched_fused = set()
-                mahalanobis_threshold = 2.0
+                updated_tids = set()  # FIX: Explicitly record which tracks were updated to prevent Zombie Tracks
+                mahalanobis_threshold = 3.0
+                max_physical_jump = 1.0  # Max meters a human can physically move in one frame
 
                 for i, j in zip(row_ind, col_ind):
-                    if cost_matrix[i, j] < mahalanobis_threshold:
-                        tid = track_ids[i]
-                        self.tracks[tid].update(
+                    tid = track_ids[i]
+                    track = self.tracks[tid]
+
+                    m_dist = cost_matrix[i, j]
+                    phys_dist = np.linalg.norm(fused_positions[j] - track.get_position())
+
+                    if m_dist < mahalanobis_threshold and phys_dist < max_physical_jump:
+                        track.update(
                             fused_positions[j],
                             current_time,
                             confidence=fused_confidences[j],
                             visually_confirmed=fused_visual_flags[j]
                         )
                         matched_fused.add(j)
+                        updated_tids.add(tid)
 
-                # Mark unmatched tracks as missed to begin coasting
+                # FIX: Mark ANY track that wasn't explicitly updated as MISSED so it coasts and dies properly
                 for tid, track in self.tracks.items():
-                    if track.status == TrackStatus.MISSED and tid not in [track_ids[i] for i in row_ind]:
-                        track.mark_missed(current_time)
-                    elif track.status == TrackStatus.TENTATIVE and tid not in [track_ids[i] for i in row_ind]:
+                    if tid not in updated_tids:
                         track.mark_missed(current_time)
                 
                 # Create new tracks for unmatched detections
                 for j, fused_pos in enumerate(fused_positions):
                     if j not in matched_fused:
                         self.tracks[self.next_track_id] = HumanTrackKF(
-                            self.next_track_id,
-                            fused_pos,
-                            current_time,
+                            self.next_track_id, fused_pos, current_time,
                             confidence=fused_confidences[j],
                             measurement_noise=self.measurement_noise,
                             visually_confirmed=fused_visual_flags[j]
                         )
                         self.next_track_id += 1
             else:
-                # No existing tracks, create new ones
                 for i, fused_pos in enumerate(fused_positions):
                     self.tracks[self.next_track_id] = HumanTrackKF(
-                        self.next_track_id,
-                        fused_pos,
-                        current_time,
+                        self.next_track_id, fused_pos, current_time,
                         confidence=fused_confidences[i],
                         measurement_noise=self.measurement_noise,
                         visually_confirmed=fused_visual_flags[i]
