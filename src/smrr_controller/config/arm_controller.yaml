@@ -55,7 +55,7 @@ diff_drive_controller:
     # pose_covariance_diagonal: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     # twist_covariance_diagonal: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-    publish_rate: 100.0  
+    publish_rate: 50.0  
     pose_covariance_diagonal: [0.05, 0.05, 99999.0, 99999.0, 99999.0, 0.1]
     twist_covariance_diagonal: [0.1, 0.1, 99999.0, 99999.0, 99999.0, 0.2]
 
@@ -66,7 +66,7 @@ diff_drive_controller:
 
     cmd_vel_timeout: 0.5  # Reduced to prevent drift accumulation
     publish_limited_velocity: true
-    velocity_rolling_window_size: 10  # Increased smoothing to reduce jitter
+    velocity_rolling_window_size: 3  # Increased smoothing to reduce jitter
     
     # Deadband to prevent motor jitter when idle
     linear.x.min_velocity: 0.01  # Ignore commands below 1 cm/s

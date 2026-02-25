@@ -82,7 +82,7 @@
     </gazebo>
 
     <gazebo reference="right_wheel">
-        <mu1>1000000.0</mu1>  <!--1000000000000000.0-->
+        <mu1>100000.0</mu1>  <!--1000000000000000.0-->
         <mu2>1000000.0</mu2>
         <minDepth>0.005</minDepth>  
         <kp>1000000000000.0</kp>
@@ -96,15 +96,15 @@
     </gazebo>
 
     <gazebo reference="front_caster">
-        <mu1>0.1</mu1>  
-        <mu2>0.1</mu2>
+        <mu1>0.0</mu1>  
+        <mu2>0.0</mu2>
         <minDepth>0.005</minDepth> 
         <!-- 0.002 -->
     </gazebo>
 
     <gazebo reference="back_caster">
-        <mu1>0.1</mu1>  
-        <mu2>0.1</mu2>
+        <mu1>0.0</mu1>  
+        <mu2>0.0</mu2>
         <minDepth>0.005</minDepth>
     </gazebo>
 

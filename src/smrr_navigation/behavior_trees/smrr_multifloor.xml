@@ -11,37 +11,42 @@
       <!-- Cross-floor navigation -->
       <Sequence name="CrossFloor_ElevatorEntry">
         <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
-        
-        <!-- Navigate to staging pose on current floor (using current floor's open map) -->
+
+        <!-- Navigate to staging pose on current floor -->
         <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
 
-        <!-- Elevator entry sequence with retry -->
+        <!-- Resolve inside pose before the retry loop so it is available on the blackboard -->
+        <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+
+        <!-- Elevator entry: call elevator, poll planner until door is open, then enter -->
         <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
           <Sequence name="CallWaitAndEnter">
             <CallElevator floor_id="{current_floor_id}"/>
 
-            <WaitForDoorOpenModel
-              depth_topic="/zed2_left_camera/depth/image_raw"
-              model_path=""
-              timeout_sec="1500.0"
-              poll_rate_hz="10.0"
-              max_depth_stale_sec="1.0"
-              stable_time_sec="1.0"
-              clip_min_m="0.2"
-              clip_max_m="5.0"
-              open_index="1"
-              threshold="0.7"
-              debug_log="false"/>
+            <!-- Boost velocity/acceleration now so the robot moves immediately
+                 when the door-polling loop detects the door is open. -->
+            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
+
+            <!-- Planning-based door detection: poll global planner every 500 ms.
+                 When the physical door opens the LiDAR clears the costmap obstacle
+                 cells and ComputePathToPose succeeds, breaking out of the loop. -->
+            <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Entry">
+              <Delay delay_msec="500">
+                <ComputePathToPose goal="{inside_pose}" path="{dummy_path}" planner_id="GridBased"/>
+              </Delay>
+            </RetryUntilSuccessful>
 
             <!-- Navigate inside elevator and rotate 180 degrees -->
             <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+            <!-- Restore normal velocity/acceleration once safely inside -->
+            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
             <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
           </Sequence>
         </RetryUntilSuccessful>
-        
+
         <!-- Switch to target floor's open map while inside elevator -->
         <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
         <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
@@ -53,58 +58,57 @@
         <!-- Exit elevator with retry mechanism -->
         <Fallback name="ExitElevator_WithRepositionRetry">
 
-          <!-- Attempt 1: call elevator, wait for door, exit -->
+          <!-- Attempt 1: call elevator, poll planner until door open, exit -->
           <Sequence name="ExitAttempt_1">
+            <!-- Resolve exit pose before the wait loop begins -->
+            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
             <CallElevator floor_id="{target_floor_id}"/>
 
-            <WaitForDoorOpenModel
-              depth_topic="/zed2_left_camera/depth/image_raw"
-              model_path=""
-              timeout_sec="1500.0"
-              poll_rate_hz="10.0"
-              max_depth_stale_sec="10.0"
-              stable_time_sec="1.0"
-              clip_min_m="0.2"
-              clip_max_m="5.0"
-              open_index="1"
-              threshold="0.7"
-              debug_log="false"/>
+            <!-- Boost velocity/acceleration now so the robot moves immediately
+                 when the door-polling loop detects the door is open. -->
+            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
 
-            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+            <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit1">
+              <Delay delay_msec="500">
+                <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
+              </Delay>
+            </RetryUntilSuccessful>
+
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+            <!-- Restore normal velocity/acceleration once clear of elevator -->
+            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
           </Sequence>
 
           <!-- Attempt 2: reposition inside elevator, then retry -->
           <Sequence name="RepositionThenExitAttempt_2">
-            <!-- Navigate to elevator inside pose of target floor -->
+            <!-- Resolve exit pose before the wait loop begins -->
+            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+            <!-- Navigate to elevator inside pose of target floor to reposition -->
             <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
             <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
-            <!-- Retry call + door detection + exit navigation -->
             <CallElevator floor_id="{target_floor_id}"/>
 
-            <WaitForDoorOpenModel
-              depth_topic="/zed2_left_camera/depth/image_raw"
-              model_path=""
-              timeout_sec="1500.0"
-              poll_rate_hz="10.0"
-              max_depth_stale_sec="10.0"
-              stable_time_sec="1.0"
-              clip_min_m="0.2"
-              clip_max_m="5.0"
-              open_index="1"
-              threshold="0.7"
-              debug_log="false"/>
+            <!-- Boost velocity/acceleration now so the robot moves immediately
+                 when the door-polling loop detects the door is open. -->
+            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
 
-            <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
+            <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit2">
+              <Delay delay_msec="500">
+                <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
+              </Delay>
+            </RetryUntilSuccessful>
+
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
+            <!-- Restore normal velocity/acceleration once clear of elevator -->
+            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
           </Sequence>
 
         </Fallback>
 
-        <!-- Navigate to final destination using target floor's open map -->
+        <!-- Navigate to final destination -->
         <NavigateToPose server_name="/navigate_to_pose" goal="{final_pose}"/>
       </Sequence>
     </Fallback>
