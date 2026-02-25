@@ -1,0 +1,16 @@
+# Goal: Request to navigate to a named location with floor context
+string location_name    # e.g., "dock", "room_a"
+string target_floor_id  # e.g., "floor0", "floor1"
+float32 x               # target x coordinate
+float32 y               # target y coordinate
+float32 yaw             # target yaw orientation (radians)
+---
+# Result: Navigation outcome
+bool success            # whether navigation succeeded
+uint8 nav_status        # navigation status code (for mapping to Nav2 results)
+string message          # human-readable result message
+---
+# Feedback: Progress during navigation
+string state            # e.g., "RESOLVING", "NAVIGATING", "SWITCHING_MAP", "RELOCALIZING", "DONE"
+string active_floor_id  # current floor during execution
+string active_step      # human-readable description of current step
