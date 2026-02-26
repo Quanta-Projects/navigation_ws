@@ -22,7 +22,7 @@
         <!-- Elevator entry: call elevator, poll planner until door is open, then enter -->
         <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
           <Sequence name="CallWaitAndEnter">
-            <CallElevator floor_id="{current_floor_id}"/>
+            <!-- <CallElevator floor_id="{current_floor_id}"/> -->
 
             <!-- Boost velocity/acceleration now so the robot moves immediately
                  when the door-polling loop detects the door is open. -->
@@ -62,7 +62,7 @@
           <Sequence name="ExitAttempt_1">
             <!-- Resolve exit pose before the wait loop begins -->
             <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
-            <CallElevator floor_id="{target_floor_id}"/>
+            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
 
             <!-- Boost velocity/acceleration now so the robot moves immediately
                  when the door-polling loop detects the door is open. -->
@@ -89,7 +89,7 @@
             <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
-            <CallElevator floor_id="{target_floor_id}"/>
+            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
 
             <!-- Boost velocity/acceleration now so the robot moves immediately
                  when the door-polling loop detects the door is open. -->
