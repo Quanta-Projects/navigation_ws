@@ -24,6 +24,40 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      dummy_location_a:
+        x: 1.0
+        y: 1.0
+        yaw: 0.0
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57
+
+  floor1:
+    maps:
+      closed: first_floor.yaml
+      open: first_floor.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      amcl_initial_pose_open:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_staging:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_inside:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_exit:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       hod_office:
         x: -9.09
         y: 24.25
@@ -78,3 +112,45 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      dummy_location_a:
+        x: 1.0
+        y: 1.0
+        yaw: 0.0
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57
+
+  floor3:
+    maps:
+      closed: third_floor_new.yaml
+      open: third_floor_new.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      amcl_initial_pose_open:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_staging:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_inside:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_exit:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      dummy_location_a:
+        x: 1.0
+        y: 1.0
+        yaw: 0.0
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57
