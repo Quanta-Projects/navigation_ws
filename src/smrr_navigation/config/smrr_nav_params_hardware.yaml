@@ -44,9 +44,9 @@ amcl:
     scan_topic: scan
     set_initial_pose: true
     initial_pose:
-      x: 0.0  #1.64
-      y: 0.0  #22.97
-      yaw: -0.6617 #-0.60
+      x: -0.2461 #0.0  #1.64
+      y: 0.0125  #22.97
+      yaw: 2.5976 #-0.6617 #-0.60
     initial_cov_xx: 0.5
     initial_cov_yy: 0.5
     initial_cov_aa: 0.68
@@ -111,7 +111,7 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: False
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_frame: odom
     odom_topic: /diff_drive_controller/odom
     controller_frequency: 8.0
@@ -190,7 +190,7 @@ local_costmap:
       update_frequency: 10.0
       publish_frequency: 1.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: False
       rolling_window: True
       width: 3
@@ -232,7 +232,7 @@ global_costmap:
       update_frequency: 0.5
       publish_frequency: 0.5
       global_frame: map
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: False
       robot_radius: 0.25
       resolution: 0.05
@@ -270,7 +270,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: False
-    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/first_floor.yaml"
+    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/first_floor_with_lift.yaml"
 
 map_saver:
   ros__parameters:
@@ -308,7 +308,7 @@ recoveries_server:
     wait:
       plugin: "nav2_recoveries/Wait"
     global_frame: map
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     transform_timeout: 0.1
     use_sim_time: False
     simulate_ahead_time: 2.0
