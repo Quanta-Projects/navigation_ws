@@ -24,9 +24,9 @@
           <Sequence name="CallWaitAndEnter">
             <CallElevator floor_id="{current_floor_id}"/>
 
-            <!-- Boost velocity/acceleration now so the robot moves immediately
-                 when the door-polling loop detects the door is open. -->
-            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
+            <!-- Boost velocity before waiting: robot is already at gap-crossing speed
+                 the instant the door opens (zero-delay boost). -->
+            <SetControllerParams max_vel_x="0.55"/>
 
             <!-- Planning-based door detection: poll global planner every 500 ms.
                  When the physical door opens the LiDAR clears the costmap obstacle
@@ -40,8 +40,8 @@
             <!-- Navigate inside elevator and rotate 180 degrees -->
             <GetNamedPose floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
-            <!-- Restore normal velocity/acceleration once safely inside -->
-            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
+            <!-- Reset velocity to normal after crossing the entry gap -->
+            <SetControllerParams max_vel_x="0.35"/>
             <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
           </Sequence>
@@ -64,9 +64,8 @@
             <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
             <CallElevator floor_id="{target_floor_id}"/>
 
-            <!-- Boost velocity/acceleration now so the robot moves immediately
-                 when the door-polling loop detects the door is open. -->
-            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
+            <!-- Boost velocity before waiting for exit door to open -->
+            <SetControllerParams max_vel_x="0.55"/>
 
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit1">
               <Delay delay_msec="500">
@@ -75,8 +74,8 @@
             </RetryUntilSuccessful>
 
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
-            <!-- Restore normal velocity/acceleration once clear of elevator -->
-            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
+            <!-- Reset velocity to normal after crossing the exit gap -->
+            <SetControllerParams max_vel_x="0.35"/>
           </Sequence>
 
           <!-- Attempt 2: reposition inside elevator, then retry -->
@@ -91,9 +90,8 @@
 
             <CallElevator floor_id="{target_floor_id}"/>
 
-            <!-- Boost velocity/acceleration now so the robot moves immediately
-                 when the door-polling loop detects the door is open. -->
-            <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
+            <!-- Boost velocity before waiting for exit door (retry attempt 2) -->
+            <SetControllerParams max_vel_x="0.55"/>
 
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit2">
               <Delay delay_msec="500">
@@ -102,8 +100,8 @@
             </RetryUntilSuccessful>
 
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
-            <!-- Restore normal velocity/acceleration once clear of elevator -->
-            <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
+            <!-- Reset velocity to normal after crossing the exit gap (retry) -->
+            <SetControllerParams max_vel_x="0.35"/>
           </Sequence>
 
         </Fallback>
