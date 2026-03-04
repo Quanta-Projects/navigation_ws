@@ -135,49 +135,91 @@ controller_server:
       xy_goal_tolerance: 0.15
       yaw_goal_tolerance: 0.17  # Tightened from 0.25 for faster goal satisfaction (~10°)
 
-    # DWB parameters
     FollowPath:
-      plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: True
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-      max_vel_x: 0.35
-      max_vel_y: 0.0
-      max_vel_theta: 0.75
-      min_speed_xy: 0.0
-      max_speed_xy: 0.35
-      min_speed_theta: 0.0  # Allow full range for smooth small angle corrections
-   
-      acc_lim_x: 2.5
-      acc_lim_y: 0.0
-      acc_lim_theta: 2.5  # Increased from 1.5 for responsive rotation
-      decel_lim_x: -2.5
-      decel_lim_y: 0.0
-      decel_lim_theta: -2.5  # Increased for quicker stopping
-      vx_samples: 20
-      vy_samples: 0
-      vtheta_samples: 50  # Increased from 40 for finer angular resolution
-      sim_time: 1.7
-      linear_granularity: 0.05
-      angular_granularity: 0.025
-      transform_tolerance: 0.2
-      xy_goal_tolerance: 0.10
-      trans_stopped_velocity: 0.25
-      short_circuit_trajectory_evaluation: True
-      stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle.scale: 0.02
-      Oscillation.scale: 1.0  # Moderate penalty - prevent excessive caution
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
-      PathDist.scale: 32.0
-      GoalDist.scale: 24.0
-      # Smoother rotation behavior for large angle corrections
-      RotateToGoal.scale: 48.0  # Increased from 32.0 for stronger preference
-      RotateToGoal.slowing_factor: 3.0  # Reduced from 5.0 for smoother deceleration
-      RotateToGoal.lookahead_time: -1.0
+      plugin: "nav2_mppi_controller::MPPIController"
+
+      # --- MPPI parameters ---
+      time_steps: 56
+      model_dt: 0.05          # Matches 20 Hz control loop (1/20 = 0.05 s); 56×0.05 = 2.8 s horizon
+      batch_size: 1000        # Safer on Jetson under vision workload at 20 Hz
+      vx_std: 0.2
+      vy_std: 0.0             # Differential drive — no lateral motion
+      wz_std: 0.4             # Prevents violent left/right shaking at goal
+      vx_max: 0.35
+      vx_min: -0.05           # Tiny reverse budget for minor goal adjustments
+      vy_max: 0.0
+      wz_max: 0.75
+      iteration_count: 1
+      prune_distance: 1.7
+      transform_tolerance: 0.5  # Absorbs 1 ms TF lag, prevents spurious recovery spins
+      temperature: 0.3        # Selective — strongly favors best trajectory
+      gamma: 0.015            # Trajectory cost smoothing
+      motion_model: "DiffDrive"
+      visualize: false
+      retry_attempt_limit: 1
+      regenerate_noises: false
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+
+      critics: [
+        "ConstraintCritic", "ObstaclesCritic", "GoalCritic",
+        "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic",
+        "PathAngleCritic"]
+
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+
+      ObstaclesCritic:
+        enabled: true
+        cost_power: 1
+        repulsion_weight: 1.0          # Prevents jitter/refusal in narrow corridors and elevator entry
+        critical_weight: 30.0          # Strong penalty near humans / collision distance
+        consider_footprint: false
+        collision_cost: 10000.0
+        collision_margin_distance: 0.05  # Tight — avoids inflating footprint that blocked elevator entry
+        near_goal_distance: 0.5
+        inflation_layer_name: "inflation_layer"
+
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 1.4
+
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 6.0
+        threshold_to_consider: 0.25  # Do not align yaw until inside 25 cm of goal
+
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 14.0
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 4
+        threshold_to_consider: 0.25  # Keep enforcing path alignment until 25 cm from goal
+        offset_from_furthest: 20
+        use_path_orientations: false
+
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        offset_from_furthest: 5
+        threshold_to_consider: 0.25  # Keep driving forward along path until 25 cm from goal
+
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 2.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.25  # Aligned with 0.25 m handoff boundary
+        max_angle_to_furthest: 1.0
+        mode: 0                       # 0 = forward preference
 
 controller_server_rclcpp_node:
   ros__parameters:

@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 """
 ROS 2 Node for DR-SPAAM 2D LiDAR Person Detection
-Detects people using 2D LiDAR scans with DR-SPAAM or DROW3 models
+Detects people using 2D LiDAR scans with DR-SPAAM or DROW3 models.
+
+Supports two inference backends:
+  • PyTorch (.pth) — original DR-SPAAM with spatial-attention gate
+  • ONNX Runtime (.onnx) — stateless CNN backbone, ~27 % faster on CUDA
+If a sibling .onnx file exists next to the .pth weight file the ONNX
+backend is chosen automatically (override with ``use_onnx`` parameter).
 """
 
+import os
 import numpy as np
+import cv2
+import torch
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
@@ -18,17 +27,89 @@ import tf2_geometry_msgs
 from rclpy.qos import QoSProfile, QoSDurabilityPolicy
 from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from scipy.spatial import cKDTree
 import time
 import math
 from collections import deque
 
 
-class DrSpaamNode(Node):
+# ---------------------------------------------------------------------------
+# ONNX Runtime backend for DR-SPAAM inference
+# ---------------------------------------------------------------------------
+
+def _ensure_cudnn_visible():
+    """Append pip-installed nvidia-cudnn lib dir to LD_LIBRARY_PATH so that
+    onnxruntime's CUDAExecutionProvider can find libcudnn.so.9 at runtime."""
+    try:
+        import nvidia.cudnn as _cudnn
+        init_file = getattr(_cudnn, "__file__", None)
+        if init_file is None:
+            # namespace-package: use the loader path instead
+            init_file = _cudnn.__path__[0]
+        cudnn_lib = os.path.join(os.path.dirname(init_file), "lib")
+        ld = os.environ.get("LD_LIBRARY_PATH", "")
+        if cudnn_lib not in ld:
+            os.environ["LD_LIBRARY_PATH"] = f"{cudnn_lib}:{ld}"
+    except (ImportError, Exception):
+        pass
+
+
+class ONNXModelWrapper:
+    """Drop-in replacement for ``detector._model`` that runs ONNX Runtime.
+
+    The Detector's ``__call__`` invokes ``self._model(ct.unsqueeze(0), inference=True)``
+    and expects ``(pred_cls, pred_reg, sim)`` back.  This wrapper fulfils that
+    contract using an ONNX Runtime session.
+    """
+
+    def __init__(self, onnx_path: str, logger):
+        _ensure_cudnn_visible()
+        import onnxruntime as ort
+
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        self._session = ort.InferenceSession(onnx_path, providers=providers)
+        self._input_name = self._session.get_inputs()[0].name
+        active = self._session.get_providers()
+        logger.info(f"ONNX Runtime providers: {active}")
+        if "CUDAExecutionProvider" not in active:
+            logger.warn(
+                "CUDAExecutionProvider NOT available — falling back to CPU. "
+                "Set LD_LIBRARY_PATH to include libcudnn.so.9 for GPU inference."
+            )
+
+    # --- public interface expected by Detector.__call__ ---
+
+    def __call__(self, x, inference=True):
+        """Run ONNX inference on cutout tensor *x*.
+
+        Args:
+            x: torch.Tensor shaped (B, CT, 1, 56), typically on CUDA.
+            inference: ignored (stateless model).
+
+        Returns:
+            (pred_cls, pred_reg, sim) matching DR-SPAAM convention.
+            sim is always ``None`` (no spatial attention in the ONNX graph).
+        """
+        x_np = x.detach().cpu().numpy()
+        cls_np, reg_np = self._session.run(None, {self._input_name: x_np})
+        # Return CPU tensors — Detector immediately calls .cpu().numpy() anyway.
+        pred_cls = torch.from_numpy(cls_np)
+        pred_reg = torch.from_numpy(reg_np)
+        return pred_cls, pred_reg, None
+
+    def eval(self):
+        """No-op, keeps the Detector happy if it ever calls model.eval()."""
+        return self
+
+    def cuda(self):
+        """No-op — inference device is managed by the ORT session."""
+        return self
+
+
+class LidarHumanDetectionNode(Node):
     """ROS 2 node to detect pedestrians using DROW3 or DR-SPAAM."""
 
     def __init__(self):
-        super().__init__('dr_spaam_node')
+        super().__init__('lidar_human_detection_node')
 
         # Declare parameters
         self.declare_parameter('weight_file', '')
@@ -40,6 +121,7 @@ class DrSpaamNode(Node):
         self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
         self.declare_parameter('detections_topic', 'detected_people')
         self.declare_parameter('marker_topic', 'detected_people_markers')
+        self.declare_parameter('use_onnx', True)  # auto-use ONNX if .onnx sibling exists
 
         # Get parameters
         weight_file = self.get_parameter('weight_file').value
@@ -51,6 +133,7 @@ class DrSpaamNode(Node):
         self.target_frame = self.get_parameter('target_frame').value
         detections_topic = self.get_parameter('detections_topic').value
         marker_topic = self.get_parameter('marker_topic').value
+        use_onnx = self.get_parameter('use_onnx').value
 
         # TF2 buffer and listener for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
@@ -61,7 +144,7 @@ class DrSpaamNode(Node):
             self.get_logger().error('weight_file parameter is required!')
             raise ValueError('weight_file parameter must be set')
 
-        # Initialize detector
+        # Initialize detector (always loads .pth for preprocessing / NMS)
         self.get_logger().info(f'Loading {detector_model} model: {weight_file}')
         try:
             self._detector = Detector(
@@ -71,10 +154,25 @@ class DrSpaamNode(Node):
                 stride=stride,
                 panoramic_scan=panoramic_scan,
             )
-            self.get_logger().info(f'{detector_model} detector initialized')
+            self.get_logger().info(f'{detector_model} detector initialized (PyTorch)')
         except Exception as e:
             self.get_logger().error(f'Failed to load detector: {e}')
             raise
+
+        # ── ONNX backend hot-swap ──────────────────────────────────
+        # If a sibling .onnx file exists and use_onnx is True, replace
+        # the PyTorch _model with an ONNX Runtime session. The Detector
+        # still owns preprocessing (scans_to_cutout) and postprocessing
+        # (NMS), which are pure NumPy / CPU — only the neural-network
+        # forward pass is swapped.
+        onnx_path = os.path.splitext(weight_file)[0] + ".onnx"
+        if use_onnx and os.path.isfile(onnx_path):
+            self.get_logger().info(f"ONNX model found — switching backend: {onnx_path}")
+            self._detector._model = ONNXModelWrapper(onnx_path, self.get_logger())
+        elif use_onnx:
+            self.get_logger().info(
+                f"No sibling .onnx file at {onnx_path} — keeping PyTorch backend"
+            )
 
         # Publishers
         self._dets_pub = self.create_publisher(PoseArray, detections_topic, 10)
@@ -115,7 +213,7 @@ class DrSpaamNode(Node):
         self.last_metrics_log = time.time()
         self.frame_count = 0
 
-        self.get_logger().info('DR-SPAAM Node initialized')
+        self.get_logger().info('LidarHumanDetectionNode initialized')
         self.get_logger().info(f'Subscribing to: {scan_topic}')
         self.get_logger().info(f'Publishing detections to: {detections_topic}')
         self.get_logger().info(f'Publishing markers to: {marker_topic}')
@@ -150,7 +248,7 @@ class DrSpaamNode(Node):
         scan[np.isinf(scan)] = 29.99
         scan[np.isnan(scan)] = 29.99
 
-        # Filter out static obstacles using map grid masking
+        # Filter out static obstacles using inflated binary grid (O(1) lookup)
         filtered_scan = self._filter_static_obstacles(scan, msg, transform)
         if filtered_scan is None:
             return  # STRICT: Skip frame if TF fails to prevent hallucinating walls
@@ -214,47 +312,45 @@ class DrSpaamNode(Node):
         if current_time - self.last_metrics_log >= 5.0:
             avg_time = np.mean(self.frame_times)
             fps = 1.0 / avg_time if avg_time > 0 else 0
-            min_time = np.min(self.frame_times)
-            max_time = np.max(self.frame_times)
             self.get_logger().info(
-                f'[DR-SPAAM Performance] FPS: {fps:.2f} | Avg: {avg_time*1000:.1f}ms'
+                f'[LidarHumanDetection Performance] FPS: {fps:.2f} | Avg: {avg_time*1000:.1f}ms'
             )
             self.last_metrics_log = current_time
 
     def _map_callback(self, msg):
-        """Store the map and build a high-performance KD-Tree of all static obstacles."""
+        """Store the map and build an inflated binary grid for O(1) static obstacle filtering."""
         self.map_info = msg.info
         grid = np.array(msg.data, dtype=np.int8).reshape((msg.info.height, msg.info.width))
 
-        # Find grid indices of walls (>50) and unknown space (-1)
-        y_indices, x_indices = np.where((grid > 50) | (grid == -1))
-        
-        # Convert grid indices to global physical coordinates
+        # 1. Create a pure uint8 binary image for OpenCV
+        # Free space = 0, Walls (>50) and Unknown (-1) = 255
+        binary_map = np.zeros_like(grid, dtype=np.uint8)
+        binary_map[(grid > 50) | (grid == -1)] = 255
+
+        # 2. Calculate physical inflation in pixels (0.25m radius)
+        inflation_radius_m = 0.35
         res = self.map_info.resolution
-        orig_x = self.map_info.origin.position.x
-        orig_y = self.map_info.origin.position.y
-        
-        # Calculate physical center of each occupied cell
-        world_x = (x_indices * res) + orig_x + (res / 2.0)
-        world_y = (y_indices * res) + orig_y + (res / 2.0)
-        
-        obstacle_points = np.column_stack((world_x, world_y))
-        
-        if len(obstacle_points) > 0:
-            self.map_kd_tree = cKDTree(obstacle_points)
-            self.get_logger().info(
-                f'Map KD-Tree built with {len(obstacle_points)} obstacle points.', 
-                throttle_duration_sec=10.0
-            )
-        else:
-            self.map_kd_tree = None
+        inflation_pixels = int(inflation_radius_m / res)
+
+        # 3. Create a circular kernel (must be an odd number size: 2*r + 1)
+        k_size = (2 * inflation_pixels) + 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_size, k_size))
+
+        # 4. Perform the ultra-fast OpenCV dilation
+        dilated_map = cv2.dilate(binary_map, kernel, iterations=1)
+
+        # 5. Store as a boolean NumPy array for O(1) laser lookups
+        self.inflated_map = (dilated_map == 255)
+
+        self.get_logger().info(
+            f'Map processed and dilated. Size: {msg.info.width}x{msg.info.height}. '
+            f'Inflation radius: {inflation_pixels}px.',
+            throttle_duration_sec=10.0
+        )
 
     def _filter_static_obstacles(self, scan_ranges, msg, transform):
-        """Filters out LiDAR points within 0.25m of a mapped obstacle using a KD-Tree.
-        
-        Uses the pre-computed transform from _scan_callback — no second TF lookup.
-        """
-        if not hasattr(self, 'map_kd_tree') or self.map_kd_tree is None:
+        """Filters out LiDAR points that hit mapped obstacles using O(1) Grid Indexing."""
+        if not hasattr(self, 'inflated_map') or self.inflated_map is None:
             return scan_ranges
 
         # --- 1. Identify valid points ---
@@ -267,33 +363,55 @@ class DrSpaamNode(Node):
         valid_ranges = scan_ranges[valid_indices]
         angles = msg.angle_min + valid_indices.astype(np.float64) * msg.angle_increment
 
-        # --- 3. Polar to local Cartesian ---
+        # --- 2. Polar to local Cartesian ---
         local_x = valid_ranges * np.cos(angles)
         local_y = valid_ranges * np.sin(angles)
 
-        # --- 4. Transform to global Map frame ---
+        # --- 3. Vectorized Homogeneous Transform to Map Frame ---
         t = transform.transform.translation
         q = transform.transform.rotation
         yaw = math.atan2(
             2.0 * (q.w * q.z + q.x * q.y),
             1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         )
-        
-        global_x = math.cos(yaw) * local_x - math.sin(yaw) * local_y + t.x
-        global_y = math.sin(yaw) * local_x + math.cos(yaw) * local_y + t.y
 
-        global_points = np.column_stack((global_x, global_y))
+        cos_y = math.cos(yaw)
+        sin_y = math.sin(yaw)
 
-        # --- 5. Vectorized KD-Tree Query ---
-        # workers=1 avoids spawning additional threads inside the callback,
-        # which prevents CPU thread thrashing under MutuallyExclusiveCallbackGroup.
-        dists, _ = self.map_kd_tree.query(global_points, k=1, workers=1)
+        # Create 3xN matrix of local points: [x; y; 1]
+        local_points = np.vstack((local_x, local_y, np.ones_like(local_x)))
 
-        # Apply a strict 0.25-meter physical threshold (prox_thre from findloc_bgrm.py)
-        obstacle_mask = dists <= 0.25
+        # 3x3 Homogeneous Transformation Matrix
+        H_matrix = np.array([
+            [cos_y, -sin_y, t.x],
+            [sin_y,  cos_y, t.y],
+            [0.0,    0.0,   1.0]
+        ])
 
-        # Overwrite points close to walls with max range
-        original_indices = valid_indices[obstacle_mask]
+        # Matrix multiplication (3x3 @ 3xN) -> 3xN global points
+        global_points = H_matrix @ local_points
+        global_x = global_points[0, :]
+        global_y = global_points[1, :]
+
+        # --- 4. Convert to Grid Indices ---
+        res = self.map_info.resolution
+        orig_x = self.map_info.origin.position.x
+        orig_y = self.map_info.origin.position.y
+
+        cols = ((global_x - orig_x) / res).astype(int)
+        rows = ((global_y - orig_y) / res).astype(int)
+
+        # --- 5. O(1) Direct Array Indexing ---
+        map_h, map_w = self.inflated_map.shape
+
+        # Clip bounds to prevent IndexError if laser shoots outside the map
+        valid_bounds = (rows >= 0) & (rows < map_h) & (cols >= 0) & (cols < map_w)
+
+        hit_wall = np.zeros(len(global_x), dtype=bool)
+        hit_wall[valid_bounds] = self.inflated_map[rows[valid_bounds], cols[valid_bounds]]
+
+        # Overwrite points hitting dilated walls with max range
+        original_indices = valid_indices[hit_wall]
         scan_ranges[original_indices] = 29.99
 
         return scan_ranges
@@ -445,7 +563,7 @@ class DrSpaamNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = DrSpaamNode()
+    node = LidarHumanDetectionNode()
     executor = MultiThreadedExecutor()
     executor.add_node(node)
 
