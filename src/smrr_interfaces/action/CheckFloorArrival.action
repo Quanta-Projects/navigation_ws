@@ -1,0 +1,10 @@
+# Goal: target floor to verify arrival at
+string target_floor     # e.g., "3", "G", "1"
+---
+# Result: whether the elevator arrived at the target floor
+bool arrived            # true if button went OFF (floor reached)
+string message          # human-readable result
+---
+# Feedback: per-cycle status
+string status           # "ON", "OFF_UNSTABLE", "OFF_STABLE", "NO_DETECTION"
+float32 ratio           # HSV mask ratio (0.0 – 1.0)

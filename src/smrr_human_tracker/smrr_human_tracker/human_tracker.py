@@ -22,8 +22,9 @@ import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from ament_index_python.packages import get_package_share_directory
 import os
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+import threading
 
 
 class HumanInstanceTracker(Node):
@@ -61,6 +62,16 @@ class HumanInstanceTracker(Node):
         tracker_type = self.get_parameter('tracker').value
         iou_threshold = self.get_parameter('iou_threshold').value
         self.target_frame = self.get_parameter('target_frame').value
+
+        # --- PERFORMANCE GUARDRAIL ---
+        if model_path.endswith('.pt'):
+            self.get_logger().warn(
+                'CRITICAL PERFORMANCE WARNING: You are loading a raw PyTorch (.pt) model! '
+                'This will cause a severe CPU bottleneck on the Jetson Orin (~5 FPS). '
+                'Please export to TensorRT (.engine) using "yolo export ... half=True".'
+            )
+        elif model_path.endswith('.engine'):
+            self.get_logger().info('High-Performance TensorRT Engine detected. GPU acceleration active.')
 
         # TF2 for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
@@ -118,8 +129,11 @@ class HumanInstanceTracker(Node):
             10
         )
 
-        # Create mutually exclusive callback group for the synchronized callback
-        self.cb_group = MutuallyExclusiveCallbackGroup()
+        # Create Reentrant callback group so subscribers can receive frames while YOLO runs
+        self.cb_group = ReentrantCallbackGroup()
+        
+        # Lock to ensure YOLO only processes one frame at a time (Drop-if-busy)
+        self._inference_lock = threading.Lock()
 
         # Synchronized subscribers for RGB and Depth (assigned to the callback group)
         self.rgb_sub = message_filters.Subscriber(self, Image, rgb_topic, callback_group=self.cb_group)
@@ -156,6 +170,11 @@ class HumanInstanceTracker(Node):
 
     def synchronized_callback(self, rgb_msg, depth_msg):
         """Process synchronized RGB and Depth images"""
+        # --- LATEST-ONLY / DROP-IF-BUSY LOGIC ---
+        # If YOLO is still processing the previous frame, drop this new frame instantly.
+        if not self._inference_lock.acquire(blocking=False):
+            return
+
         try:
             # Start timing
             start_time = time.time()
@@ -267,6 +286,9 @@ class HumanInstanceTracker(Node):
             self.get_logger().error(f'Error processing images: {e}')
             import traceback
             self.get_logger().error(traceback.format_exc())
+        finally:
+            # --- ALWAYS RELEASE THE LOCK ---
+            self._inference_lock.release()
 
     def calculate_3d_position(self, x1, y1, x2, y2, depth_image, mask=None):
         if self.camera_matrix is None:
@@ -333,47 +355,37 @@ class HumanInstanceTracker(Node):
         )
         
         # --- 1. SINGLE STRICT TF LOOKUP ---
-        # Fetch the transform exactly once for the entire frame to completely eliminate loop bottlenecks
         try:
             target_time = header.stamp
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 header.frame_id,
                 rclpy.time.Time.from_msg(target_time),
-                timeout=rclpy.duration.Duration(seconds=0.02) # 20ms wait max
+                timeout=rclpy.duration.Duration(seconds=0.02)
             )
         except Exception as e:
             self.get_logger().warn(
                 f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. Dropping frame. Error: {e}',
                 throttle_duration_sec=5.0
             )
-            return  # Abort publishing if we don't know where the robot is
+            return
 
-        # Publish PoseArray in target frame
         pose_array = PoseArray()
         pose_array.header.frame_id = self.target_frame
         pose_array.header.stamp = header.stamp
-
-        # Publish MarkerArray
         marker_array = MarkerArray()
 
         for human in tracked_humans:
             pos_3d = human['position_3d']
             track_id = human['track_id']
-            color_bgr = human['color']
             
-            # Create Pose in camera frame
             pose_camera = Pose()
             pose_camera.position.x = float(pos_3d[0])
             pose_camera.position.y = float(pos_3d[1])
             pose_camera.position.z = float(pos_3d[2])
-            pose_camera.orientation.x = 0.0
-            pose_camera.orientation.y = 0.0
-            pose_camera.orientation.z = 0.0
             pose_camera.orientation.w = 1.0
             
             # --- 2. INSTANT MEMORY TRANSFORM ---
-            # Use do_transform_pose_stamped to apply the pre-fetched transform instantly
             pose_stamped = PoseStamped()
             pose_stamped.header = header
             pose_stamped.pose = pose_camera
@@ -381,11 +393,9 @@ class HumanInstanceTracker(Node):
             transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
             pose_map = transformed_pose_stamped.pose
             
-            # Inject confidence AFTER the transform into the unused Z position
             pose_map.position.z = float(human['confidence'])
             pose_array.poses.append(pose_map)
 
-            # Add text marker with track ID in target frame
             text_marker = Marker()
             text_marker.header.frame_id = self.target_frame
             text_marker.header.stamp = header.stamp
@@ -395,18 +405,14 @@ class HumanInstanceTracker(Node):
             text_marker.action = Marker.ADD
             text_marker.pose.position.x = pose_map.position.x
             text_marker.pose.position.y = pose_map.position.y
-            text_marker.pose.position.z = 0.5  # Position text above footprint
+            text_marker.pose.position.z = 0.5
             text_marker.pose.orientation.w = 1.0
             text_marker.scale.z = 0.3
-            text_marker.color.r = 0.0
-            text_marker.color.g = 0.0
             text_marker.color.b = 1.0
             text_marker.color.a = 1.0
             text_marker.text = f"ID {track_id}"
-            text_marker.lifetime.sec = 0
             text_marker.lifetime.nanosec = 500000000
             
-            # Add footprint marker (circular disk at ground level) - always green
             footprint_marker = Marker()
             footprint_marker.header.frame_id = self.target_frame
             footprint_marker.header.stamp = header.stamp
@@ -416,16 +422,13 @@ class HumanInstanceTracker(Node):
             footprint_marker.action = Marker.ADD
             footprint_marker.pose.position.x = pose_map.position.x
             footprint_marker.pose.position.y = pose_map.position.y
-            footprint_marker.pose.position.z = 0.01  
+            footprint_marker.pose.position.z = 0.01
             footprint_marker.pose.orientation.w = 1.0
-            footprint_marker.scale.x = 0.5  
+            footprint_marker.scale.x = 0.5
             footprint_marker.scale.y = 0.5
-            footprint_marker.scale.z = 0.02  
-            footprint_marker.color.r = 0.0
+            footprint_marker.scale.z = 0.02
             footprint_marker.color.g = 1.0
-            footprint_marker.color.b = 0.0
             footprint_marker.color.a = 0.8
-            footprint_marker.lifetime.sec = 0
             footprint_marker.lifetime.nanosec = 500000000
 
             marker_array.markers.append(text_marker)

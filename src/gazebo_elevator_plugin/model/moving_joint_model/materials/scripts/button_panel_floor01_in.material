@@ -1,0 +1,19 @@
+material ButtonPanelFloor01In
+{
+  technique
+  {
+    pass
+    {
+      ambient 1.0 1.0 1.0 1.0
+      diffuse 1.0 1.0 1.0 1.0
+      specular 0.0 0.0 0.0 1.0
+      emissive 0.0 0.0 0.0 1.0
+      
+      texture_unit
+      {
+        texture floor01_in.png
+        filtering trilinear
+      }
+    }
+  }
+}

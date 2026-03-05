@@ -14,6 +14,7 @@ def generate_launch_description():
     maps_dir = os.path.join(pkg_share, 'maps')
     bt_xml_path = os.path.join(pkg_share, 'behavior_trees', 'smrr_multifloor.xml')
     map_file = os.path.join(maps_dir, 'floor0_open.yaml')
+    yolo_model_path = os.path.join(pkg_share, 'models', 'yolo_button_detection.pt')
     params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
     rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')
     
@@ -117,6 +118,18 @@ def generate_launch_description():
             {'location_topic': 'location'},
             {'service_name': '/go_to_pose'},
             {'service_timeout': 5.0}
+        ]
+    ),
+
+    # Floor Arrival Server - Verifies floor arrival via YOLO + HSV camera analysis
+    Node(
+        package='smrr_navigation',
+        executable='floor_arrival_server.py',
+        name='floor_arrival_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'yolo_model_path': yolo_model_path}
         ]
     ),
 

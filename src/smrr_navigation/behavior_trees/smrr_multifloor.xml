@@ -42,8 +42,10 @@
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
             <!-- Reset velocity to normal after crossing the entry gap -->
             <SetControllerParams max_vel_x="0.35"/>
-            <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+            <!-- Wait for the elevator door to fully close before issuing the
+                 target-floor command (~5 s is sufficient for the Gazebo plugin). -->
+            <Wait wait_duration="5.0"/>
           </Sequence>
         </RetryUntilSuccessful>
 
@@ -63,6 +65,8 @@
             <!-- Resolve exit pose before the wait loop begins -->
             <GetNamedPose floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
             <CallElevator floor_id="{target_floor_id}"/>
+
+            <CheckFloorArrival target_floor="{target_floor_id}"/>
 
             <!-- Boost velocity before waiting for exit door to open -->
             <SetControllerParams max_vel_x="0.55"/>
@@ -89,6 +93,8 @@
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
             <CallElevator floor_id="{target_floor_id}"/>
+
+            <CheckFloorArrival target_floor="{target_floor_id}"/>
 
             <!-- Boost velocity before waiting for exit door (retry attempt 2) -->
             <SetControllerParams max_vel_x="0.55"/>
