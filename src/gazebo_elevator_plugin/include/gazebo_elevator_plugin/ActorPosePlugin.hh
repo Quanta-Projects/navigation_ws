@@ -161,17 +161,6 @@ namespace gazebo
             this->last_actor_poses_[state.name] = map_pose;
             
             actor_states.push_back(state);
-            
-            // Debug output
-            if (this->debug_counter_ % 50 == 0)  // Every 5 seconds at 10Hz
-            {
-              RCLCPP_INFO(this->ros_node_->get_logger(),
-                         "Actor %s: Gazebo(%.2f, %.2f) -> map(%.2f, %.2f) vel=(%.2f, %.2f)",
-                         state.name.c_str(),
-                         world_pose.Pos().X(), world_pose.Pos().Y(),
-                         map_pose.Pos().X(), map_pose.Pos().Y(),
-                         state.linear_velocity.X(), state.linear_velocity.Y());
-            }
           }
         }
         

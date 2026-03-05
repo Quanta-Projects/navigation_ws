@@ -122,7 +122,7 @@ private:
       blackboard->set<rclcpp::Node::SharedPtr>("node", this->shared_from_this());
       
       // Set server timeout for Nav2 action nodes
-      blackboard->set<std::chrono::milliseconds>("server_timeout", std::chrono::milliseconds(10));
+      blackboard->set<std::chrono::milliseconds>("server_timeout", std::chrono::milliseconds(2000));
       blackboard->set<std::chrono::milliseconds>("bt_loop_duration", std::chrono::milliseconds(10));
       blackboard->set<std::chrono::milliseconds>("wait_for_service_timeout", std::chrono::milliseconds(1000));
 

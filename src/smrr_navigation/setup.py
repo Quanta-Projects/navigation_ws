@@ -10,7 +10,7 @@ setup(
     # packages=find_packages(exclude=['test']),
     packages=[package_name],
     package_data={
-        package_name: ['models/*.onnx', 'models/*.onnx.data'],
+        package_name: ['models/*.onnx', 'models/*.onnx.data', 'models/*.pt'],
     },
     include_package_data=True,
 
@@ -22,6 +22,7 @@ setup(
         (os.path.join('share',package_name,'config') , glob('config/*')),
         (os.path.join('share',package_name,'maps') , glob('maps/*')),
         (os.path.join('share',package_name,'srv') , glob('srv/*.srv')),
+        (os.path.join('share',package_name,'models') , glob('models/*.pt')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -42,6 +43,8 @@ setup(
             'location_subscriber = smrr_navigation.location_subscriber:main',
             'smrr_multifloor_bt_navigator = smrr_navigation.smrr_multifloor_bt_navigator:main',
             'door_classifier_node = smrr_navigation.door_classifier_node:main',
+            'test_floor_vision = smrr_navigation.test_floor_vision:main',
+            'floor_arrival_server = smrr_navigation.floor_arrival_server:main',
         ],
     },
 )

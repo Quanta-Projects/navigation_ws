@@ -1123,6 +1123,9 @@ The proposed changes follow Nav2 standard patterns, add minimal complexity, and 
 
 ---
 
+**Command**
+ros2 topic pub -1 /location std_msgs/msg/String "{data: 'office_101'}"
+
 *Document prepared: January 14, 2026*  
 *For questions or clarifications, refer to Nav2 BehaviorTree documentation:*  
 *https://navigation.ros.org/behavior_trees/index.html*

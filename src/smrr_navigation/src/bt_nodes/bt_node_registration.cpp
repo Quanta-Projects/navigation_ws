@@ -12,6 +12,7 @@
 #include "smrr_navigation/bt_nodes/update_pose_timestamp_action.hpp"
 #include "smrr_navigation/bt_nodes/stop_robot_action.hpp"
 #include "smrr_navigation/bt_nodes/set_controller_params_action.hpp"
+#include "smrr_navigation/bt_nodes/check_floor_arrival_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -29,4 +30,13 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::UpdatePoseTimestampAction>("UpdatePoseTimestamp");
   factory.registerNodeType<smrr_navigation::StopRobotAction>("StopRobot");
   factory.registerNodeType<smrr_navigation::SetControllerParamsAction>("SetControllerParams");
+
+  // BtActionNode-derived nodes need a builder (3-arg constructor)
+  BT::NodeBuilder check_floor_builder =
+    [](const std::string & name, const BT::NodeConfiguration & config) {
+      return std::make_unique<smrr_navigation::CheckFloorArrivalAction>(
+        name, "check_floor_arrival", config);
+    };
+  factory.registerBuilder<smrr_navigation::CheckFloorArrivalAction>(
+    "CheckFloorArrival", check_floor_builder);
 }

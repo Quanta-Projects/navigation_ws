@@ -355,6 +355,32 @@
             </script>
           </material>
         </visual>
+
+        <!-- Button panel: Floor 02 INSIDE (front wall, near door edge, left side when facing out) -->
+        <!-- wall1 inner face is at local_x=1.0245; panel placed 2 mm inside at 1.0225  -->
+        <!-- local_y=0.15 shifts panel toward the door (door edge of wall1 is at y≈0)   -->
+        <!-- local_z=1.40 puts panel centre at 1.40 m above elevator floor               -->
+        <visual name="button_panel_floor01_in_visual">
+          <pose>1.0225 0.15 1.40 0 0 0</pose>
+          <geometry>
+            <box>
+              <!-- thin in x (wall normal), 0.25 m wide in y, 1.16 m tall in z -->
+              <size>0.004 0.25 1.16</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+            <emissive>0.5 0.5 0.5 1</emissive>
+            <lighting>1</lighting>
+            <script>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/scripts</uri>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/textures</uri>
+              <name>ButtonPanelFloor01In</name>
+            </script>
+          </material>
+        </visual>
       </link>
   
       <link name="door">
@@ -689,6 +715,40 @@
         </trajectory>
       </script>
     </actor>
+
+    <!-- Button panel: Floor 01 INSIDE (front wall right, inside/corridor face) -->
+    <!-- Wall inside face is at y≈-0.050. Panel is placed 10 cm into the        -->
+    <!-- corridor (+y side) to avoid z-fighting with building geometry.          -->
+    <!-- Size 0.25 × 1.16 m keeps the 867×4032 (≈1:4.65) aspect ratio.         -->
+    <model name="button_panel_floor01_in">
+      <static>true</static>
+      <!-- Model origin at world origin; link pose is the absolute world pose -->
+      <link name="panel_link">
+        <!-- x=1.5   : centred on front_wall_right (x span 0.5–2.5)            -->
+        <!-- y=-0.082 : 2 mm further out from wall into corridor (-y side)     -->
+        <!-- z=1.40   : panel centre at 1.4 m (spans 0.98–1.82 m)             -->
+        <pose>1.5 -0.082 1.40 0 0 0</pose>
+        <visual name="panel_visual">
+          <geometry>
+            <box>
+              <size>0.25 0.004 1.16</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0.1 0.1 0.1 1</specular>
+            <emissive>0.5 0.5 0.5 1</emissive>
+            <lighting>1</lighting>
+            <script>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/scripts</uri>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/textures</uri>
+              <name>ButtonPanelFloor01In</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+    </model>
 
     <!-- Set the initial pose for the model -->
     <pose>0 0 0 0 0 0</pose>
