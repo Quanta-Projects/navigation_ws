@@ -377,7 +377,7 @@
             <script>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/scripts</uri>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/textures</uri>
-              <name>ButtonPanelFloor01In</name>
+              <name>ButtonPanelFloor02In</name>
             </script>
           </material>
         </visual>

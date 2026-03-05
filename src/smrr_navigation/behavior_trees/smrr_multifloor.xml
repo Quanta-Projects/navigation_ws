@@ -51,9 +51,17 @@
 
         <!-- Switch to target floor's open map while inside elevator -->
         <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
+
+        <!-- Fetch both poses: target floor nominal pose AND departure floor expected pose -->
         <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+        <GetNamedPose floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
+
         <SwitchMap map_yaml="{map_open_target}"/>
-        <PublishInitialPose initial_pose="{amcl_open_target}"/>
+
+        <!-- Publish initial pose with parking-error correction:
+             current_expected_pose = departure floor's nominal inside pose;
+             the node computes actual TF error and adjusts amcl_open_target accordingly. -->
+        <PublishInitialPose initial_pose="{amcl_open_target}" current_expected_pose="{amcl_open_current}"/>
         <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
         <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 

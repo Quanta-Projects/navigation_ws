@@ -94,6 +94,7 @@ ament_target_dependencies(smrr_bt_nodes
   geometry_msgs
   sensor_msgs
   tf2
+  tf2_ros
   tf2_geometry_msgs
   ament_index_cpp
   nav2_msgs
