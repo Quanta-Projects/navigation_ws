@@ -186,5 +186,13 @@ def generate_launch_description():
         arguments=['-d',rviz_config],
         parameters=[{'use_sim_time': True}]
     ),
+    # AprilTag Manager Server — dynamically start/stop apriltag_node via
+    # the /toggle_apriltag service to save CPU when detection is not needed.
+    Node(
+        package='smrr_navigation',
+        executable='apriltag_manager_server.py',
+        name='apriltag_manager_server',
+        output='screen',
+    ),
 
     ])

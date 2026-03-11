@@ -12,7 +12,9 @@
 #include "smrr_navigation/bt_nodes/update_pose_timestamp_action.hpp"
 #include "smrr_navigation/bt_nodes/stop_robot_action.hpp"
 #include "smrr_navigation/bt_nodes/set_controller_params_action.hpp"
+#include "smrr_navigation/bt_nodes/set_amcl_params_action.hpp"
 #include "smrr_navigation/bt_nodes/check_floor_arrival_action.hpp"
+#include "smrr_navigation/bt_nodes/toggle_apriltag_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -30,6 +32,8 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::UpdatePoseTimestampAction>("UpdatePoseTimestamp");
   factory.registerNodeType<smrr_navigation::StopRobotAction>("StopRobot");
   factory.registerNodeType<smrr_navigation::SetControllerParamsAction>("SetControllerParams");
+  factory.registerNodeType<smrr_navigation::SetAMCLParamsAction>("SetAMCLParams");
+  factory.registerNodeType<smrr_navigation::ToggleAprilTagAction>("ToggleAprilTag");
 
   // BtActionNode-derived nodes need a builder (3-arg constructor)
   BT::NodeBuilder check_floor_builder =

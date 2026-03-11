@@ -45,6 +45,7 @@ setup(
             'door_classifier_node = smrr_navigation.door_classifier_node:main',
             'test_floor_vision = smrr_navigation.test_floor_vision:main',
             'floor_arrival_server = smrr_navigation.floor_arrival_server:main',
+            'apriltag_manager_server = smrr_navigation.apriltag_manager_server:main',
         ],
     },
 )
