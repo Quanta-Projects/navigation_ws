@@ -32,17 +32,15 @@ SetControllerParamsAction::SetControllerParamsAction(
 BT::NodeStatus SetControllerParamsAction::tick()
 {
   auto max_vel_x_res = getInput<double>("max_vel_x");
-  auto acc_lim_x_res = getInput<double>("acc_lim_x");
 
-  if (!max_vel_x_res || !acc_lim_x_res) {
+  if (!max_vel_x_res) {
     RCLCPP_ERROR(
       node_->get_logger(),
-      "SetControllerParams: missing required input ports (max_vel_x, acc_lim_x)");
+      "SetControllerParams: missing required input port (max_vel_x)");
     return BT::NodeStatus::FAILURE;
   }
 
   const double max_vel_x = max_vel_x_res.value();
-  const double acc_lim_x = acc_lim_x_res.value();
 
   if (!params_client_->wait_for_service(std::chrono::seconds(2))) {
     RCLCPP_ERROR(
@@ -52,9 +50,11 @@ BT::NodeStatus SetControllerParamsAction::tick()
     return BT::NodeStatus::FAILURE;
   }
 
+  // Only vx_max is a declared ROS 2 parameter in Nav2 Humble's MPPI.
+  // Acceleration limits (ax_max etc.) are internal to the optimizer and
+  // are NOT exposed via the parameter server.
   const std::vector<rclcpp::Parameter> params = {
-    rclcpp::Parameter("FollowPath.max_vel_x", max_vel_x),
-    rclcpp::Parameter("FollowPath.acc_lim_x", acc_lim_x)
+    rclcpp::Parameter("FollowPath.vx_max", max_vel_x)
   };
 
   const auto results = params_client_->set_parameters(params);
@@ -71,8 +71,8 @@ BT::NodeStatus SetControllerParamsAction::tick()
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "SetControllerParams: FollowPath.max_vel_x=%.3f  FollowPath.acc_lim_x=%.3f",
-    max_vel_x, acc_lim_x);
+    "SetControllerParams: FollowPath.vx_max=%.3f",
+    max_vel_x);
 
   return BT::NodeStatus::SUCCESS;
 }

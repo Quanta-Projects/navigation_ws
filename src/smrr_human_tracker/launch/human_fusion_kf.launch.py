@@ -181,8 +181,8 @@ def generate_launch_description():
         # ==================== Node 2: DR-SPAAM LiDAR Detector ====================
         Node(
             package='smrr_human_tracker',
-            executable='human_lidar_matcher',
-            name='dr_spaam_detector',
+            executable='lidar_human_detection',
+            name='lidar_human_detection_node',
             output='screen',
             parameters=[{
                 'use_sim_time': use_sim_time,
@@ -195,6 +195,7 @@ def generate_launch_description():
                 'target_frame': LaunchConfiguration('map_frame'),
                 'detections_topic': 'detected_people',
                 'marker_topic': 'detected_people_markers',
+                'use_onnx': True,
             }]
         ),
         

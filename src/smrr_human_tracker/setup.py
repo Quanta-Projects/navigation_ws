@@ -16,6 +16,8 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         (os.path.join('share', package_name, 'models'), glob('models/*.pth')),
         (os.path.join('share', package_name, 'models'), glob('models/*.pt')),
+        (os.path.join('share', package_name, 'models'), glob('models/*.onnx')),
+        (os.path.join('share', package_name, 'models'), glob('models/*.engine')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,15 +28,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'human_detector = smrr_human_tracker.human_detector:main',
-            'human_lidar_matcher = smrr_human_tracker.human_lidar_matcher:main',
             'human_tracker = smrr_human_tracker.human_tracker:main',
-            'human_fusion_node = smrr_human_tracker.human_fusion_node:main',
             'human_fusion_kf = smrr_human_tracker.human_fusion_kf_node:main',
-            'evaluate_fusion = smrr_human_tracker.scripts.evaluate_fusion:main',
+            'lidar_human_detection = smrr_human_tracker.lidar_human_detection:main',
             'evaluate_kf_only = smrr_human_tracker.scripts.evaluate_kf_only:main',
-            'check_evaluation_ready = smrr_human_tracker.scripts.check_evaluation_ready:main',
-            'check_kf_ready = smrr_human_tracker.scripts.check_kf_ready:main',
         ],
     },
 )

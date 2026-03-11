@@ -387,11 +387,11 @@ class HumanTrackKF:
 
         # Advance the internal clock during coasting so dt doesn't explode upon re-association
         self.kf.last_update = current_time
-
+    
     def get_position(self):
         """Get current position"""
         return self.kf.get_position()
-
+    
     def get_velocity(self):
         """Get current velocity"""
         return self.kf.get_velocity()

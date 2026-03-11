@@ -81,12 +81,16 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/update_pose_timestamp_action.cpp
   src/bt_nodes/stop_robot_action.cpp
   src/bt_nodes/set_controller_params_action.cpp
+  src/bt_nodes/check_floor_arrival_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 
 ament_target_dependencies(smrr_bt_nodes
   rclcpp
+  rclcpp_action
   behaviortree_cpp_v3
+  nav2_behavior_tree
+  smrr_interfaces
   geometry_msgs
   sensor_msgs
   tf2
@@ -153,6 +157,8 @@ install(PROGRAMS
   smrr_navigation/location_subscriber.py
   smrr_navigation/smrr_multifloor_bt_navigator.py
   smrr_navigation/door_classifier_node.py
+  smrr_navigation/test_floor_vision.py
+  smrr_navigation/floor_arrival_server.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

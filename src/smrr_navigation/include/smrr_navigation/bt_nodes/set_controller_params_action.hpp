@@ -13,14 +13,18 @@ namespace smrr_navigation
  * @brief BT SyncActionNode that updates DWB local planner velocity/acceleration
  *        limits on the fly by calling /controller_server/set_parameters.
  *
- * Use this node to temporarily boost velocity and acceleration while the robot
+ * Use this node to temporarily boost the MPPI top speed while the robot
  * crosses the physical gap between the floor and an elevator car, then reset
- * to normal values once inside.
+ * to normal once inside.
+ *
+ * NOTE: Nav2 Humble's MPPI exposes only velocity limits as ROS 2 parameters
+ * (vx_max, wz_max, ...).  Acceleration fields (ax_max etc.) are internal and
+ * cannot be set via set_parameters.
  *
  * Usage example:
- *   <SetControllerParams max_vel_x="0.6" acc_lim_x="4.0"/>
+ *   <SetControllerParams max_vel_x="0.55"/>
  *   <NavigateToPose goal="{inside_pose}"/>
- *   <SetControllerParams max_vel_x="0.35" acc_lim_x="2.5"/>
+ *   <SetControllerParams max_vel_x="0.35"/>
  */
 class SetControllerParamsAction : public BT::SyncActionNode
 {
@@ -32,8 +36,7 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<double>("max_vel_x", "Maximum linear velocity in x (m/s)"),
-      BT::InputPort<double>("acc_lim_x", "Maximum linear acceleration in x (m/s^2)")
+      BT::InputPort<double>("max_vel_x", "Maximum linear velocity in x (m/s)")
     };
   }
 
