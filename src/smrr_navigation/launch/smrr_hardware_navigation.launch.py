@@ -25,13 +25,16 @@ def generate_launch_description():
     # Paths to configuration files
     config_dir = os.path.join(smrr_navigation_dir, 'config')
     maps_dir = os.path.join(smrr_navigation_dir, 'maps', 'physical_maps')
-    default_map_file = os.path.join(maps_dir, 'first_floor.yaml')
+    default_map_file = os.path.join(maps_dir, 'first_floor_with_lift.yaml')
     bt_xml_path = os.path.join(smrr_navigation_dir, 'behavior_trees', 'smrr_multifloor.xml')
 
     # Nav2 parameters file (hardware-tuned; fallback to sim params if absent)
     params_file = os.path.join(config_dir, 'smrr_nav_params_hardware.yaml')
     if not os.path.exists(params_file):
         params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
+
+    # YOLO button detection model for floor arrival verification
+    yolo_model_path = os.path.join(smrr_navigation_dir, 'models', 'yolo_button_detection.pt')
 
     # RViz configuration file
     rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')
@@ -141,7 +144,7 @@ def generate_launch_description():
         actions=[
             Node(
                 package='smrr_navigation',
-                executable='startup_localizer',
+                executable='startup_localizer.py',
                 name='startup_localizer',
                 output='screen',
                 parameters=[
@@ -166,7 +169,7 @@ def generate_launch_description():
     # ---------------------------------------------------------------------------
     named_goal_server = Node(
         package='smrr_navigation',
-        executable='named_goal_server',
+        executable='named_goal_server.py',
         name='named_goal_server',
         output='screen',
         respawn=True,
@@ -187,7 +190,7 @@ def generate_launch_description():
     # ---------------------------------------------------------------------------
     location_subscriber = Node(
         package='smrr_navigation',
-        executable='location_subscriber',
+        executable='location_subscriber.py',
         name='location_subscriber',
         output='screen',
         parameters=[
@@ -195,6 +198,21 @@ def generate_launch_description():
             {'location_topic': 'location'},
             {'service_name': '/go_to_pose'},
             {'service_timeout': 5.0}
+        ]
+    )
+
+    # ---------------------------------------------------------------------------
+    # Floor Arrival Server
+    # Verifies floor arrival via YOLO button detection + HSV camera analysis
+    # ---------------------------------------------------------------------------
+    floor_arrival_server = Node(
+        package='smrr_navigation',
+        executable='floor_arrival_server.py',
+        name='floor_arrival_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': False},
+            {'yolo_model_path': yolo_model_path}
         ]
     )
 
@@ -210,6 +228,7 @@ def generate_launch_description():
         parameters=[{
             'use_sim_time': False,
             'bt_xml_path': bt_xml_path,
+            'locations_file': 'physical_locations.yaml',
             'plugin_lib_names': [
                 # Nav2 BT plugins
                 'nav2_compute_path_to_pose_action_bt_node',
@@ -281,6 +300,9 @@ def generate_launch_description():
 
         # Location subscriber (/location topic bridge)
         location_subscriber,
+
+        # Floor arrival server (YOLO + HSV floor verification)
+        floor_arrival_server,
 
         # BT Mission Executor (multi-floor behavior tree)
         bt_mission_executor,

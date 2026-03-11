@@ -30,8 +30,8 @@ def generate_launch_description():
         # ==================== Simulation Time ====================
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='true',
-            description='Use simulation (Gazebo) clock for all nodes'
+            default_value='false',
+            description='Use simulation (Gazebo) clock — set true only when running in Gazebo'
         ),
         
         # ==================== YOLO Vision Tracker Arguments ====================

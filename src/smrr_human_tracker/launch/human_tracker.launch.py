@@ -13,7 +13,9 @@ def generate_launch_description():
     
     # Get model path from package
     pkg_share = get_package_share_directory('smrr_human_tracker')
-    default_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
+    # Use TensorRT FP16 engine by default for full GPU acceleration on Orin.
+    # Fall back to yolo26n-seg.pt only if the engine hasn't been exported yet.
+    default_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.engine')
     
     # Declare launch arguments
     model_path_arg = DeclareLaunchArgument(
@@ -60,8 +62,20 @@ def generate_launch_description():
     
     iou_threshold_arg = DeclareLaunchArgument(
         'iou_threshold',
-        default_value='0.5',
+        default_value='0.3',
         description='IOU threshold for tracking'
+    )
+
+    publish_viz_arg = DeclareLaunchArgument(
+        'publish_visualization',
+        default_value='true',
+        description='Publish debug visualization image (adds CPU/memory overhead)'
+    )
+
+    target_frame_arg = DeclareLaunchArgument(
+        'target_frame',
+        default_value='odom',
+        description='TF target frame for published human poses (map/odom/base_link)'
     )
 
     # Human tracker node
@@ -76,10 +90,11 @@ def generate_launch_description():
             'rgb_topic': LaunchConfiguration('rgb_topic'),
             'depth_topic': LaunchConfiguration('depth_topic'),
             'camera_info_topic': LaunchConfiguration('camera_info_topic'),
-            'publish_visualization': True,
+            'publish_visualization': LaunchConfiguration('publish_visualization'),
             'max_detection_distance': LaunchConfiguration('max_detection_distance'),
             'tracker': LaunchConfiguration('tracker'),
             'iou_threshold': LaunchConfiguration('iou_threshold'),
+            'target_frame': LaunchConfiguration('target_frame'),
         }]
     )
 
@@ -92,5 +107,7 @@ def generate_launch_description():
         max_distance_arg,
         tracker_arg,
         iou_threshold_arg,
+        publish_viz_arg,
+        target_frame_arg,
         tracker_node,
     ])

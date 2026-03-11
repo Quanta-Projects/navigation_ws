@@ -148,11 +148,10 @@ class LidarHumanDetectionNode(Node):
         self.get_logger().info(f'Loading {detector_model} model: {weight_file}')
         try:
             self._detector = Detector(
+                detector_model,
                 weight_file,
-                model=detector_model,
                 gpu=True,
                 stride=stride,
-                panoramic_scan=panoramic_scan,
             )
             self.get_logger().info(f'{detector_model} detector initialized (PyTorch)')
         except Exception as e:
@@ -238,10 +237,10 @@ class LidarHumanDetectionNode(Node):
             self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=5.0)
             return
 
-        if not self._detector.is_ready():
+        if not self._detector.laser_spec_set():
+            self._detector.set_laser_spec(msg.angle_increment, len(msg.ranges))
             fov_deg = np.rad2deg(msg.angle_increment * len(msg.ranges))
-            self._detector.set_laser_fov(fov_deg)
-            self.get_logger().info(f'Laser FOV set to: {fov_deg:.2f} degrees')
+            self.get_logger().info(f'Laser spec set: angle_inc={msg.angle_increment:.5f} rad, num_pts={len(msg.ranges)}, FOV={fov_deg:.2f} deg')
 
         scan = np.array(msg.ranges)
         scan[scan == 0.0] = 29.99

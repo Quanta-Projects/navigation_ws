@@ -157,9 +157,6 @@ class FloorArrivalServer(Node):
             except Exception:
                 continue
 
-            self._overlay(cv_image, f'Target: {target_class}',
-                          color=(255, 255, 0))
-
             # --- YOLO inference ---
             results = self.model(cv_image, conf=YOLO_CONF, verbose=False)
             target_found_in_yolo = False
@@ -181,14 +178,8 @@ class FloorArrivalServer(Node):
             elif cached_bbox is not None and missed_frames < MAX_MISSED_FRAMES:
                 working_bbox = cached_bbox
                 missed_frames += 1
-                self._overlay(cv_image,
-                              'YOLO BLIND: Using cached position',
-                              color=(0, 165, 255), y=60)
 
             if working_bbox is None:
-                self._overlay(cv_image,
-                              'Target button not visible',
-                              color=(0, 0, 255), y=60)
                 feedback.status = 'NO_DETECTION'
                 feedback.ratio  = 0.0
                 goal_handle.publish_feedback(feedback)
@@ -206,28 +197,17 @@ class FloorArrivalServer(Node):
             mask  = cv2.inRange(hsv_crop, HSV_LOWER, HSV_UPPER)
             ratio = float(np.count_nonzero(mask) / mask.size)
 
-            # --- PiP mask overlay ---
-            mask_bgr     = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-            mask_resized = cv2.resize(mask_bgr, (150, 150),
-                                      interpolation=cv2.INTER_NEAREST)
-            h_m, w_m = mask_resized.shape[:2]
-            cv_image[0:h_m, cv_image.shape[1]-w_m:] = mask_resized
-            cv2.rectangle(cv_image,
-                          (cv_image.shape[1]-w_m, 0),
-                          (cv_image.shape[1], h_m), (0, 255, 0), 2)
-            cv2.putText(cv_image, 'HSV MASK',
-                        (cv_image.shape[1]-w_m+10, 25),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            # --- PiP mask overlay removed ---
 
             # --- decision logic ---
             if ratio >= ON_RATIO_THRESHOLD:
-                state_str = f'ON (Ratio: {ratio:.2f})'
+                state_str = f'{mapped_floor}  {ratio:.3f}'
                 box_color = (0, 0, 255)
                 off_start_time = None
                 feedback.status = 'ON'
                 feedback.ratio  = ratio
             else:
-                state_str = f'OFF (Ratio: {ratio:.2f})'
+                state_str = f'{mapped_floor}  {ratio:.3f}'
                 box_color = (0, 255, 0)
 
                 if off_start_time is None:

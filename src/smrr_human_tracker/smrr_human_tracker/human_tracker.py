@@ -49,7 +49,7 @@ class HumanInstanceTracker(Node):
         self.declare_parameter('max_detection_distance', 15.0)
         self.declare_parameter('tracker', 'bytetrack.yaml')
         self.declare_parameter('iou_threshold', 0.3)
-        self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
+        self.declare_parameter('target_frame', 'odom')  # Frame for published poses (map/odom/base_link)
 
         # Get parameters
         model_path = self.get_parameter('model_path').value
@@ -109,7 +109,9 @@ class HumanInstanceTracker(Node):
         try:
             # Load YOLO26 model for direct access to tracking results
             self.model = YOLO(model_path)
-            self.model.to(self.device)
+            # .to() is PyTorch-only — TensorRT/ONNX engines set device via predict/track call
+            if model_path.endswith('.pt'):
+                self.model.to(self.device)
             self.tracker_type = tracker_type
             self.iou_threshold = iou_threshold
             self.get_logger().info(f'YOLO26 Instance Segmentation loaded on {self.device}. Using tracker: {tracker_type}')
