@@ -23,6 +23,7 @@ find_package(behaviortree_cpp_v3 REQUIRED)
 find_package(smrr_interfaces REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(rcl_interfaces REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 # ONNX Runtime - try find_package, fallback to manual linking
@@ -81,7 +82,9 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/update_pose_timestamp_action.cpp
   src/bt_nodes/stop_robot_action.cpp
   src/bt_nodes/set_controller_params_action.cpp
+  src/bt_nodes/set_amcl_params_action.cpp
   src/bt_nodes/check_floor_arrival_action.cpp
+  src/bt_nodes/toggle_apriltag_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 
@@ -94,10 +97,12 @@ ament_target_dependencies(smrr_bt_nodes
   geometry_msgs
   sensor_msgs
   tf2
+  tf2_ros
   tf2_geometry_msgs
   ament_index_cpp
   nav2_msgs
   rcl_interfaces
+  std_srvs
 )
 
 # Add ONNX Runtime include directories
@@ -159,6 +164,7 @@ install(PROGRAMS
   smrr_navigation/door_classifier_node.py
   smrr_navigation/test_floor_vision.py
   smrr_navigation/floor_arrival_server.py
+  smrr_navigation/apriltag_manager_server.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

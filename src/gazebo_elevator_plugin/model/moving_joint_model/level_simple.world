@@ -377,7 +377,33 @@
             <script>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/scripts</uri>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/textures</uri>
-              <name>ButtonPanelFloor01In</name>
+              <name>ButtonPanelFloor02In</name>
+            </script>
+          </material>
+        </visual>
+
+        <!-- AprilTag 36h11 #0: 15 cm × 15 cm, mounted flush on the interior face of
+             the button panel (x=1.0205) and offset 0.5 mm inward to avoid z-fighting.
+             Centre matches the panel centre (y=0.15, z=1.40). The tag normal points
+             in the -x direction (toward the robot parked inside the elevator). -->
+        <visual name="apriltag_elevator_interior">
+          <pose>1.0200 0.15 1.40 0 0 0</pose>
+          <geometry>
+            <box>
+              <!-- 1 mm thin in x (wall normal), 15 cm wide in y, 15 cm tall in z -->
+              <size>0.001 0.15 0.15</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <specular>0.0 0.0 0.0 1</specular>
+            <emissive>0.1 0.1 0.1 1</emissive>
+            <lighting>1</lighting>
+            <script>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/scripts</uri>
+              <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/Apriltag36_11_00000/materials/textures</uri>
+              <name>Apriltag36_11_00000</name>
             </script>
           </material>
         </visual>
@@ -716,18 +742,18 @@
       </script>
     </actor>
 
-    <!-- Button panel: Floor 01 INSIDE (front wall right, inside/corridor face) -->
-    <!-- Wall inside face is at y≈-0.050. Panel is placed 10 cm into the        -->
-    <!-- corridor (+y side) to avoid z-fighting with building geometry.          -->
+    <!-- Button panel: Floor 01 OUTSIDE (front wall left, corridor-facing face, near elevator door) -->
+    <!-- Wall inside face is at y≈-0.050. Panel is placed 2 mm out from wall.   -->
+    <!-- x=-0.625 : centre of 0.25 m panel; right edge at x=-0.5 (door edge)   -->
     <!-- Size 0.25 × 1.16 m keeps the 867×4032 (≈1:4.65) aspect ratio.         -->
-    <model name="button_panel_floor01_in">
+    <model name="button_panel_floor01_out">
       <static>true</static>
       <!-- Model origin at world origin; link pose is the absolute world pose -->
       <link name="panel_link">
-        <!-- x=1.5   : centred on front_wall_right (x span 0.5–2.5)            -->
-        <!-- y=-0.082 : 2 mm further out from wall into corridor (-y side)     -->
-        <!-- z=1.40   : panel centre at 1.4 m (spans 0.98–1.82 m)             -->
-        <pose>1.5 -0.082 1.40 0 0 0</pose>
+        <!-- x=-0.625 : right edge at x=-0.5 (left side of elevator door)      -->
+        <!-- y=-0.082  : 2 mm out from wall into corridor (-y side)            -->
+        <!-- z=1.40    : panel centre at 1.4 m (spans 0.98–1.82 m)            -->
+        <pose>-0.625 -0.082 1.40 0 0 0</pose>
         <visual name="panel_visual">
           <geometry>
             <box>
@@ -743,7 +769,7 @@
             <script>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/scripts</uri>
               <uri>file:///home/achiraubuntu/navigation_ws/src/gazebo_elevator_plugin/model/moving_joint_model/materials/textures</uri>
-              <name>ButtonPanelFloor01In</name>
+              <name>ButtonPanelFloor01Out</name>
             </script>
           </material>
         </visual>

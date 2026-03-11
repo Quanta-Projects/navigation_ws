@@ -39,7 +39,7 @@ floors:
       elevator_inside:
         x: -1.424
         y: 3.132
-        yaw: -1.57
+        yaw: 1.57
       elevator_exit:
         x: -1.5
         y: 0.8
@@ -65,7 +65,7 @@ floors:
       elevator_inside:
         x: -1.425
         y: 2.9743
-        yaw: -1.57
+        yaw: 1.57
       elevator_exit:
         x: -1.7197
         y: 0.38080
