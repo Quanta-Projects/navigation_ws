@@ -43,7 +43,6 @@ HSV_LOWER = np.array([5, 50, 150])
 HSV_UPPER = np.array([35, 255, 255])
 ON_RATIO_THRESHOLD  = 0.04
 OFF_STABLE_DURATION = 0.1          # seconds the button must stay OFF
-MAX_MISSED_FRAMES   = 100          # cached-bbox timeout (frames)
 YOLO_CONF           = 0.1
 LOOP_SLEEP          = 0.016        # ~60 Hz
 # ---------------------------------------------
@@ -129,10 +128,6 @@ class FloorArrivalServer(Node):
         feedback = CheckFloorArrival.Feedback()
         result   = CheckFloorArrival.Result()
 
-        # ---- bounding-box tracker ----
-        cached_bbox   = None
-        missed_frames = 0
-
         # ---- stability timer ----
         off_start_time = None
 
@@ -160,30 +155,17 @@ class FloorArrivalServer(Node):
             self._overlay(cv_image, f'Target: {target_class}',
                           color=(255, 255, 0))
 
-            # --- YOLO inference ---
+            # --- YOLO inference (fresh detections only) ---
             results = self.model(cv_image, conf=YOLO_CONF, verbose=False)
-            target_found_in_yolo = False
+            working_bbox = None
 
             for res in results:
                 for box in res.boxes:
                     cls_id   = int(box.cls[0])
                     cls_name = self.model.names.get(cls_id, '')
                     if cls_name == target_class:
-                        target_found_in_yolo = True
-                        cached_bbox   = tuple(map(int, box.xyxy[0].tolist()))
-                        missed_frames = 0
+                        working_bbox = tuple(map(int, box.xyxy[0].tolist()))
                         break
-
-            # --- resolve working bbox ---
-            working_bbox = None
-            if target_found_in_yolo:
-                working_bbox = cached_bbox
-            elif cached_bbox is not None and missed_frames < MAX_MISSED_FRAMES:
-                working_bbox = cached_bbox
-                missed_frames += 1
-                self._overlay(cv_image,
-                              'YOLO BLIND: Using cached position',
-                              color=(0, 165, 255), y=60)
 
             if working_bbox is None:
                 self._overlay(cv_image,
