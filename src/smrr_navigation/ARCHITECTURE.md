@@ -47,11 +47,13 @@
 | Capability | Implementation |
 |---|---|
 | Same-floor point-to-point navigation | Nav2 `NavigateToPose` action (AMCL + NavfnPlanner + DWB) |
-| Cross-floor elevator navigation | Custom BT sequence with 14 BT nodes |
+| Cross-floor elevator navigation | Custom BT sequence with 15 BT nodes |
 | Elevator door detection (entry/exit) | Planner-based: repeated `ComputePathToPose` polling; door open when costmap clears |
 | Elevator floor arrival detection | `CheckFloorArrival` action — YOLO + HSV camera analysis of button panel |
+| AMCL freeze during in-elevator turn | `SetAMCLParams` pauses particle filter updates while robot spins inside elevator |
 | Map switching at runtime | `nav2_msgs/srv/LoadMap` service, open/closed map variants per floor |
 | Named location resolution | YAML-backed service (`/go_to_pose`) with floor-aware lookup |
+| AMCL re-initialization (floor switch) | Three modes: AprilTag TF correction → relative parking-error → direct publish |
 | Startup localization | Odometry-driven forward+rotate sequence for AMCL convergence |
 
 **Framework stack:**
@@ -73,7 +75,7 @@ smrr_navigation/
 │   ├── locations.yaml                # Floor/location database (4 floors)
 │   ├── smrr_nav_params.yaml          # Nav2 parameter file (AMCL, DWB, costmaps, planner)
 │   └── smrr_nav.rviz                 # RViz configuration
-├── include/smrr_navigation/bt_nodes/ # C++ BT node headers (15 files)
+├── include/smrr_navigation/bt_nodes/ # C++ BT node headers (16 files)
 ├── launch/
 │   └── smrr_world_navigation.launch.py
 ├── maps/                             # Occupancy grid maps (7 YAML+PGM pairs)
@@ -98,7 +100,7 @@ smrr_navigation/
 │   ├── startup_localizer.py          # AMCL convergence helper (drive+rotate)
 │   └── test_floor_vision.py          # Standalone test for floor vision pipeline
 ├── src/
-│   ├── bt_nodes/                     # C++ BT node implementations (16 files)
+│   ├── bt_nodes/                     # C++ BT node implementations (17 files)
 │   │   ├── bt_node_registration.cpp      # Plugin export (BT_RegisterNodesFromPlugin)
 │   │   ├── is_same_floor_condition.cpp
 │   │   ├── is_different_floor_condition.cpp
@@ -112,8 +114,9 @@ smrr_navigation/
 │   │   ├── wait_for_door_open_model_action.cpp  # Compiled but NOT used in active BT XML
 │   │   ├── update_pose_timestamp_action.cpp
 │   │   ├── stop_robot_action.cpp
-│   │   ├── set_controller_params_action.cpp      # NEW: runtime velocity limit adjustment
-│   │   ├── check_floor_arrival_action.cpp        # NEW: BtActionNode wrapping CheckFloorArrival
+│   │   ├── set_controller_params_action.cpp      # Runtime velocity limit adjustment
+│   │   ├── set_amcl_params_action.cpp            # NEW: freeze/restore AMCL during in-elevator spin
+│   │   ├── check_floor_arrival_action.cpp        # BtActionNode wrapping CheckFloorArrival
 │   │   └── clear_costmaps_action.cpp             # Legacy helper (ClearEntireCostmap is Nav2 std)
 │   └── smrr_bt_mission_executor.cpp  # Service server that loads & ticks the BT
 ├── CMakeLists.txt                    # Hybrid ament_cmake + ament_cmake_python
@@ -129,7 +132,7 @@ The package uses **hybrid `ament_cmake` + `ament_cmake_python`** to build both C
 
 | Target | Type | Description |
 |---|---|---|
-| `smrr_bt_nodes` | Shared library (`SHARED`) | 14 custom BT node implementations, registered as a BT plugin |
+| `smrr_bt_nodes` | Shared library (`SHARED`) | 15 custom BT node implementations, registered as a BT plugin |
 | `smrr_bt_mission_executor` | Executable | Service server that loads BT XML and ticks the tree |
 
 **C++ dependencies:** `rclcpp`, `behaviortree_cpp_v3`, `nav2_behavior_tree`, `nav2_msgs`, `geometry_msgs`, `sensor_msgs`, `tf2`, `tf2_geometry_msgs`, `smrr_interfaces`, `ament_index_cpp`, `yaml-cpp`, ONNX Runtime 1.18
@@ -291,8 +294,10 @@ User/External ──"office_101"──→  /location (String topic)
         (Nav2 action)                    GetNamedPose(staging) → NavigateToPose
                                          CallElevator → SetControllerParams(0.55)
                                          ComputePathToPose polling (door open signal)
-                                         NavigateToPose(inside) → StopRobot → Wait(5s)
-                                         SwitchMap → PublishInitialPose → ClearCostmaps
+                                         NavigateToPose(inside) → SetControllerParams(0.35)
+                                         SetAMCLParams(10,10) → Spin(-π) → StopRobot
+                                         SetAMCLParams(0.25,0.1) → Wait(5s)
+                                         SwitchMap → PublishInitialPose(AprilTag) → ClearCostmaps
                                          CallElevator(target) → CheckFloorArrival
                                          SetControllerParams(0.55) → ComputePathToPose poll
                                          NavigateToPose(exit) → SetControllerParams(0.35)
@@ -387,23 +392,96 @@ The cross-floor elevator sequence in `smrr_multifloor.xml` follows this exact st
 | Door detection mechanism | Planning-based: `ComputePathToPose` polls every 500 ms (up to 3000 = 1500 s). When the physical door opens, LiDAR clears costmap obstacle cells and the planner finds a path |
 | `SetControllerParams(0.55)` | Temporarily boosts `FollowPath.vx_max` to 0.55 m/s immediately before gap crossing — the robot is already at speed the instant the path is found |
 | `SetControllerParams(0.35)` | Resets `FollowPath.vx_max` to normal 0.35 m/s after crossing |
+| `SetAMCLParams(10.0, 10.0)` | Freezes AMCL particle-filter updates (`update_min_d`=10 m, `update_min_a`=10 rad) before the in-elevator 180° spin. Symmetric metal walls cause spurious AMCL updates if not suppressed |
+| `Spin(-3.1416)` | 180° spin inside elevator to orient robot toward the exit door |
+| `SetAMCLParams(0.25, 0.1)` | Restores AMCL to normal thresholds (`update_min_d`=0.25 m, `update_min_a`=0.1 rad) after spin completes |
 | `CheckFloorArrival` at exit | YOLO + HSV analysis of elevator button panel; confirms elevator physically arrived at target floor before polling for the exit door |
-| Post-entry `Wait(5.0s)` | Replaces old `Spin(-π)` — waits for the door to close before issuing the floor command, avoiding race conditions with the Gazebo plugin |
+| Post-spin `Wait(5.0s)` | Waits for the door to close before issuing the floor command, avoiding race conditions with the Gazebo plugin |
+| `PublishInitialPose` with AprilTag | Primary mode: looks up live TF `base_link→tag36h11:0`, computes `T_map_to_actual = T_map_to_ideal * T_ideal_to_tag * T_actual_to_tag.inverse()`, flattens to 2D. Falls back to direct publish if TF misses |
 | Exit retry spin angle | -3.5416 rad (>π) — ensures a full turnaround even if pose is slightly off |
 | `GetNamedPose` before retry loops | Resolved before `RetryUntilSuccessful` so the pose is on the blackboard for all retry iterations |
 
 ### 2.3 AMCL Re-Initialization
 
-When the robot changes floors, the map is replaced and AMCL must be re-seeded. The `PublishInitialPose` BT node publishes a `PoseWithCovarianceStamped` to `/initialpose`:
+When the robot changes floors, the map is replaced and AMCL must be re-seeded. The `PublishInitialPose` BT node publishes a `PoseWithCovarianceStamped` to `/initialpose` using one of three modes (evaluated in priority order):
+
+#### Mode 1 — AprilTag TF correction (active in BT XML)
+
+Uses the live TF of the AprilTag (`tag36h11:0`) relative to the robot's base frame to compute the actual map pose:
+
+```
+T_map_to_actual_base = T_map_to_ideal_base * T_ideal_base_to_tag * T_actual_base_to_tag.inverse()
+```
+
+The tag's *expected* transform is provided via BT ports (6-DOF: x, y, z, roll, pitch, yaw) to handle optical-frame rotations correctly. The result is flattened to strict 2D (`z=0`, `roll=0`, `pitch=0`). If the TF lookup fails, the node falls back to Mode 3 (direct publish) with a warning log.
 
 ```cpp
-// PublishInitialPoseAction::tick()
+// AprilTag mode — core math in PublishInitialPoseAction::tick()
+tf2::Transform map_to_ideal_base = poseToTf(target_pose_stamped.pose);
+
+tf2::Quaternion ideal_tag_quat;
+ideal_tag_quat.setRPY(exp_roll, exp_pitch, exp_yaw);  // 6-DOF for optical frame
+tf2::Transform ideal_base_to_tag(ideal_tag_quat, tf2::Vector3(exp_x, exp_y, exp_z));
+
+tf2::Transform actual_base_to_tag;  // from live lookupTransform(base_frame, tag_frame)
+tf2::fromMsg(tag_tf_stamped.transform, actual_base_to_tag);
+
+tf2::Transform map_to_actual_base =
+  map_to_ideal_base * ideal_base_to_tag * actual_base_to_tag.inverse();
+
+// Flatten to 2D
+double corrected_yaw = tf2::getYaw(map_to_actual_base.getRotation());
+tf2::Quaternion flat_quat;
+flat_quat.setRPY(0.0, 0.0, corrected_yaw);
+pose_msg.pose.pose.position.x = map_to_actual_base.getOrigin().x();
+pose_msg.pose.pose.position.y = map_to_actual_base.getOrigin().y();
+pose_msg.pose.pose.position.z = 0.0;
+pose_msg.pose.pose.orientation = tf2::toMsg(flat_quat);
+```
+
+**BT XML usage (current configuration):**
+```xml
+<PublishInitialPose
+  initial_pose="{amcl_open_target}"
+  use_apriltag="true"
+  tag_frame="tag36h11:0"
+  expected_tag_x="1.313"  expected_tag_y="0.071"  expected_tag_z="1.412"
+  expected_tag_roll="1.581" expected_tag_pitch="0.000" expected_tag_yaw="-1.633"/>
+```
+
+#### Mode 2 — Relative parking-error correction (optional)
+
+When `current_expected_pose` is provided on the blackboard, the node looks up the actual robot TF (`map→base_link`), computes the parking error relative to the departure floor's expected inside pose, and applies that same error to the target floor's nominal pose:
+
+```cpp
+error_tf   = expected_tf.inverse() * actual_tf;
+adjusted   = target_tf * error_tf;
+```
+
+#### Mode 3 — Direct publish (fallback)
+
+Publishes `initial_pose` unchanged with a standard 2D covariance:
+
+```cpp
 pose_msg.pose.covariance[0]  = 0.25;    // σ²_x  = 0.25 m² (σ = 0.5m)
 pose_msg.pose.covariance[7]  = 0.25;    // σ²_y  = 0.25 m²
 pose_msg.pose.covariance[35] = 0.0685;  // σ²_yaw = 0.0685 rad² (σ ≈ 15°)
 ```
 
-After publishing, two `ClearEntireCostmap` calls (local + global) ensure stale obstacle data from the previous floor does not corrupt planning.
+#### AMCL freeze during in-elevator spin
+
+Before the 180° spin inside the elevator, `SetAMCLParams` is called to effectively freeze the particle filter:
+
+```xml
+<SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>  <!-- freeze: 10m/10rad threshold -->
+<Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
+<StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+<SetAMCLParams update_min_d="0.25" update_min_a="0.1"/>   <!-- restore: normal thresholds -->
+```
+
+Setting thresholds to 10.0 m / 10.0 rad means the particle filter will not update regardless of how much the robot moves, preventing the symmetric elevator walls from corrupting the pose estimate during the turn.
+
+After the map switch and `PublishInitialPose`, two `ClearEntireCostmap` calls (local + global) ensure stale obstacle data from the previous floor does not corrupt planning.
 
 **AMCL configuration for re-localization** (from `smrr_nav_params.yaml`):
 
@@ -416,6 +494,8 @@ amcl:
   initial_cov_xx: 2.0          # Wide initial spread
   initial_cov_yy: 2.0
   initial_cov_aa: 0.03         # ±10° angular spread
+  update_min_d: 0.25           # Normal: update every 25 cm (overridden during spin)
+  update_min_a: 0.1            # Normal: update every ~6° (overridden during spin)
 ```
 
 ### 2.4 Legacy Python Action Server vs. C++ BT Executor
@@ -424,11 +504,13 @@ Two complete implementations of cross-floor navigation exist:
 
 | Aspect | Python Action Server | C++ BT Executor |
 |---|---|---|
-| File | `smrr_multifloor_bt_navigator.py` | `smrr_bt_mission_executor.cpp` (224 lines) + BT XML + 14 BT nodes |
+| File | `smrr_multifloor_bt_navigator.py` | `smrr_bt_mission_executor.cpp` (224 lines) + BT XML + 15 BT nodes |
 | Interface | `NavigateToNamedLocation` action | `StartMission` service |
 | Dispatch mode | `use_bt_mission_executor=False` | `use_bt_mission_executor=True` (default) |
 | Door detection | LiDAR scan fraction only | Planning-based (`ComputePathToPose` polling) |
 | Floor arrival | Not implemented | `CheckFloorArrival` action (YOLO + HSV) |
+| AMCL freeze during spin | Not implemented | `SetAMCLParams` freezes/restores `update_min_d/a` |
+| AMCL re-init method | Fixed pose seed | AprilTag TF correction → relative parking-error → direct publish |
 | Velocity control | Fixed | `SetControllerParams` dynamically adjusts `vx_max` |
 | Retry logic | Hardcoded in Python sequences | Declarative in BT XML (`RetryUntilSuccessful`, `Fallback`) |
 | Elevator control | Subprocess call to `gz-11.14.0` | Same (`CallElevator` BT node wraps subprocess) |
@@ -441,7 +523,7 @@ The BT-based executor is the **active default**. The Python action server is ret
 
 ### 3.1 BT XML Structure (`smrr_multifloor.xml`)
 
-Full BT XML (111 lines — actual file content):
+Full BT XML (144 lines — actual file content):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -488,7 +570,14 @@ Full BT XML (111 lines — actual file content):
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
             <!-- Reset velocity to normal after crossing the entry gap -->
             <SetControllerParams max_vel_x="0.35"/>
+
+            <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
+
+            <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
+
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+
+            <SetAMCLParams update_min_d="0.25" update_min_a="0.1"/>
             <!-- Wait for the elevator door to fully close before issuing the
                  target-floor command (~5 s is sufficient for the Gazebo plugin). -->
             <Wait wait_duration="5.0"/>
@@ -497,9 +586,26 @@ Full BT XML (111 lines — actual file content):
 
         <!-- Switch to target floor's open map while inside elevator -->
         <GetNamedMap floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
+
+        <!-- Fetch both poses: target floor nominal pose AND departure floor expected pose -->
         <GetNamedPose floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+        <GetNamedPose floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
+
         <SwitchMap map_yaml="{map_open_target}"/>
-        <PublishInitialPose initial_pose="{amcl_open_target}"/>
+
+        <!-- Publish initial pose with AprilTag correction:
+             Looks up live TF base_link→tag36h11:0, applies
+             T_map_to_actual = T_map_to_ideal * T_ideal_base_to_tag * T_actual_base_to_tag.inverse()
+             Falls back to direct publish if TF lookup fails. -->
+        <PublishInitialPose initial_pose="{amcl_open_target}"
+                            use_apriltag="true"
+                            tag_frame="tag36h11:0"
+                            expected_tag_x="1.313"
+                            expected_tag_y="0.071"
+                            expected_tag_z="1.412"
+                            expected_tag_roll="1.581"
+                            expected_tag_pitch="0.000"
+                            expected_tag_yaw="-1.633"/>
         <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
         <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
@@ -581,8 +687,10 @@ Root [Fallback]
       │    CallElevator → SetControllerParams(0.55)
       │    RetryUntilSuccessful(3000) [ComputePathToPose polls]
       │    NavigateToPose(inside) → SetControllerParams(0.35)
-      │    StopRobot → Wait(5s)
-      ├── SwitchMap + PublishInitialPose + ClearCostmaps
+      │    SetAMCLParams(10.0,10.0) → Spin(-π) → StopRobot
+      │    SetAMCLParams(0.25,0.1) → Wait(5s)
+      ├── GetNamedPose(amcl_open_target) + GetNamedPose(amcl_open_current)
+      ├── SwitchMap + PublishInitialPose(AprilTag) + ClearCostmaps
       ├── Fallback [exit retry]
       │    ├── ExitAttempt_1:
       │    │    GetNamedPose(exit) → CallElevator
@@ -678,7 +786,7 @@ executor.spin();
 
 ### 3.3 Custom BT Node Reference
 
-All 14 registered BT nodes, with their types, ports, and algorithmic behavior:
+All 15 registered BT nodes, with their types, ports, and algorithmic behavior:
 
 ---
 
@@ -774,13 +882,23 @@ YAML::Node loadYamlFile(const std::string& file_path) {
 
 #### `PublishInitialPose` — SyncActionNode
 
-**Purpose:** Publish `PoseWithCovarianceStamped` to `/initialpose` for AMCL re-initialization.
+**Purpose:** Publish `PoseWithCovarianceStamped` to `/initialpose` for AMCL re-initialization. Supports three modes evaluated in priority order: (1) AprilTag TF correction, (2) relative parking-error correction, (3) direct publish. See §2.3 for full algorithm details.
 
 | Port | Direction | Type | Default |
 |---|---|---|---|
 | `initial_pose` | Input | `PoseStamped` | — |
+| `current_expected_pose` | Input | `PoseStamped` | `""` (if set, enables Mode 2) |
 | `topic_name` | Input | `string` | `"/initialpose"` |
 | `frame_id` | Input | `string` | `""` (uses pose's frame) |
+| `use_apriltag` | Input | `bool` | `false` |
+| `tag_frame` | Input | `string` | `"tag36h11:0"` |
+| `base_frame` | Input | `string` | `"base_link"` |
+| `expected_tag_x` | Input | `double` | `0.0` |
+| `expected_tag_y` | Input | `double` | `0.0` |
+| `expected_tag_z` | Input | `double` | `0.0` |
+| `expected_tag_roll` | Input | `double` | `0.0` |
+| `expected_tag_pitch` | Input | `double` | `0.0` |
+| `expected_tag_yaw` | Input | `double` | `0.0` |
 
 **Covariance matrix** (diagonal): `[0.25, 0.25, 0, 0, 0, 0.0685]`
 
@@ -965,7 +1083,7 @@ Typical usage in BT XML:
 
 ---
 
-#### `SetControllerParams` — SyncActionNode **[NEW]**
+#### `SetControllerParams` — SyncActionNode
 
 **Purpose:** Dynamically update the DWB/MPPI local planner velocity limit at runtime by calling `/controller_server/set_parameters`. Used to temporarily boost `max_vel_x` to 0.55 m/s before the robot crosses the physical elevator floor-gap, then reset to 0.35 m/s after.
 
@@ -990,7 +1108,32 @@ params_client_->set_parameters(params);  // blocks until server responds
 
 ---
 
-#### `CheckFloorArrival` — BtActionNode (wraps `check_floor_arrival` action) **[NEW]**
+#### `SetAMCLParams` — SyncActionNode
+
+**Purpose:** Dynamically update AMCL's motion-model update thresholds at runtime by calling `/amcl/set_parameters`. Used to freeze the particle filter before the in-elevator 180° spin (preventing symmetric metal walls from corrupting the pose estimate), then restore normal thresholds afterward.
+
+**Implementation:**
+
+```cpp
+// Uses same helper_node_ pattern as SetControllerParamsAction.
+helper_node_ = rclcpp::Node::make_shared("set_amcl_params_helper");
+params_client_ = std::make_shared<rclcpp::SyncParametersClient>(helper_node_, "/amcl");
+
+const std::vector<rclcpp::Parameter> params = {
+  rclcpp::Parameter("update_min_d", update_min_d),  // e.g. 10.0 to freeze, 0.25 to restore
+  rclcpp::Parameter("update_min_a", update_min_a)   // e.g. 10.0 to freeze, 0.1 to restore
+};
+params_client_->set_parameters(params);  // blocks until server responds
+```
+
+| Port | Direction | Type | Default |
+|---|---|---|---|
+| `update_min_d` | Input | `double` | — |
+| `update_min_a` | Input | `double` | — |
+
+---
+
+#### `CheckFloorArrival` — BtActionNode (wraps `check_floor_arrival` action)
 
 **Purpose:** Wait for the elevator to physically arrive at the target floor before polling for the exit door. Sends a goal to the `floor_arrival_server` (`/check_floor_arrival` action), which monitors the elevator button panel via YOLO + OpenCV HSV analysis.
 
@@ -1009,7 +1152,7 @@ params_client_->set_parameters(params);  // blocks until server responds
 
 ### 3.4 Plugin Registration
 
-All 14 custom BT nodes are compiled into a single shared library (`libsmrr_bt_nodes.so`) and registered via the BT.CPP plugin mechanism:
+All 15 custom BT nodes are compiled into a single shared library (`libsmrr_bt_nodes.so`) and registered via the BT.CPP plugin mechanism:
 
 ```cpp
 // bt_node_registration.cpp
@@ -1022,12 +1165,13 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<SwitchMapAction>("SwitchMap");
   factory.registerNodeType<PublishInitialPoseAction>("PublishInitialPose");
   factory.registerNodeType<CallElevatorAction>("CallElevator");
-  factory.registerNodeType<WaitForDoorOpenAction>("WaitForDoorOpen");      // available, not in active XML
-  factory.registerNodeType<WaitForDoorOpenDepthAction>("WaitForDoorOpenDepth");  // available, not in active XML
+  factory.registerNodeType<WaitForDoorOpenAction>("WaitForDoorOpen");           // available, not in active XML
+  factory.registerNodeType<WaitForDoorOpenDepthAction>("WaitForDoorOpenDepth"); // available, not in active XML
   factory.registerNodeType<WaitForDoorOpenModelAction>("WaitForDoorOpenModel"); // available, not in active XML
   factory.registerNodeType<UpdatePoseTimestampAction>("UpdatePoseTimestamp");
   factory.registerNodeType<StopRobotAction>("StopRobot");
-  factory.registerNodeType<SetControllerParamsAction>("SetControllerParams");   // NEW
+  factory.registerNodeType<SetControllerParamsAction>("SetControllerParams");
+  factory.registerNodeType<SetAMCLParamsAction>("SetAMCLParams");
 
   // CheckFloorArrival uses a 3-arg BtActionNode constructor
   BT::NodeBuilder check_floor_builder =
@@ -1035,7 +1179,7 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
       return std::make_unique<CheckFloorArrivalAction>(
         name, "check_floor_arrival", config);
     };
-  factory.registerBuilder<CheckFloorArrivalAction>("CheckFloorArrival", check_floor_builder); // NEW
+  factory.registerBuilder<CheckFloorArrivalAction>("CheckFloorArrival", check_floor_builder);
 }
 ```
 
