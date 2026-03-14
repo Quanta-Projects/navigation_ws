@@ -22,7 +22,10 @@
         <!-- Elevator entry: call elevator, poll planner until door is open, then enter -->
         <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
           <Sequence name="CallWaitAndEnter">
-            <!-- <CallElevator floor_id="{current_floor_id}"/> -->
+            <CallElevator floor_id="{current_floor_id}"/>
+
+            <!-- Keep tighter inflation while crossing elevator gap -->
+            <SetCostmapInflation inflation_radius="0.325"/>
 
             <!-- Boost velocity before waiting: robot is already at gap-crossing speed
                  the instant the door opens (zero-delay boost). -->
@@ -42,34 +45,35 @@
             <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <BuildPoseVector pose1="{entry_pose}" pose2="{inside_pose}" poses="{entry_poses}"/>
             <NavigateThroughPoses server_name="/navigate_through_poses" goals="{entry_poses}"/>
-            <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
-            <Wait wait_duration="1.0"/>
-            <!-- Turn on AprilTag detection for AMCL re-localization -->
-            <ToggleAprilTag turn_on="true"/>
-            <!-- Freeze AMCL particle filter during 180° spin to prevent bad updates -->
-            <!-- <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/> -->
-            <!-- Rotate 180° to face outward, ready for the exit door -->
-            <Spin spin_dist="-2.79253" time_allowance="20.0" is_recovery="true"/>
-            <!-- Reset velocity to normal after crossing the entry gap -->
-            <SetControllerParams max_vel_x="0.5"/>
-            <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
-            <!-- Restore AMCL normal update thresholds -->
-            <SetAMCLParams update_min_d="0.25" update_min_a="0.1"/>
-            <!-- Mandatory minimum wait: robot is inside elevator so staging always unreachable;
-                 wait here before starting door-close detection to avoid false positive -->
-            <Wait wait_duration="1.0"/>
-            <!-- Wait for elevator door to fully close -->
-            <RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
-              <Delay delay_msec="500">
-                <Inverter>
-                  <ComputePathToPose goal="{staging_pose}" path="{dummy_path}" planner_id="GridBased"/>
-                </Inverter>
-              </Delay>
-            </RetryUntilSuccessful>
-            <!-- Extra settle time after door closes before map switch -->
-            <Wait wait_duration="3.0"/>
           </Sequence>
         </RetryUntilSuccessful>
+
+        <!-- Robot is confirmed inside the elevator from here — no retry wrapping below -->
+        <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+        <Wait wait_duration="1.0"/>
+        <!-- Turn on AprilTag detection for AMCL re-localization -->
+        <ToggleAprilTag turn_on="true"/>
+        <!-- Freeze AMCL particle filter during 180° spin to prevent bad updates -->
+        <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
+        <!-- Rotate 180° to face outward, ready for the exit door -->
+        <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+        
+        <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
+        <!-- Restore AMCL normal update thresholds -->
+        <SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
+        <!-- Mandatory minimum wait: robot is inside elevator so staging always unreachable;
+             wait here before starting door-close detection to avoid false positive -->
+        <Wait wait_duration="1.0"/>
+        <!-- Wait for elevator door to fully close -->
+        <RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
+          <Delay delay_msec="500">
+            <Inverter>
+              <ComputePathToPose goal="{staging_pose}" path="{dummy_path}" planner_id="GridBased"/>
+            </Inverter>
+          </Delay>
+        </RetryUntilSuccessful>
+        <!-- Extra settle time after door closes before map switch -->
+        <Wait wait_duration="3.0"/>
 
         <!-- Switch to target floor's open map while inside elevator -->
         <GetNamedMap locations_file="{locations_file}" floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
@@ -79,15 +83,14 @@
         <SwitchMap map_yaml="{map_open_target}"/>
         <!-- Publish initial pose with AprilTag TF correction for parking error -->
         <PublishInitialPose initial_pose="{amcl_open_target}" 
-                                use_apriltag="true" 
-                                tag_frame="tag36h11:0"
-                                base_frame="base_link"
-                                expected_tag_x="0.591" 
-                                expected_tag_y="-0.169" 
-                                expected_tag_z="1.356"
-                                expected_tag_roll="1.491"
-                                expected_tag_pitch="0.015"
-                                expected_tag_yaw="-1.502"/>
+                            use_apriltag="true" 
+                            tag_frame="tag36h11:0"
+                            expected_tag_x="1.313" 
+                            expected_tag_y="0.071" 
+                            expected_tag_z="1.412"
+                            expected_tag_roll="1.581"
+                            expected_tag_pitch="0.000"
+                            expected_tag_yaw="-1.633"/>
         <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
         <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
         <!-- Turn off AprilTag detection now that re-localization is complete -->
@@ -100,7 +103,7 @@
           <Sequence name="ExitAttempt_1">
             <!-- Resolve exit pose before the wait loop begins -->
             <GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
-            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
+            <CallElevator floor_id="{target_floor_id}"/>
 
             <CheckFloorArrival target_floor="{target_floor_id}"/>
 
@@ -120,6 +123,8 @@
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap -->
             <SetControllerParams max_vel_x="0.5"/>
+            <!-- Restore conservative inflation after exiting elevator -->
+            <SetCostmapInflation inflation_radius="0.5"/>
           </Sequence>
 
           <!-- Attempt 2: reposition inside elevator, then retry -->
@@ -132,7 +137,7 @@
             <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
-            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
+            <CallElevator floor_id="{target_floor_id}"/>
 
             <CheckFloorArrival target_floor="{target_floor_id}"/>
 
@@ -152,6 +157,8 @@
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap (retry) -->
             <SetControllerParams max_vel_x="0.5"/>
+            <!-- Restore conservative inflation after exiting elevator -->
+            <SetCostmapInflation inflation_radius="0.5"/>
           </Sequence>
 
         </Fallback>

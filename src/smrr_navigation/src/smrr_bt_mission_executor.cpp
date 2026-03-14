@@ -130,6 +130,7 @@ private:
       blackboard->set("current_floor_id", request->current_floor_id);
       blackboard->set("target_floor_id", request->target_floor_id);
       blackboard->set("final_pose", final_pose);
+      blackboard->set("locations_file", std::string("locations.yaml"));
 
       RCLCPP_INFO(this->get_logger(), "Blackboard set: current_floor_id=%s, target_floor_id=%s", 
                   request->current_floor_id.c_str(), request->target_floor_id.c_str());
@@ -176,15 +177,7 @@ private:
         RCLCPP_WARN(this->get_logger(), "BT execution FAILURE (status=%d)", static_cast<int>(status));
         response->success = false;
         response->nav_status = 0;
-        
-        // Provide more specific message if floors differ
-        if (request->current_floor_id != request->target_floor_id) {
-          response->message = "mission_id=" + request->mission_id + 
-                            " FAILED: Cross-floor navigation not yet implemented (current=" +
-                            request->current_floor_id + ", target=" + request->target_floor_id + ")";
-        } else {
-          response->message = "mission_id=" + request->mission_id + " FAILED: BT returned FAILURE";
-        }
+        response->message = "mission_id=" + request->mission_id + " FAILED: BT returned FAILURE";
       }
 
     } catch (const std::exception & e) {

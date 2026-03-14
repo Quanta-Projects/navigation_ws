@@ -19,6 +19,10 @@ GetNamedMapAction::GetNamedMapAction(
 
 std::string GetNamedMapAction::resolveFilePath(const std::string & file_name)
 {
+  if (file_name.empty()) {
+    throw std::invalid_argument("locations_file is empty");
+  }
+
   // If absolute path, use as-is
   if (file_name[0] == '/') {
     return file_name;
@@ -61,7 +65,7 @@ BT::NodeStatus GetNamedMapAction::tick()
 {
   auto floor_id = getInput<std::string>("floor_id");
   auto map_key = getInput<std::string>("map_key");
-  auto locations_file = getInput<std::string>("locations_file").value();
+  auto locations_file = getInput<std::string>("locations_file");
 
   if (!floor_id || !map_key) {
     RCLCPP_ERROR(
@@ -77,7 +81,8 @@ BT::NodeStatus GetNamedMapAction::tick()
 
   try {
     // Load YAML file (cached)
-    std::string file_path = resolveFilePath(locations_file);
+    std::string file_path = resolveFilePath(
+      locations_file.value_or("locations.yaml"));
     YAML::Node yaml = loadYamlFile(file_path);
 
     // Navigate: floors[floor_id]["maps"][map_key]
