@@ -26,7 +26,7 @@ void CheckElevatorDirectionAction::on_tick()
 
   RCLCPP_INFO(
     node_->get_logger(),
-    "[CheckElevatorDirection] Sending goal – current_floor: %s, target_floor: %s",
+    "[CheckElevatorDirection] Sending goal - current: %s, target: %s",
     current_floor.c_str(), target_floor.c_str());
 }
 
@@ -34,7 +34,7 @@ BT::NodeStatus CheckElevatorDirectionAction::on_success()
 {
   RCLCPP_INFO(
     node_->get_logger(),
-    "[CheckElevatorDirection] Action SUCCEEDED – correct elevator direction confirmed.");
+    "[CheckElevatorDirection] Action SUCCEEDED - Direction confirmed.");
   return BT::NodeStatus::SUCCESS;
 }
 

@@ -13,9 +13,11 @@
 #include "smrr_navigation/bt_nodes/stop_robot_action.hpp"
 #include "smrr_navigation/bt_nodes/set_controller_params_action.hpp"
 #include "smrr_navigation/bt_nodes/set_amcl_params_action.hpp"
+#include "smrr_navigation/bt_nodes/set_costmap_inflation_action.hpp"
 #include "smrr_navigation/bt_nodes/check_floor_arrival_action.hpp"
 #include "smrr_navigation/bt_nodes/toggle_apriltag_action.hpp"
 #include "smrr_navigation/bt_nodes/build_pose_vector_action.hpp"
+#include "smrr_navigation/bt_nodes/check_elevator_direction_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -34,6 +36,7 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::StopRobotAction>("StopRobot");
   factory.registerNodeType<smrr_navigation::SetControllerParamsAction>("SetControllerParams");
   factory.registerNodeType<smrr_navigation::SetAMCLParamsAction>("SetAMCLParams");
+  factory.registerNodeType<smrr_navigation::SetCostmapInflationAction>("SetCostmapInflation");
   factory.registerNodeType<smrr_navigation::ToggleAprilTagAction>("ToggleAprilTag");
   factory.registerNodeType<smrr_navigation::BuildPoseVectorAction>("BuildPoseVector");
 
@@ -45,4 +48,12 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
     };
   factory.registerBuilder<smrr_navigation::CheckFloorArrivalAction>(
     "CheckFloorArrival", check_floor_builder);
+
+  BT::NodeBuilder check_elevator_direction_builder =
+    [](const std::string & name, const BT::NodeConfiguration & config) {
+      return std::make_unique<smrr_navigation::CheckElevatorDirectionAction>(
+        name, "check_elevator_direction", config);
+    };
+  factory.registerBuilder<smrr_navigation::CheckElevatorDirectionAction>(
+    "CheckElevatorDirection", check_elevator_direction_builder);
 }

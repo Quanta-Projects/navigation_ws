@@ -59,6 +59,7 @@ class FloorArrivalServer(Node):
 
         # ---- YOLO model ----
         self.model = YOLO(MODEL_PATH)
+        self._warm_up_model()
 
         # ---- subscribers / publishers ----
         self.create_subscription(
@@ -77,6 +78,9 @@ class FloorArrivalServer(Node):
             cancel_callback=self._cancel_cb,
             callback_group=self.cb_group,
         )
+
+        self.get_logger().info(
+            'FloorArrivalServer ready — action: check_floor_arrival')
 
     # ------------------------------------------------------------------
     # Callbacks
@@ -102,6 +106,22 @@ class FloorArrivalServer(Node):
         except Exception:
             pass
 
+    def _warm_up_model(self) -> None:
+        self.get_logger().info(
+            'Warming YOLO model for check_floor_arrival...')
+        dummy_frame = np.zeros((640, 640, 3), dtype=np.uint8)
+        start_time = time.perf_counter()
+
+        try:
+            self.model(dummy_frame, conf=YOLO_CONF, verbose=False)
+            elapsed = time.perf_counter() - start_time
+            self.get_logger().info(
+                f'YOLO warm-up complete in {elapsed:.2f}s.')
+        except Exception as exc:
+            self.get_logger().warn(
+                'YOLO warm-up failed; '
+                f'the first CheckFloorArrival goal may be slower: {exc}')
+
     @staticmethod
     def _overlay(img, text, color=(200, 200, 200), y=30):
         cv2.putText(img, text, (10, y),
@@ -124,6 +144,10 @@ class FloorArrivalServer(Node):
         }
         mapped_floor = floor_mapping.get(raw_floor, raw_floor)
         target_class = f'button-{mapped_floor}'
+
+        self.get_logger().info(
+            f'[CheckFloorArrival] Goal received for {raw_floor} '
+            f'({target_class}).')
 
         feedback = CheckFloorArrival.Feedback()
         result   = CheckFloorArrival.Result()
