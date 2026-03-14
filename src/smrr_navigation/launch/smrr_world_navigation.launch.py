@@ -133,6 +133,15 @@ def generate_launch_description():
         ]
     ),
 
+    # Elevator Direction Server - Confirms elevator travel direction via YOLO + HSV
+    Node(
+        package='smrr_navigation',
+        executable='elevator_direction_server.py',
+        name='elevator_direction_server',
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    ),
+
     # BT Mission Executor - Runs BehaviorTree for same-floor navigation
     Node(
         package='smrr_navigation',

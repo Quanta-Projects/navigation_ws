@@ -1611,3 +1611,5 @@ smrr_world_navigation.launch.py
 ---
 
 *Document generated from source-level analysis of the `smrr_navigation` package.*
+
+ros2 topic pub --once /location std_msgs/msg/String '{data: "reception"}'

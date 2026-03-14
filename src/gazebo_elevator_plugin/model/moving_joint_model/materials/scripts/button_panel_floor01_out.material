@@ -11,7 +11,7 @@ material ButtonPanelFloor01Out
       
       texture_unit
       {
-        texture floor01_out1.jpeg
+        texture floor01_out.jpeg
         filtering trilinear
       }
     }
