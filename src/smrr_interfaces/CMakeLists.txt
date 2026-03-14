@@ -14,6 +14,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/StartMission.srv"
   "action/NavigateToNamedLocation.action"
   "action/CheckFloorArrival.action"
+  "action/CheckElevatorDirection.action"
   DEPENDENCIES builtin_interfaces std_msgs action_msgs
 )
 

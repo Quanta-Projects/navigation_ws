@@ -1,0 +1,12 @@
+# Goal
+string current_floor        # e.g. "floor0"
+string target_floor         # e.g. "floor2"
+---
+# Result
+bool   correct_direction_confirmed
+string message
+---
+# Feedback
+string  expected_direction  # "UP" or "DOWN"
+string  status              # "ON", "OFF_UNSTABLE", "OFF_STABLE", "NO_DETECTION"
+float32 ratio               # HSV illuminated-pixel ratio (0.0 – 1.0)

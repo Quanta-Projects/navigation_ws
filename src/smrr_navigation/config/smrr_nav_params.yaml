@@ -2,10 +2,10 @@ amcl:
   ros__parameters:
     use_sim_time: True 
     alpha1: 0.2
-    alpha2: 0.05
-    alpha3: 0.05
+    alpha2: 0.2
+    alpha3: 0.2
     alpha4: 0.2
-    alpha5: 0.05
+    alpha5: 0.2
     base_frame_id: "base_footprint"
     beam_skip_distance: 0.5
     beam_skip_error_threshold: 0.9
@@ -14,7 +14,7 @@ amcl:
     global_frame_id: "map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 1.5  # Reduced from 2.0 for tighter precision
-    laser_max_range: 18.0  # RPLiDAR S2L max range
+    laser_max_range: 10.0
     laser_min_range: 0.05  # RPLiDAR S2L min range
     laser_model_type: "likelihood_field"
     max_beams: 360  # Increased from 120 to use more scan data for better orientation
@@ -29,27 +29,24 @@ amcl:
     resample_interval: 1  # Reduced back to 1 for faster convergence
     robot_model_type: "nav2_amcl::DifferentialMotionModel"
     save_pose_rate: 0.5
-    sigma_hit: 0.05  # Reduced from 0.2 for sharper likelihood field
+    sigma_hit: 0.2
     tf_broadcast: true
-    transform_tolerance: 0.2  # Tightened from 1.0 for better sync
-    update_min_a: 0.1  # Reduced from 0.1 for continuous orientation tracking during large rotations
+    transform_tolerance: 1.0
+    update_min_a: 0.1
     update_min_d: 0.25
-    z_hit: 0.85
+    z_hit: 0.5
     z_max: 0.05
-    z_rand: 0.15
-    z_short: 0.005  # Fixed from 0.05 to match documentation
-    scan_topic: /scan
+    z_rand: 0.5
+    z_short: 0.05
+    scan_topic: scan
     set_initial_pose: true
-    always_reset_initial_pose: false  # Added missing parameter
     initial_pose:
       x: 0.0
       y: 0.0
-      z: 0.0
       yaw: 0.0
-    # Balanced initial covariance for convergence without excessive angular uncertainty
-    initial_cov_xx: 2.0  # Increased from 0.5 for position spread
-    initial_cov_yy: 2.0  # Increased from 0.5 for position spread
-    initial_cov_aa: 0.03  # Optimized at ±10° for fast convergence with stability
+    initial_cov_xx: 0.5
+    initial_cov_yy: 0.5
+    initial_cov_aa: 0.68
 
 amcl_map_client:
   ros__parameters:
@@ -116,7 +113,7 @@ controller_server:
     odom_topic: /diff_drive_controller/odom
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
@@ -132,23 +129,23 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.15
-      yaw_goal_tolerance: 0.17  # Tightened from 0.25 for faster goal satisfaction (~10°)
+      xy_goal_tolerance: 0.20
+      yaw_goal_tolerance: 0.25
 
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
 
       # --- MPPI parameters ---
       time_steps: 56
-      model_dt: 0.05          # Matches 20 Hz control loop (1/20 = 0.05 s); 56×0.05 = 2.8 s horizon
-      batch_size: 1000        # Safer on Jetson under vision workload at 20 Hz
+      model_dt: 0.05
+      batch_size: 2000
       vx_std: 0.2
-      vy_std: 0.0             # Differential drive — no lateral motion
-      wz_std: 0.4             # Prevents violent left/right shaking at goal
-      vx_max: 0.35
-      vx_min: -0.05           # Tiny reverse budget for minor goal adjustments
+      vy_std: 0.0
+      wz_std: 0.4
+      vx_max: 0.3
+      vx_min: 0.0
       vy_max: 0.0
-      wz_max: 0.75
+      wz_max: 0.3
       iteration_count: 1
       prune_distance: 1.7
       transform_tolerance: 0.5  # Absorbs 1 ms TF lag, prevents spurious recovery spins
@@ -175,11 +172,11 @@ controller_server:
       ObstaclesCritic:
         enabled: true
         cost_power: 1
-        repulsion_weight: 1.0          # Prevents jitter/refusal in narrow corridors and elevator entry
-        critical_weight: 30.0          # Strong penalty near humans / collision distance
+        repulsion_weight: 1.0
+        critical_weight: 30.0
         consider_footprint: false
         collision_cost: 10000.0
-        collision_margin_distance: 0.05  # Tight — avoids inflating footprint that blocked elevator entry
+        collision_margin_distance: 0.05
         near_goal_distance: 0.5
         inflation_layer_name: "inflation_layer"
 
@@ -193,7 +190,7 @@ controller_server:
         enabled: true
         cost_power: 1
         cost_weight: 6.0
-        threshold_to_consider: 0.25  # Do not align yaw until inside 25 cm of goal
+        threshold_to_consider: 0.25
 
       PathAlignCritic:
         enabled: true
@@ -201,7 +198,7 @@ controller_server:
         cost_weight: 14.0
         max_path_occupancy_ratio: 0.05
         trajectory_point_step: 4
-        threshold_to_consider: 0.25  # Keep enforcing path alignment until 25 cm from goal
+        threshold_to_consider: 0.25
         offset_from_furthest: 20
         use_path_orientations: false
 
@@ -210,16 +207,16 @@ controller_server:
         cost_power: 1
         cost_weight: 5.0
         offset_from_furthest: 5
-        threshold_to_consider: 0.25  # Keep driving forward along path until 25 cm from goal
+        threshold_to_consider: 0.25
 
       PathAngleCritic:
         enabled: true
         cost_power: 1
         cost_weight: 2.0
         offset_from_furthest: 4
-        threshold_to_consider: 0.25  # Aligned with 0.25 m handoff boundary
+        threshold_to_consider: 0.25
         max_angle_to_furthest: 1.0
-        mode: 0                       # 0 = forward preference
+        mode: 0
 
 controller_server_rclcpp_node:
   ros__parameters:
@@ -228,23 +225,23 @@ controller_server_rclcpp_node:
 local_costmap:
   local_costmap:
     ros__parameters:
-      publish_downsampled_costmap: True   
-      downsample_scale: 2                  
-      update_frequency: 5.0
-      publish_frequency: 2.0
+      publish_downsampled_costmap: True
+      downsample_scale: 2
+      update_frequency: 10.0
+      publish_frequency: 1.0
       global_frame: odom
       robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: True
-      width: 4
-      height: 4
+      width: 3
+      height: 3
       resolution: 0.05
-      robot_radius: 0.25
-      plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
+      robot_radius: 0.275
+      plugins: ["obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.55
-        cost_scaling_factor: 5.0
+        inflation_radius: 0.325
+        cost_scaling_factor: 20.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -255,29 +252,9 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 10.0
+          raytrace_max_range: 8.0
           raytrace_min_range: 0.05
-          obstacle_max_range: 8.0
-          obstacle_min_range: 0.05
-      voxel_layer:
-        plugin: "nav2_costmap_2d::VoxelLayer"
-        enabled: True
-        publish_voxel_map: True
-        origin_z: 0.0
-        z_resolution: 0.05
-        z_voxels: 16
-        max_obstacle_height: 2.0
-        mark_threshold: 0
-        observation_sources: scan
-        scan:
-          topic: /scan
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          raytrace_max_range: 10.0
-          raytrace_min_range: 0.05
-          obstacle_max_range: 8.0
+          obstacle_max_range: 6.0
           obstacle_min_range: 0.05
       static_layer:
         map_subscribe_transient_local: True
@@ -292,15 +269,15 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 5.0   # Increased from 1.0 for faster obstacle clearing when elevator door opens
-      publish_frequency: 5.0  # Increased from 1.0 to match update rate
+      update_frequency: 0.5
+      publish_frequency: 0.5
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: True
-      robot_radius: 0.25
+      robot_radius: 0.275
       resolution: 0.05
       track_unknown_space: True
-      plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
@@ -311,37 +288,17 @@ global_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 10.0
+          raytrace_max_range: 8.0
           raytrace_min_range: 0.05
-          obstacle_max_range: 8.0
-          obstacle_min_range: 0.05
-      voxel_layer:
-        plugin: "nav2_costmap_2d::VoxelLayer"
-        enabled: True
-        publish_voxel_map: True
-        origin_z: 0.0
-        z_resolution: 0.05
-        z_voxels: 16
-        max_obstacle_height: 2.0
-        mark_threshold: 0
-        observation_sources: scan
-        scan:
-          topic: /scan
-          max_obstacle_height: 2.0
-          clearing: True
-          marking: True
-          data_type: "LaserScan"
-          raytrace_max_range: 10.0
-          raytrace_min_range: 0.05
-          obstacle_max_range: 8.0
+          obstacle_max_range: 6.0
           obstacle_min_range: 0.05
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 4.0
-        inflation_radius: 0.4
+        cost_scaling_factor: 20.0
+        inflation_radius: 0.325
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
@@ -353,7 +310,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: True
-    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/floor0_open.yaml"
+    yaml_filename: "/home/achiraubuntu/navigation_ws/src/smrr_navigation/maps/floor_open.yaml"
 
 map_saver:
   ros__parameters:
@@ -370,7 +327,7 @@ planner_server:
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 0.5
+      tolerance: 0.1
       use_astar: false
       allow_unknown: True
 
@@ -378,26 +335,30 @@ planner_server_rclcpp_node:
   ros__parameters:
     use_sim_time: True
 
-recoveries_server:
+behavior_server:
   ros__parameters:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    recovery_plugins: ["spin", "backup", "wait"]
+    behavior_plugins: ["spin", "backup", "wait"]
     spin:
-      plugin: "nav2_recoveries/Spin"
+      plugin: "nav2_behaviors/Spin"
+      simulate_ahead_time: 2.0
+      max_rotational_vel: 0.3
+      min_rotational_vel: 0.0
+      rotational_acc_lim: 4.0
     backup:
-      plugin: "nav2_recoveries/BackUp"
+      plugin: "nav2_behaviors/BackUp"
     wait:
-      plugin: "nav2_recoveries/Wait"
+      plugin: "nav2_behaviors/Wait"
     global_frame: map
     robot_base_frame: base_footprint
     transform_timeout: 0.1
     use_sim_time: True
-    simulate_ahead_time: 2.0
-    max_rotational_vel: 1.5
-    min_rotational_vel: 0.6
-    rotational_acc_lim: 2.0  # Reduced from 4.0 to match controller limits
+
+behavior_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: True
 
 robot_state_publisher:
   ros__parameters:
@@ -405,7 +366,7 @@ robot_state_publisher:
 
 waypoint_follower:
   ros__parameters:
-    loop_rate: 200
+    loop_rate: 20
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
     wait_at_waypoint:

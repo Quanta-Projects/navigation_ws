@@ -46,6 +46,7 @@ setup(
             'test_floor_vision = smrr_navigation.test_floor_vision:main',
             'floor_arrival_server = smrr_navigation.floor_arrival_server:main',
             'apriltag_manager_server = smrr_navigation.apriltag_manager_server:main',
+            'elevator_direction_server = smrr_navigation.elevator_direction_server:main',
         ],
     },
 )
