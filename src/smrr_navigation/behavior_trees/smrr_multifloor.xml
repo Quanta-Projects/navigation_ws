@@ -110,15 +110,17 @@
             <!-- Boost velocity before waiting for exit door to open -->
             <SetControllerParams max_vel_x="0.75"/>
 
+            <!-- Clear costmaps here: LiDAR re-contaminates them during CallElevator/CheckFloorArrival.
+                 Must happen before the WaitForPath poll so the planner sees a clean costmap
+                 and can detect the door opening via the obstacle layer clearing. -->
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit1">
               <Delay delay_msec="500">
                 <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
               </Delay>
             </RetryUntilSuccessful>
-
-            <!-- Clear costmaps right before exiting: LiDAR inside the cabin contaminates them -->
-            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
-            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap -->
@@ -144,15 +146,15 @@
             <!-- Boost velocity before waiting for exit door (retry attempt 2) -->
             <SetControllerParams max_vel_x="0.75"/>
 
+            <!-- Clear costmaps before polling: same reason as ExitAttempt_1 -->
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit2">
               <Delay delay_msec="500">
                 <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
               </Delay>
             </RetryUntilSuccessful>
-
-            <!-- Clear costmaps right before exiting: LiDAR inside the cabin contaminates them -->
-            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
-            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap (retry) -->
