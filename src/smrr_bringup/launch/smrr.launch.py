@@ -14,6 +14,7 @@ def generate_launch_description():
 
     zed_camera_launch = os.path.join(zed_wrapper_share, 'launch', 'zed_camera.launch.py')
     zed_override_config = os.path.join(bringup_share, 'config', 'zed_override.yaml')
+    laser_filter_config = os.path.join(bringup_share, 'config', 'laser_scan_240deg_filter.yaml')
 
     hardware_interface = IncludeLaunchDescription(
         os.path.join(
@@ -52,8 +53,21 @@ def generate_launch_description():
             'serial_port': '/dev/ttyUSB0',
             'serial_baudrate': '1000000',
             'frame_id': 'rplidar_link',
+            'scan_topic': '/scan_raw',
             'scan_mode': 'DenseBoost'
         }.items()
+    )
+
+    scan_filter = Node(
+        package='laser_filters',
+        executable='scan_to_scan_filter_chain',
+        name='scan_to_scan_filter_chain',
+        parameters=[laser_filter_config],
+        remappings=[
+            ('scan', '/scan_raw'),
+            ('scan_filtered', '/scan'),
+        ],
+        output='screen'
     )
 
     # Odometry path visualization
@@ -89,8 +103,9 @@ def generate_launch_description():
             # ---------------------------------------------------------
             # ZED Camera Launch
             # ---------------------------------------------------------
-            # pos_tracking enabled internally (required for ZED SDK grab to work)
-            # publish_tf disabled to avoid TF conflict with robot's odom frame
+            # IMU remains enabled via the override YAML.
+            # ZED positional tracking / visual odometry is disabled.
+            # publish_tf remains disabled to avoid TF conflict with robot's odom frame.
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(zed_camera_launch),
                 launch_arguments={
@@ -176,6 +191,7 @@ def generate_launch_description():
         controller,
         joystick,
         sllidar,
+        scan_filter,
         # odom_path,
         # navigation,
 

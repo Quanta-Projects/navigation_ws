@@ -222,19 +222,18 @@ class LidarHumanDetectionNode(Node):
         """Process incoming laser scan and detect people"""
         start_time = time.time()
 
-        # SINGLE STRICT TF LOOKUP FOR THE ENTIRE FRAME
-        # One lookup per frame eliminates cascading timeout overhead from
-        # _filter_static_obstacles, _transform_pose_array, and _transform_marker
-        # each blocking independently.
+        # --- 1. STRICT TF LOOKUP (Zero Ego-Motion with Clock Skew Buffer) ---
+        # One lookup per frame eliminates cascading timeout overhead.
         try:
+            target_time = msg.header.stamp
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 msg.header.frame_id,
-                rclpy.time.Time.from_msg(msg.header.stamp),
-                timeout=rclpy.duration.Duration(seconds=0.02)  # Max 20ms wait
+                rclpy.time.Time.from_msg(target_time),
+                timeout=rclpy.duration.Duration(seconds=0.05)  # 50ms buffer for hardware clock skew
             )
         except Exception as e:
-            self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=5.0)
+            self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=2.0)
             return
 
         if not self._detector.laser_spec_set():

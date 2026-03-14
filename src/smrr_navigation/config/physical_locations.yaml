@@ -16,6 +16,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_entry:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_inside:
         x: 0.0
         y: 0.0
@@ -39,21 +43,25 @@ floors:
       open: physical_maps/first_floor_with_lift.yaml
     locations:
       amcl_initial_pose_closed:
-        x: -6.4815
-        y: 0.2992
-        yaw: 1.083
+        x: -6.262
+        y: 0.381
+        yaw: 0.606
       amcl_initial_pose_open:
-        x: -6.4815
-        y: 0.2992
-        yaw: 1.083
+        x: -6.262
+        y: 0.381
+        yaw: 0.606
       elevator_staging:
         x: -5.978
         y: 2.033
         yaw: -2.1099
+      elevator_entry:
+        x: -6.0064
+        y: 1.3549
+        yaw: -1.957
       elevator_inside:
-        x: -6.4815
-        y: 0.2992
-        yaw: -2.059
+        x: -6.262
+        y: 0.381
+        yaw: -2.536
       elevator_exit:
         x: -5.7048
         y: 1.9070
@@ -104,6 +112,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_entry:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_inside:
         x: 0.0
         y: 0.0
@@ -127,21 +139,25 @@ floors:
       open: physical_maps/third_floor_with_lift.yaml
     locations:
       amcl_initial_pose_closed:
-        x: -11.5946
-        y: 0.1407
-        yaw: -0.287
+        x: -11.422
+        y: -0.024
+        yaw: -0.611
       amcl_initial_pose_open:
-        x: -11.5946
-        y: 0.1407
-        yaw: -0.287
+        x: -11.422
+        y: -0.024
+        yaw: -0.611
       elevator_staging:
-        x: -9.9800
-        y: -0.21966
-        yaw: 2.8782
+        x: -9.950
+        y: 0.035
+        yaw: 2.618
+      elevator_entry:
+        x: -10.387
+        y: -0.128
+        yaw: 2.759
       elevator_inside:
-        x: -11.5946
-        y: 0.1407
-        yaw: 2.854
+        x: -11.422
+        y: -0.024
+        yaw: -3.752
       elevator_exit:
         x: -9.4523
         y: -0.34338

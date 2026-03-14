@@ -157,7 +157,7 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Serial port opened: %s", port_.c_str());
 
     // Set baud rate
-    arduino_.SetBaudRate(LibSerial::BaudRate::BAUD_9600);
+    arduino_.SetBaudRate(LibSerial::BaudRate::BAUD_115200);
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Baud rate set to 115200");
 
     // Reset the Arduino via DTR (toggling DTR)
@@ -374,8 +374,6 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
         
         // Encoder specifications
         const double ENCODER_RESOLUTION = 60.0;  // 60 counts per rotation
-        const double WHEEL_DIAMETER = 0.1524;    // 6 inches = 0.1524 meters
-        const double WHEEL_RADIUS = WHEEL_DIAMETER / 2.0;
         const int32_t MAX_ENCODER_COUNT = 65535; // 16-bit counter
         
         // On first read, just store the encoder values

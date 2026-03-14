@@ -78,7 +78,6 @@ def generate_launch_description():
                     ('/cmd_vel_out', '/diff_drive_controller/cmd_vel')]
     )
 
-    # Node fails in multi-floor navigation
     robot_localization = Node(
         package="robot_localization",
         executable="ekf_node",
@@ -95,7 +94,6 @@ def generate_launch_description():
         # arm_controller_spawner,
         diff_drive_controller,
         twist_mux,
-        twist_stamper
-
-        #robot_localization
+        twist_stamper,
+        # robot_localization,
     ])

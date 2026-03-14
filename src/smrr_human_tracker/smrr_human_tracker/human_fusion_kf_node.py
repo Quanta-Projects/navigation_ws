@@ -413,7 +413,7 @@ class HumanFusionKFNode(Node):
         self.declare_parameter('track_timeout_sec', 1.0)
         self.declare_parameter('max_track_distance', 2.0)
         self.declare_parameter('base_frame', 'base_link')
-        self.declare_parameter('map_frame', 'map')
+        self.declare_parameter('map_frame', 'odom')
         
         # IMM Filter parameters
         self.declare_parameter('measurement_noise', 0.05)  # 5cm LiDAR tracking variance
@@ -439,7 +439,7 @@ class HumanFusionKFNode(Node):
         
         self.ts = ApproximateTimeSynchronizer(
             [self.yolo_sub, self.lidar_sub],
-            queue_size=50,
+            queue_size=5,
             slop=0.03  # Tightened to 30 ms tolerance
         )
         self.ts.registerCallback(self.fusion_callback)
@@ -466,14 +466,14 @@ class HumanFusionKFNode(Node):
         self.get_logger().info(f'  IMM Measurement noise: {self.measurement_noise} m²')
         self.get_logger().info(f'  Publishing to: fused_humans_kf/poses, fused_humans_kf/markers')
     
-    def get_robot_pose_and_yaw(self):
-        """Get robot's position and heading in map frame."""
+    def get_robot_pose_and_yaw(self, target_time):
+        """Get robot's position and heading at the exact time of the sensor reading."""
         try:
             transform = self.tf_buffer.lookup_transform(
                 self.map_frame,
                 self.base_frame,
-                rclpy.time.Time(),
-                timeout=Duration(seconds=0.5)
+                target_time,
+                timeout=Duration(seconds=0.02) # 20ms max wait
             )
             
             x = transform.transform.translation.x
@@ -488,7 +488,7 @@ class HumanFusionKFNode(Node):
             return np.array([x, y]), yaw
         
         except TransformException as e:
-            self.get_logger().warn(f'TF lookup failed: {e}')
+            # We don't want to spam warnings for standard clock skew drops
             return None, None
     
     def is_in_camera_fov(self, point, robot_pos, robot_yaw):
@@ -520,7 +520,10 @@ class HumanFusionKFNode(Node):
         Called by ApproximateTimeSynchronizer with temporally matched
         YOLO and LiDAR PoseArray messages (slop ≤ 100 ms).
         """
-        robot_pos, robot_yaw = self.get_robot_pose_and_yaw()
+        # Extract time first so we can sync the robot's FOV pose perfectly
+        current_time = rclpy.time.Time.from_msg(lidar_msg.header.stamp)
+        
+        robot_pos, robot_yaw = self.get_robot_pose_and_yaw(current_time)
         if robot_pos is None:
             return
         
@@ -540,8 +543,6 @@ class HumanFusionKFNode(Node):
         fused_positions = []
         fused_confidences = []
         fused_visual_flags = []
-        # Use the monotonic LiDAR hardware timestamp to guarantee accurate dt integration
-        current_time = rclpy.time.Time.from_msg(lidar_msg.header.stamp)
         
         # ======== STEP A: Optimal YOLO↔LiDAR Association (Hungarian) ========
         matched_yolo = set()

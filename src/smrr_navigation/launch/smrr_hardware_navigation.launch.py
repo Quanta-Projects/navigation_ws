@@ -255,6 +255,7 @@ def generate_launch_description():
                 'nav2_distance_traveled_condition_bt_node',
                 'nav2_single_trigger_bt_node',
                 'nav2_is_battery_low_condition_bt_node',
+                'nav2_navigate_through_poses_action_bt_node',
                 'nav2_navigate_to_pose_action_bt_node',
                 # Custom BT plugins
                 'smrr_bt_nodes'
@@ -262,6 +263,19 @@ def generate_launch_description():
             'bt_tick_rate_hz': 20.0,
             'bt_timeout_sec': 300.0
         }]
+    )
+
+    # ---------------------------------------------------------------------------
+    # AprilTag Manager Server
+    # Dynamically start/stop apriltag_node via /toggle_apriltag service
+    # to save CPU when detection is not needed
+    # ---------------------------------------------------------------------------
+    apriltag_manager_server = Node(
+        package='smrr_navigation',
+        executable='apriltag_manager_server.py',
+        name='apriltag_manager_server',
+        output='screen',
+        parameters=[{'use_sim_time': False}]
     )
 
     # ---------------------------------------------------------------------------
@@ -306,6 +320,9 @@ def generate_launch_description():
 
         # BT Mission Executor (multi-floor behavior tree)
         bt_mission_executor,
+
+        # AprilTag Manager Server (CPU-saving toggle for AprilTag detection)
+        apriltag_manager_server,
 
         # RViz2 (opt-in)
         rviz_node,

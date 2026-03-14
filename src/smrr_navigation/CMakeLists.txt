@@ -85,6 +85,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/set_amcl_params_action.cpp
   src/bt_nodes/check_floor_arrival_action.cpp
   src/bt_nodes/toggle_apriltag_action.cpp
+  src/bt_nodes/build_pose_vector_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 

@@ -168,6 +168,7 @@ def generate_launch_description():
                 'nav2_distance_traveled_condition_bt_node',
                 'nav2_single_trigger_bt_node',
                 'nav2_is_battery_low_condition_bt_node',
+                'nav2_navigate_through_poses_action_bt_node',
                 'nav2_navigate_to_pose_action_bt_node',
                 # Custom BT plugins
                 'smrr_bt_nodes'

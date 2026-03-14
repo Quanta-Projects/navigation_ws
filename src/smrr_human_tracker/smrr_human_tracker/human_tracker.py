@@ -356,19 +356,20 @@ class HumanInstanceTracker(Node):
             throttle_duration_sec=1.0
         )
         
-        # --- 1. SINGLE STRICT TF LOOKUP ---
+        # --- 1. STRICT TF LOOKUP (Zero Ego-Motion) ---
         try:
-            target_time = header.stamp
+            # We use the exact image timestamp to prevent rotation distortion
+            target_time = header.stamp 
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 header.frame_id,
                 rclpy.time.Time.from_msg(target_time),
-                timeout=rclpy.duration.Duration(seconds=0.02)
+                timeout=rclpy.duration.Duration(seconds=0.05) # Increased to 50ms to absorb ZED clock skew
             )
         except Exception as e:
             self.get_logger().warn(
-                f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. Dropping frame. Error: {e}',
-                throttle_duration_sec=5.0
+                f'TF Sync failed. ZED clock may be skewed. Error: {e}',
+                throttle_duration_sec=2.0
             )
             return
 
