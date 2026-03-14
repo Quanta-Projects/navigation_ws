@@ -49,7 +49,7 @@ class HumanInstanceTracker(Node):
         self.declare_parameter('max_detection_distance', 15.0)
         self.declare_parameter('tracker', 'bytetrack.yaml')
         self.declare_parameter('iou_threshold', 0.3)
-        self.declare_parameter('target_frame', 'map')  # Frame for published poses (map/odom/base_link)
+        self.declare_parameter('target_frame', 'odom')  # Frame for published poses (map/odom/base_link)
 
         # Get parameters
         model_path = self.get_parameter('model_path').value
@@ -109,7 +109,9 @@ class HumanInstanceTracker(Node):
         try:
             # Load YOLO26 model for direct access to tracking results
             self.model = YOLO(model_path)
-            self.model.to(self.device)
+            # .to() is PyTorch-only — TensorRT/ONNX engines set device via predict/track call
+            if model_path.endswith('.pt'):
+                self.model.to(self.device)
             self.tracker_type = tracker_type
             self.iou_threshold = iou_threshold
             self.get_logger().info(f'YOLO26 Instance Segmentation loaded on {self.device}. Using tracker: {tracker_type}')
@@ -354,19 +356,20 @@ class HumanInstanceTracker(Node):
             throttle_duration_sec=1.0
         )
         
-        # --- 1. SINGLE STRICT TF LOOKUP ---
+        # --- 1. STRICT TF LOOKUP (Zero Ego-Motion) ---
         try:
-            target_time = header.stamp
+            # We use the exact image timestamp to prevent rotation distortion
+            target_time = header.stamp 
             transform = self.tf_buffer.lookup_transform(
                 self.target_frame,
                 header.frame_id,
                 rclpy.time.Time.from_msg(target_time),
-                timeout=rclpy.duration.Duration(seconds=0.02)
+                timeout=rclpy.duration.Duration(seconds=0.05) # Increased to 50ms to absorb ZED clock skew
             )
         except Exception as e:
             self.get_logger().warn(
-                f'Transform lookup failed: {header.frame_id} -> {self.target_frame}. Dropping frame. Error: {e}',
-                throttle_duration_sec=5.0
+                f'TF Sync failed. ZED clock may be skewed. Error: {e}',
+                throttle_duration_sec=2.0
             )
             return
 

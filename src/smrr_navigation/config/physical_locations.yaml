@@ -1,0 +1,172 @@
+floors:
+  floor0:
+    maps:
+      closed: physical_maps/first_floor.yaml
+      open: physical_maps/first_floor.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      amcl_initial_pose_open:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_staging:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_entry:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_inside:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_exit:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      dummy_location_a:
+        x: 1.0
+        y: 1.0
+        yaw: 0.0
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57
+
+  floor1:
+    maps:
+      closed: physical_maps/first_floor_with_lift.yaml
+      open: physical_maps/first_floor_with_lift.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: -6.262
+        y: 0.381
+        yaw: 0.606
+      amcl_initial_pose_open:
+        x: -6.262
+        y: 0.381
+        yaw: 0.606
+      elevator_staging:
+        x: -5.978
+        y: 2.033
+        yaw: -2.1099
+      elevator_entry:
+        x: -6.0064
+        y: 1.3549
+        yaw: -1.957
+      elevator_inside:
+        x: -6.262
+        y: 0.381
+        yaw: -2.536
+      elevator_exit:
+        x: -5.7048
+        y: 1.9070
+        yaw: 1.0947
+      hod_office:
+        x: 6.6063
+        y: 6.6618
+        yaw: 2.7912
+      computer_lab:
+        x: 6.40
+        y: -1.59
+        yaw: 1.57
+      conference_room:
+        x: -10.2
+        y: 22.60
+        yaw: 0.0
+      prof_jayasinghe_office:
+        x: 10.92
+        y: 9.46
+        yaw: 3.14
+      prof_kyew_office:
+        x: 11.28
+        y: 7.39
+        yaw: 3.14
+      prof_dileeka_office:
+        x: 11.76
+        y: 5.02
+        yaw: 3.14
+      prof_rohan_office:
+        x: 12.29
+        y: 2.47
+        yaw: 3.14
+
+  floor2:
+    maps:
+      closed: physical_maps/third_floor.yaml
+      open: physical_maps/third_floor.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      amcl_initial_pose_open:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_staging:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_entry:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_inside:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      elevator_exit:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
+      dummy_location_a:
+        x: 1.0
+        y: 1.0
+        yaw: 0.0
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57
+
+  floor3:
+    maps:
+      closed: physical_maps/third_floor_with_lift.yaml
+      open: physical_maps/third_floor_with_lift.yaml
+    locations:
+      amcl_initial_pose_closed:
+        x: -11.422
+        y: -0.024
+        yaw: -0.611
+      amcl_initial_pose_open:
+        x: -11.422
+        y: -0.024
+        yaw: -0.611
+      elevator_staging:
+        x: -9.950
+        y: 0.035
+        yaw: 2.618
+      elevator_entry:
+        x: -10.387
+        y: -0.128
+        yaw: 2.759
+      elevator_inside:
+        x: -11.422
+        y: -0.024
+        yaw: -3.752
+      elevator_exit:
+        x: -9.4523
+        y: -0.34338
+        yaw: -0.3623
+      vision_lab:
+        x: -12.6221
+        y: 7.07402
+        yaw: -1.9480
+      dummy_location_b:
+        x: -1.0
+        y: 2.0
+        yaw: 1.57

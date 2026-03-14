@@ -44,6 +44,11 @@ private:
   std::vector<double> position_states_;
   std::vector<double> velocity_states_;
   rclcpp::Time last_run_;
+  
+  // Encoder tracking variables
+  int32_t prev_right_encoder_;
+  int32_t prev_left_encoder_;
+  bool first_read_;
 };
 }  
 

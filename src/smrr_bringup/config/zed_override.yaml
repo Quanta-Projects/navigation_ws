@@ -1,0 +1,19 @@
+# ZED camera parameter overrides for hardware bringup.
+#
+# In this bringup we keep IMU publishing enabled, but disable ZED positional
+# tracking / visual odometry because wheel odometry + EKF is the active odom source.
+# TF publication from the ZED wrapper also remains disabled to avoid conflicts
+# with the robot's odom -> base_footprint transform.
+---
+/**:
+    ros__parameters:
+        sensors:
+            publish_imu_tf: true       # Broadcast the IMU TF frame
+            publish_imu: true          # Advertise filtered IMU topic
+            publish_imu_raw: true      # Advertise raw IMU topic
+        pos_tracking:
+            pos_tracking_enabled: false
+            pos_tracking_mode: 'GEN_1'
+            set_as_static: true
+            imu_fusion: false
+            publish_tf: false          # EKF node publishes odom->base_footprint TF; disable ZED's odom TF

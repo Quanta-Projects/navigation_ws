@@ -1,11 +1,16 @@
 #include "smrr_base_controller/base_controller.hpp"
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
 #include <pluginlib/class_list_macros.hpp>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
 
 
 namespace smrr_base_controller
 {
 BaseController::BaseController()
+: prev_right_encoder_(0), prev_left_encoder_(0), first_read_(true)
 {
 }
 
@@ -119,6 +124,11 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
   position_commands_ = { 0.0, 0.0, 0.0, 0.0};
   position_states_ = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   velocity_states_ = { 0.0, 0.0};
+  
+  // Reset encoder tracking
+  prev_right_encoder_ = 0;
+  prev_left_encoder_ = 0;
+  first_read_ = true;
 
   try
   { 
@@ -325,16 +335,113 @@ CallbackReturn BaseController::on_deactivate(const rclcpp_lifecycle::State &)
 hardware_interface::return_type BaseController::read(const rclcpp::Time &,
                                                      const rclcpp::Duration &) {
   if (arduino_.IsOpen()) {
-    if (arduino_.IsDataAvailable()) {
+    try {
       std::string feedback;
-      arduino_.ReadLine(feedback);
+      arduino_.ReadLine(feedback, '\n', 10); // 10ms timeout
 
-      // Print the received message directly
+      // Skip empty messages
+      if (feedback.empty()) {
+        return hardware_interface::return_type::OK;
+      }
+
+      // Print the received message
       RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Received Message: %s", feedback.c_str());
 
-      // Process the feedback if necessary (for now, just print it)
-      // If you need to parse it or do further processing, you can add that here.
+      // Calculate time difference
+      auto current_time = rclcpp::Clock().now();
+      double dt = (current_time - last_run_).seconds();
 
+      // Parse the feedback: "right_encoder,left_encoder,value3,value4"
+      std::stringstream ss(feedback);
+      std::string token;
+      std::vector<int32_t> values;
+      
+      // Parse comma-separated values
+      while (std::getline(ss, token, ',')) {
+        // Trim whitespace
+        token.erase(0, token.find_first_not_of(" \t\r\n"));
+        token.erase(token.find_last_not_of(" \t\r\n") + 1);
+        
+        if (!token.empty()) {
+          values.push_back(std::stoi(token));
+        }
+      }
+      
+      // Process encoder counts (expecting at least 2 values: right_encoder, left_encoder)
+      if (values.size() >= 2) {
+        int32_t right_encoder = values[0];  // First value is right encoder
+        int32_t left_encoder = values[1];   // Second value is left encoder
+        
+        // Encoder specifications
+        const double ENCODER_RESOLUTION = 60.0;  // 60 counts per rotation
+        const int32_t MAX_ENCODER_COUNT = 65535; // 16-bit counter
+        
+        // On first read, just store the encoder values
+        if (first_read_) {
+          prev_right_encoder_ = right_encoder;
+          prev_left_encoder_ = left_encoder;
+          first_read_ = false;
+          last_run_ = current_time;
+          
+          RCLCPP_INFO(rclcpp::get_logger("BaseController"), 
+                     "First encoder read - Right: %d, Left: %d", right_encoder, left_encoder);
+          return hardware_interface::return_type::OK;
+        }
+        
+        // Calculate encoder deltas (handle wraparound)
+        int32_t right_delta = right_encoder - prev_right_encoder_;
+        int32_t left_delta = left_encoder - prev_left_encoder_;
+        
+        // Handle wraparound for 16-bit counter
+        if (right_delta > MAX_ENCODER_COUNT / 2) {
+          right_delta -= MAX_ENCODER_COUNT;
+        } else if (right_delta < -MAX_ENCODER_COUNT / 2) {
+          right_delta += MAX_ENCODER_COUNT;
+        }
+        
+        // Invert right encoder since it's mounted in opposite direction
+        right_delta = -right_delta;
+        
+        if (left_delta > MAX_ENCODER_COUNT / 2) {
+          left_delta -= MAX_ENCODER_COUNT;
+        } else if (left_delta < -MAX_ENCODER_COUNT / 2) {
+          left_delta += MAX_ENCODER_COUNT;
+        }
+        
+        // Convert encoder counts to radians
+        // radians = (encoder_counts / ENCODER_RESOLUTION) * 2π
+        double right_wheel_delta_rad = (static_cast<double>(right_delta) / ENCODER_RESOLUTION) * 2.0 * M_PI;
+        double left_wheel_delta_rad = (static_cast<double>(left_delta) / ENCODER_RESOLUTION) * 2.0 * M_PI;
+        
+        // Update position states (accumulated angular position in radians)
+        position_states_[5] += right_wheel_delta_rad;  // right_wheel_joint position
+        position_states_[4] += left_wheel_delta_rad;   // left_wheel_joint position
+        
+        // Calculate velocities (rad/s)
+        if (dt > 0.0 && dt < 1.0) {  // Sanity check on dt
+          velocity_states_[1] = right_wheel_delta_rad / dt;  // right_wheel_joint velocity
+          velocity_states_[0] = left_wheel_delta_rad / dt;   // left_wheel_joint velocity
+        }
+        
+        // Store current encoder values for next iteration
+        prev_right_encoder_ = right_encoder;
+        prev_left_encoder_ = left_encoder;
+        
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"), 
+                   "Encoders - R:%d(Δ%d) L:%d(Δ%d) | Pos - R:%.3f L:%.3f | Vel - R:%.3f L:%.3f",
+                   right_encoder, right_delta, left_encoder, left_delta,
+                   position_states_[5], position_states_[4],
+                   velocity_states_[1], velocity_states_[0]);
+      } else {
+        RCLCPP_WARN(rclcpp::get_logger("BaseController"), 
+                   "Unexpected data format. Expected at least 2 values, got %zu", values.size());
+      }
+      
+      last_run_ = current_time;
+    }
+    catch (const std::exception& e) {
+      RCLCPP_ERROR(rclcpp::get_logger("BaseController"), 
+                  "Error reading/parsing feedback: %s", e.what());
     }
   }
   return hardware_interface::return_type::OK;
@@ -350,10 +457,19 @@ hardware_interface::return_type BaseController::write(const rclcpp::Time &,
   {
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Writing");
     // Implement communication protocol with the Arduino
+    
+    // Map velocity commands from [-6.17, 6.17] to [-100, 100]
+    const double SCALE_FACTOR = 100.0 / 6.17;
+    double scaled_left = velocity_commands_.at(0) * SCALE_FACTOR;
+    double scaled_right = velocity_commands_.at(1) * SCALE_FACTOR;
+    
+    // Clamp values to [-100, 100] range
+    scaled_left = std::max(-100.0, std::min(100.0, scaled_left));
+    scaled_right = std::max(-100.0, std::min(100.0, scaled_right));
+    
     std::stringstream message_stream;
-
     message_stream << std::fixed << std::setprecision(2) 
-      << velocity_commands_.at(0) <<"," << velocity_commands_.at(1) <<"," <<"0" <<"," <<"0" <<"\n";
+      << scaled_left << "," << scaled_right << ",0.0,0.0,0.0,0.0\n";
 
     try
     {

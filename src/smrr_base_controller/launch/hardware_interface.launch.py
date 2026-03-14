@@ -1,5 +1,7 @@
 import os
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.substitutions import Command
@@ -7,6 +9,13 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
+
+    # Declare launch argument for port
+    port_arg = DeclareLaunchArgument(
+        'port',
+        default_value='/dev/ttyACM0',
+        description='Serial port for the hardware interface'
+    )
 
     robot_description = ParameterValue(
         Command(
@@ -17,7 +26,8 @@ def generate_launch_description():
                     "urdf",
                     "test.urdf.xacro",
                 ),
-                " is_sim:=False"
+                " is_sim:=False",
+                " port:=", LaunchConfiguration('port')
             ]
         ),
         value_type=str,
@@ -46,6 +56,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            port_arg,
             # robot_state_publisher_node,
             controller_manager,
         ]
