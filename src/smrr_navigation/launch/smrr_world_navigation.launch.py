@@ -14,7 +14,7 @@ def generate_launch_description():
     maps_dir = os.path.join(pkg_share, 'maps')
     bt_xml_path = os.path.join(pkg_share, 'behavior_trees', 'smrr_multifloor.xml')
     map_file = os.path.join(maps_dir, 'floor0_open.yaml')
-    yolo_model_path = os.path.join(pkg_share, 'models', 'yolo_button_detection.pt')
+    yolo_model_path = os.path.join(pkg_share, 'models', 'button_detection.pt')
     params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
     rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')
     
@@ -140,6 +140,19 @@ def generate_launch_description():
         name='elevator_direction_server',
         output='screen',
         parameters=[{'use_sim_time': True}]
+    ),
+
+    # Elevator Call Button Server - Detects UP/DOWN call button via YOLO + depth,
+    # computes 3D button coordinates in link_0_fake frame, publishes approach point
+    Node(
+        package='smrr_navigation',
+        executable='elevator_call_button_server.py',
+        name='elevator_call_button_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'yolo_model_path': yolo_model_path}
+        ]
     ),
 
     # BT Mission Executor - Runs BehaviorTree for same-floor navigation

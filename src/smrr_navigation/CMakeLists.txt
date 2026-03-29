@@ -88,6 +88,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/toggle_apriltag_action.cpp
   src/bt_nodes/check_elevator_direction_action.cpp
   src/bt_nodes/build_pose_vector_action.cpp
+  src/bt_nodes/detect_call_button_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 
@@ -169,6 +170,7 @@ install(PROGRAMS
   smrr_navigation/floor_arrival_server.py
   smrr_navigation/apriltag_manager_server.py
   smrr_navigation/elevator_direction_server.py
+  smrr_navigation/elevator_call_button_server.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
