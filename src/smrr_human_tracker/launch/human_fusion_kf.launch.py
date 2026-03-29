@@ -19,7 +19,7 @@ import os
 def generate_launch_description():
     # Get package directories and default model paths
     pkg_share = get_package_share_directory('smrr_human_tracker')
-    default_yolo_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.pt')
+    default_yolo_model = os.path.join(pkg_share, 'models', 'yolo26n-seg.engine')
     default_drspaam_model = os.path.join(pkg_share, 'models', 'ckpt_jrdb_ann_ft_dr_spaam_e20.pth')
     
     # Simulation time — must be 'true' when running in Gazebo so that

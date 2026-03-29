@@ -41,10 +41,9 @@ MODEL_PATH = os.path.join(
 
 HSV_LOWER = np.array([5, 50, 150])
 HSV_UPPER = np.array([35, 255, 255])
-ON_RATIO_THRESHOLD  = 0.04
+ON_RATIO_THRESHOLD  = 0.03
 OFF_STABLE_DURATION = 0.1          # seconds the button must stay OFF
-MAX_MISSED_FRAMES   = 100          # cached-bbox timeout (frames)
-YOLO_CONF           = 0.1
+YOLO_CONF           = 0.05
 LOOP_SLEEP          = 0.016        # ~60 Hz
 # ---------------------------------------------
 
@@ -60,6 +59,7 @@ class FloorArrivalServer(Node):
 
         # ---- YOLO model ----
         self.model = YOLO(MODEL_PATH)
+        self._warm_up_model()
 
         # ---- subscribers / publishers ----
         self.create_subscription(
@@ -78,6 +78,7 @@ class FloorArrivalServer(Node):
             cancel_callback=self._cancel_cb,
             callback_group=self.cb_group,
         )
+        self.get_logger().info('FloorArrivalServer ready — action: check_floor_arrival')
 
     # ------------------------------------------------------------------
     # Callbacks
@@ -103,6 +104,17 @@ class FloorArrivalServer(Node):
         except Exception:
             pass
 
+    def _warm_up_model(self) -> None:
+        self.get_logger().info('Warming YOLO model for check_floor_arrival...')
+        dummy_frame = np.zeros((640, 640, 3), dtype=np.uint8)
+        start_time = time.perf_counter()
+        try:
+            self.model(dummy_frame, conf=YOLO_CONF, verbose=False)
+            elapsed = time.perf_counter() - start_time
+            self.get_logger().info(f'YOLO warm-up complete in {elapsed:.2f}s.')
+        except Exception as exc:
+            self.get_logger().warn('YOLO warm-up failed; ' f'the first CheckFloorArrival goal may be slower: {exc}')
+
     @staticmethod
     def _overlay(img, text, color=(200, 200, 200), y=30):
         cv2.putText(img, text, (10, y),
@@ -125,13 +137,10 @@ class FloorArrivalServer(Node):
         }
         mapped_floor = floor_mapping.get(raw_floor, raw_floor)
         target_class = f'button-{mapped_floor}'
+        self.get_logger().info(f'[CheckFloorArrival] Goal received for {raw_floor} ({target_class}).')
 
         feedback = CheckFloorArrival.Feedback()
         result   = CheckFloorArrival.Result()
-
-        # ---- bounding-box tracker ----
-        cached_bbox   = None
-        missed_frames = 0
 
         # ---- stability timer ----
         off_start_time = None
@@ -157,29 +166,25 @@ class FloorArrivalServer(Node):
             except Exception:
                 continue
 
-            # --- YOLO inference ---
+            self._overlay(cv_image, f'Target: {target_class}',
+                          color=(255, 255, 0))
+
+            # --- YOLO inference (fresh detections only) ---
             results = self.model(cv_image, conf=YOLO_CONF, verbose=False)
-            target_found_in_yolo = False
+            working_bbox = None
 
             for res in results:
                 for box in res.boxes:
                     cls_id   = int(box.cls[0])
                     cls_name = self.model.names.get(cls_id, '')
                     if cls_name == target_class:
-                        target_found_in_yolo = True
-                        cached_bbox   = tuple(map(int, box.xyxy[0].tolist()))
-                        missed_frames = 0
+                        working_bbox = tuple(map(int, box.xyxy[0].tolist()))
                         break
 
-            # --- resolve working bbox ---
-            working_bbox = None
-            if target_found_in_yolo:
-                working_bbox = cached_bbox
-            elif cached_bbox is not None and missed_frames < MAX_MISSED_FRAMES:
-                working_bbox = cached_bbox
-                missed_frames += 1
-
             if working_bbox is None:
+                self._overlay(cv_image,
+                              'Target button not visible',
+                              color=(0, 0, 255), y=60)
                 feedback.status = 'NO_DETECTION'
                 feedback.ratio  = 0.0
                 goal_handle.publish_feedback(feedback)
@@ -197,17 +202,28 @@ class FloorArrivalServer(Node):
             mask  = cv2.inRange(hsv_crop, HSV_LOWER, HSV_UPPER)
             ratio = float(np.count_nonzero(mask) / mask.size)
 
-            # --- PiP mask overlay removed ---
+            # --- PiP mask overlay ---
+            mask_bgr     = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+            mask_resized = cv2.resize(mask_bgr, (150, 150),
+                                      interpolation=cv2.INTER_NEAREST)
+            h_m, w_m = mask_resized.shape[:2]
+            cv_image[0:h_m, cv_image.shape[1]-w_m:] = mask_resized
+            cv2.rectangle(cv_image,
+                          (cv_image.shape[1]-w_m, 0),
+                          (cv_image.shape[1], h_m), (0, 255, 0), 2)
+            cv2.putText(cv_image, 'HSV MASK',
+                        (cv_image.shape[1]-w_m+10, 25),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
             # --- decision logic ---
             if ratio >= ON_RATIO_THRESHOLD:
-                state_str = f'{mapped_floor}  {ratio:.3f}'
+                state_str = f'ON (Ratio: {ratio:.2f})'
                 box_color = (0, 0, 255)
                 off_start_time = None
                 feedback.status = 'ON'
                 feedback.ratio  = ratio
             else:
-                state_str = f'{mapped_floor}  {ratio:.3f}'
+                state_str = f'OFF (Ratio: {ratio:.2f})'
                 box_color = (0, 255, 0)
 
                 if off_start_time is None:

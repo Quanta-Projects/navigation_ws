@@ -27,11 +27,12 @@ public:
     this->declare_parameter("plugin_lib_names", std::vector<std::string>{});
     this->declare_parameter("bt_tick_rate_hz", 20.0);
     this->declare_parameter("bt_timeout_sec", 300.0);
-    this->declare_parameter("locations_file", "locations.yaml");
+    this->declare_parameter("locations_file", "physical_locations.yaml");
 
     // Get parameters
     bt_tick_rate_hz_ = this->get_parameter("bt_tick_rate_hz").as_double();
     bt_timeout_sec_ = this->get_parameter("bt_timeout_sec").as_double();
+    locations_file_ = this->get_parameter("locations_file").as_string();
 
     std::string bt_xml_path = this->get_parameter("bt_xml_path").as_string();
     if (bt_xml_path.empty()) {
@@ -131,7 +132,7 @@ private:
       blackboard->set("current_floor_id", request->current_floor_id);
       blackboard->set("target_floor_id", request->target_floor_id);
       blackboard->set("final_pose", final_pose);
-      blackboard->set("locations_file", this->get_parameter("locations_file").as_string());
+      blackboard->set("locations_file", locations_file_);
 
       RCLCPP_INFO(this->get_logger(), "Blackboard set: current_floor_id=%s, target_floor_id=%s", 
                   request->current_floor_id.c_str(), request->target_floor_id.c_str());
@@ -178,15 +179,7 @@ private:
         RCLCPP_WARN(this->get_logger(), "BT execution FAILURE (status=%d)", static_cast<int>(status));
         response->success = false;
         response->nav_status = 0;
-        
-        // Provide more specific message if floors differ
-        if (request->current_floor_id != request->target_floor_id) {
-          response->message = "mission_id=" + request->mission_id + 
-                            " FAILED: Cross-floor navigation not yet implemented (current=" +
-                            request->current_floor_id + ", target=" + request->target_floor_id + ")";
-        } else {
-          response->message = "mission_id=" + request->mission_id + " FAILED: BT returned FAILURE";
-        }
+        response->message = "mission_id=" + request->mission_id + " FAILED: BT returned FAILURE";
       }
 
     } catch (const std::exception & e) {
@@ -202,6 +195,7 @@ private:
   rclcpp::Service<smrr_interfaces::srv::StartMission>::SharedPtr service_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   std::string bt_xml_path_;
+  std::string locations_file_;
   std::vector<std::string> plugin_lib_names_;
   double bt_tick_rate_hz_;
   double bt_timeout_sec_;

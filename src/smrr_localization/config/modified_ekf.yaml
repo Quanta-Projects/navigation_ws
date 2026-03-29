@@ -1,6 +1,6 @@
 ekf_filter_node:
     ros__parameters:
-        frequency: 60.0
+        frequency: 75.0
         sensor_timeout: 0.1
         two_d_mode: true
         transform_time_offset: 0.0
@@ -8,7 +8,7 @@ ekf_filter_node:
         print_diagnostics: true
         debug: false
         publish_acceleration: false
-        publish_tf: true
+        publish_tf: false
         
         # Frame definitions strictly adhering to Nav2 and REP-105 standards
         map_frame: map
@@ -28,22 +28,6 @@ ekf_filter_node:
         odom0_differential: false
         odom0_relative: false
         odom0_nodelay: true # Disables Nagle's algorithm for timely data reception
-
-        # --- ZED2 IMU ---
-        imu0: /zed2/zed_node/imu/data
-        # Note on Nav2 vs ZED2 Docs: The generic Nav2 documentation fuses angular velocity (the 12th boolean) 
-        # because it assumes a raw, unfiltered IMU. However, for a high-quality sensor like the ZED2 that has 
-        # internal filtering, fusing the absolute Yaw (the 6th boolean) provides vastly superior heading stability.
-        imu0_config: [false, false, false,
-                      false, false, true,
-                      false, false, false,
-                      false, false, false,
-                      false, false, false]
-        imu0_differential: false
-        imu0_relative: true # Mandated when fusing absolute yaw to prevent snapping to magnetic North
-        imu0_queue_size: 5
-        imu0_nodelay: true  # Disables Nagle's algorithm for high-frequency IMU data
-        imu0_remove_gravitational_acceleration: true
 
         use_control: false
 

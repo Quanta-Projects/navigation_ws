@@ -1,19 +1,24 @@
 # ZED camera parameter overrides for hardware bringup.
 #
-# In this bringup we keep IMU publishing enabled, but disable ZED positional
-# tracking / visual odometry because wheel odometry + EKF is the active odom source.
-# TF publication from the ZED wrapper also remains disabled to avoid conflicts
+# IMU publishing is disabled — the EKF uses wheel odometry only.
+# ZED positional tracking / visual odometry is disabled because wheel odometry
+# + EKF is the active odom source.
+# TF publication from the ZED wrapper remains disabled to avoid conflicts
 # with the robot's odom -> base_footprint transform.
 ---
 /**:
     ros__parameters:
         sensors:
-            publish_imu_tf: true       # Broadcast the IMU TF frame
-            publish_imu: true          # Advertise filtered IMU topic
-            publish_imu_raw: true      # Advertise raw IMU topic
+            sensors_image_sync: false  # Keep image/sensor streams independent as requested
+            publish_imu_tf: false      # IMU TF not needed; EKF no longer fuses ZED IMU
+            publish_imu: false         # ZED IMU not consumed by EKF
+            publish_imu_raw: false     # ZED IMU raw not needed
         pos_tracking:
-            pos_tracking_enabled: false
+            pos_tracking_enabled: false # Disable ZED visual odometry/pose tracking
             pos_tracking_mode: 'GEN_1'
-            set_as_static: true
+            set_as_static: true         # Keep camera treated as static if tracking is re-enabled
             imu_fusion: false
-            publish_tf: false          # EKF node publishes odom->base_footprint TF; disable ZED's odom TF
+            publish_tf: false           # EKF node publishes odom->base_footprint TF; disable ZED's odom TF
+            publish_map_tf: false       # Disable map->odom TF from ZED wrapper
+        debug:
+            use_pub_timestamps: true    # Stamp messages with ROS/system time instead of camera hardware timestamps

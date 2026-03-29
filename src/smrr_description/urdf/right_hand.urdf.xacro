@@ -49,7 +49,6 @@
   <joint
     name="shoulder_r_joint"
     type="fixed">
-    <!-- type="revolute" -->
     <origin
       xyz="0.0025 -0.17549 1.13"
       rpy="1.5708 0 0" />
@@ -57,13 +56,6 @@
       link="base_link" />
     <child
       link="shoulder_r_link" />
-    <axis
-      xyz="0 0 1" />
-    <limit
-      lower="0"
-      upper="${0.5*PI}"
-      effort="0"
-      velocity="0" />
   </joint>
 
   <link
@@ -112,7 +104,6 @@
   <joint
     name="bicep_r_joint"
     type="fixed">
-    <!-- type="revolute" -->
     <origin
       xyz="-0.00044422 -0.12491 -0.0013064"
       rpy="3.1416 -1.5388 -1.4874" />
@@ -120,13 +111,6 @@
       link="shoulder_r_link" />
     <child
       link="bicep_r_link" />
-    <axis
-      xyz="0 0 1" />
-    <limit
-      lower="${-0.25*PI}"
-      upper="${0.25*PI}"
-      effort="0"
-      velocity="0" />
   </joint>
 
   <link
@@ -175,7 +159,6 @@
   <joint
     name="elbow_r_joint"
     type="fixed">
-    <!-- type="revolute" -->
     <origin
       xyz="0.010186 -0.0047446 0.14136"
       rpy="-1.6029 -0.083354 -1.5681" />
@@ -183,13 +166,6 @@
       link="bicep_r_link" />
     <child
       link="elbow_r_link" />
-    <axis
-      xyz="-0.06561 0.035186 0.99722" />
-    <limit
-      lower="0"
-      upper="${0.5*PI}"
-      effort="0"
-      velocity="0" />
   </joint>
 
   <link
@@ -238,7 +214,6 @@
   <joint
     name="wrist_r_joint"
     type="fixed">
-    <!-- type="revolute" -->
     <origin
       xyz="0.057171 -0.23705 0.0080661"
       rpy="1.6119 -0.056547 0.21793" />
@@ -246,13 +221,6 @@
       link="elbow_r_link" />
     <child
       link="wrist_r_link" />
-    <axis
-      xyz="0 0 1" />
-    <limit
-      lower="${-0.25*PI}"
-      upper="${0.25*PI}"
-      effort="0"
-      velocity="0" />
   </joint>
 
   <link name="eef_r_link" />
