@@ -82,7 +82,7 @@ BT::NodeStatus GetNamedMapAction::tick()
   try {
     // Load YAML file (cached)
     std::string file_path = resolveFilePath(
-      locations_file.value_or("physical_locations.yaml"));
+      locations_file.value_or("locations.yaml"));
     YAML::Node yaml = loadYamlFile(file_path);
 
     // Navigate: floors[floor_id]["maps"][map_key]

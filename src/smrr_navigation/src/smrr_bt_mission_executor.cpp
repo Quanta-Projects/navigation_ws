@@ -27,12 +27,10 @@ public:
     this->declare_parameter("plugin_lib_names", std::vector<std::string>{});
     this->declare_parameter("bt_tick_rate_hz", 20.0);
     this->declare_parameter("bt_timeout_sec", 300.0);
-    this->declare_parameter("locations_file", "physical_locations.yaml");
 
     // Get parameters
     bt_tick_rate_hz_ = this->get_parameter("bt_tick_rate_hz").as_double();
     bt_timeout_sec_ = this->get_parameter("bt_timeout_sec").as_double();
-    locations_file_ = this->get_parameter("locations_file").as_string();
 
     std::string bt_xml_path = this->get_parameter("bt_xml_path").as_string();
     if (bt_xml_path.empty()) {
@@ -132,7 +130,7 @@ private:
       blackboard->set("current_floor_id", request->current_floor_id);
       blackboard->set("target_floor_id", request->target_floor_id);
       blackboard->set("final_pose", final_pose);
-      blackboard->set("locations_file", locations_file_);
+      blackboard->set("locations_file", std::string("locations.yaml"));
 
       RCLCPP_INFO(this->get_logger(), "Blackboard set: current_floor_id=%s, target_floor_id=%s", 
                   request->current_floor_id.c_str(), request->target_floor_id.c_str());
@@ -195,7 +193,6 @@ private:
   rclcpp::Service<smrr_interfaces::srv::StartMission>::SharedPtr service_;
   rclcpp::CallbackGroup::SharedPtr callback_group_;
   std::string bt_xml_path_;
-  std::string locations_file_;
   std::vector<std::string> plugin_lib_names_;
   double bt_tick_rate_hz_;
   double bt_timeout_sec_;

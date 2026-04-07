@@ -1,12 +1,12 @@
-# Goal: current and target floor IDs for direction determination
-string current_floor    # e.g., "floor0", "floor2"
-string target_floor     # e.g., "floor2", "floor0"
+# Goal
+string current_floor        # e.g. "floor0"
+string target_floor         # e.g. "floor2"
 ---
-# Result: whether the correct elevator direction was confirmed
-bool correct_direction_confirmed    # true if direction arrow confirmed
-string message                      # human-readable result
+# Result
+bool   correct_direction_confirmed
+string message
 ---
-# Feedback: per-cycle detection status
-string expected_direction   # "UP" or "DOWN"
-string status               # "ON", "OFF_UNSTABLE", "OFF_STABLE", "NO_DETECTION"
-float32 ratio               # HSV mask ratio (0.0 – 1.0)
+# Feedback
+string  expected_direction  # "UP" or "DOWN"
+string  status              # "ON", "OFF_UNSTABLE", "OFF_STABLE", "NO_DETECTION"
+float32 ratio               # HSV illuminated-pixel ratio (0.0 – 1.0)

@@ -101,7 +101,7 @@ BT::NodeStatus PublishInitialPoseAction::tick()
 
   if (use_apriltag) {
     std::string tag_frame  = getInput<std::string>("tag_frame").value_or("tag36h11:0");
-    std::string base_frame = getInput<std::string>("base_frame").value_or("base_footprint");
+    std::string base_frame = getInput<std::string>("base_frame").value_or("base_link");
 
     double exp_x     = getInput<double>("expected_tag_x").value_or(0.0);
     double exp_y     = getInput<double>("expected_tag_y").value_or(0.0);

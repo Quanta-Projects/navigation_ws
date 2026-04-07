@@ -70,7 +70,7 @@ BT::NodeStatus GetNamedPoseAction::tick()
   std::string floor_id = floor_id_result.value();
   std::string location_key = location_key_result.value();
   std::string global_frame = global_frame_result.value_or("map");
-  std::string locations_file = locations_file_result.value_or("physical_locations.yaml");
+  std::string locations_file = locations_file_result.value_or("locations.yaml");
 
   if (floor_id.empty() || location_key.empty()) {
     std::cerr << "[GetNamedPose] ERROR: floor_id or location_key is empty" << std::endl;
