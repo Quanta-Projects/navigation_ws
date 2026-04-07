@@ -3,9 +3,14 @@
 Hardware Docking Bringup Launch File
 
 This launch file brings up all components needed for docking on real hardware:
-1. ZED2 rear camera (via zed_camera.launch.py with TF publishing disabled)
-2. Static transform bridge from URDF frame to ZED frame
+1. Image rectification for RealSense D435 color camera
+2. Static transform bridge from URDF frame to RealSense camera_link
 3. AprilTag detection and docking pipeline (via detections.launch.py)
+
+Note: RealSense D435 camera must be launched separately before this file:
+    ros2 launch realsense2_camera rs_launch.py \
+        depth_module.profile:=640x480x90 \
+        rgb_camera.profile:=640x480x60
 
 Usage:
     ros2 launch smrr_docking docking_bringup_hardware.launch.py
@@ -23,37 +28,43 @@ def generate_launch_description():
     
     # Get package directories
     docking_pkg_share = get_package_share_directory('smrr_docking')
-    zed_wrapper_share = get_package_share_directory('zed_wrapper')
     
     # Path to launch files
     detections_launch = os.path.join(docking_pkg_share, 'launch', 'detections.launch.py')
     docking_bringup_launch = os.path.join(docking_pkg_share, 'launch', 'docking_bringup.launch.py')
-    zed_camera_launch = os.path.join(zed_wrapper_share, 'launch', 'zed_camera.launch.py')
+
+    # RealSense D435 source topics
+    realsense_image_raw  = '/camera/camera/color/image_raw'
+    realsense_info_topic = '/camera/camera/color/camera_info'
+    realsense_image_rect = '/camera/camera/color/image_rect'
     
     return LaunchDescription([
-        
+
         # ---------------------------------------------------------
-        # ZED2 Rear Camera Launch
+        # Image Rectification for RealSense D435
         # ---------------------------------------------------------
-        # Launches ZED camera with TF publishing disabled
-        # Camera outputs will be namespaced under /rear_camera/
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(zed_camera_launch),
-            launch_arguments={
-                'camera_model': 'zed2',
-                'camera_name': 'rear_camera',
-                'publish_tf': 'false',           # Disable odom->camera_link TF
-                'publish_map_tf': 'false',       # Disable map->odom TF
-                'publish_urdf': 'true',          # Use robot's URDF instead
-                'use_sim_time': 'false'          # Real hardware
-            }.items()
+        # The ZED2 provided pre-rectified images directly; the RealSense
+        # D435 publishes raw images that must be rectified before being
+        # fed to the AprilTag detector.
+        Node(
+            package='image_proc',
+            executable='rectify_node',
+            name='realsense_color_rectify',
+            remappings=[
+                ('image',       realsense_image_raw),
+                ('camera_info', realsense_info_topic),
+                ('image_rect',  realsense_image_rect),
+            ],
+            output='screen'
         ),
         
         # ---------------------------------------------------------
         # Static Transform Bridge
         # ---------------------------------------------------------
-        # Bridges rear_camera_link (from robot URDF) to 
-        # rear_camera_camera_link (expected by ZED)
+        # Bridges rear_camera_link (from robot URDF) to
+        # camera_link (RealSense D435 base frame).
+        # The RealSense driver publishes the rest of its own TF tree
+        # (camera_link -> camera_color_frame -> camera_color_optical_frame).
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -61,7 +72,7 @@ def generate_launch_description():
             output='screen',
             arguments=[
                 '--frame-id', 'rear_camera_link', 
-                '--child-frame-id', 'rear_camera_camera_link',
+                '--child-frame-id', 'camera_link',
                 '--x', '0', '--y', '0', '--z', '0',
                 '--roll', '0', '--pitch', '0', '--yaw', '0'
             ]
@@ -77,8 +88,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(detections_launch),
             launch_arguments={
-                'camera_topic': '/rear_camera/zed_node/rgb/color/rect/image',
-                'info_topic': '/rear_camera/zed_node/rgb/color/rect/camera_info'
+                'camera_topic': realsense_image_rect,
+                'info_topic':   realsense_info_topic
             }.items()
         ),
         

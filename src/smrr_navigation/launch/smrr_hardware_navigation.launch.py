@@ -34,7 +34,7 @@ def generate_launch_description():
         params_file = os.path.join(config_dir, 'smrr_nav_params.yaml')
 
     # YOLO button detection model for floor arrival verification
-    yolo_model_path = os.path.join(smrr_navigation_dir, 'models', 'yolo_button_detection.pt')
+    yolo_model_path = os.path.join(smrr_navigation_dir, 'models', 'button_detection.pt')
 
     # RViz configuration file
     rviz_config = os.path.join(config_dir, 'smrr_nav.rviz')
@@ -217,6 +217,21 @@ def generate_launch_description():
     )
 
     # ---------------------------------------------------------------------------
+    # Elevator Call Button Server
+    # Detects UP/DOWN call button via YOLO + depth and computes approach point
+    # ---------------------------------------------------------------------------
+    elevator_call_button_server = Node(
+        package='smrr_navigation',
+        executable='elevator_call_button_server.py',
+        name='elevator_call_button_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': False},
+            {'yolo_model_path': yolo_model_path}
+        ]
+    )
+
+    # ---------------------------------------------------------------------------
     # BT Mission Executor
     # Runs the smrr_multifloor BehaviorTree for same/cross-floor navigation
     # ---------------------------------------------------------------------------
@@ -317,6 +332,9 @@ def generate_launch_description():
 
         # Floor arrival server (YOLO + HSV floor verification)
         floor_arrival_server,
+
+        # Elevator call button server (YOLO + depth)
+        elevator_call_button_server,
 
         # BT Mission Executor (multi-floor behavior tree)
         bt_mission_executor,

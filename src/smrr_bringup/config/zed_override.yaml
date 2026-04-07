@@ -8,11 +8,26 @@
 ---
 /**:
     ros__parameters:
+        general:
+            # Prioritize high RGB publish rate for /zed2_left_camera/image_raw relay.
+            grab_resolution: 'VGA'
+            grab_frame_rate: 30
+            pub_frame_rate: 30.0
+        video:
+            publish_rgb: true
         sensors:
             sensors_image_sync: false  # Keep image/sensor streams independent as requested
             publish_imu_tf: false      # IMU TF not needed; EKF no longer fuses ZED IMU
             publish_imu: false         # ZED IMU not consumed by EKF
             publish_imu_raw: false     # ZED IMU raw not needed
+        depth:
+            # Keep high depth quality, but cap cloud rate to reduce load.
+            depth_mode: 'NEURAL_PLUS'
+            point_cloud_freq: 5.0
+            point_cloud_res: 'COMPACT'
+            publish_point_cloud: true
+            publish_depth_map: true
+            publish_depth_info: true
         pos_tracking:
             pos_tracking_enabled: false # Disable ZED visual odometry/pose tracking
             pos_tracking_mode: 'GEN_1'

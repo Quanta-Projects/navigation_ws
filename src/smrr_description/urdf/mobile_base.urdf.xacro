@@ -362,4 +362,12 @@
       xyz="1 0 0" />
   </joint>
 
+  <link name="link_0_fake"/>
+
+  <joint name="link_0_fake_joint" type="fixed">
+    <origin xyz="-0.04 -0.235 1.11974" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child  link="link_0_fake"/>
+  </joint>
+
 </robot>

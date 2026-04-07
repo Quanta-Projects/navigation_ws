@@ -22,7 +22,7 @@ def generate_launch_description():
             "launch",
             "hardware_interface.launch.py"
         ),
-        launch_arguments={'port': '/dev/ttyACM0'}.items()
+        launch_arguments={'port': '/dev/ttyACM1'}.items()
     )
 
     controller = IncludeLaunchDescription(
@@ -65,19 +65,8 @@ def generate_launch_description():
         parameters=[laser_filter_config],
         remappings=[
             ('scan', '/scan_raw'),
-            ('scan_filtered', '/scan_filtered_rawstamp'),
+            ('scan_filtered', '/scan'),
         ],
-        output='screen'
-    )
-
-    scan_restamper = Node(
-        package='smrr_bringup',
-        executable='scan_restamper.py',
-        name='scan_restamper',
-        parameters=[{
-            'input_topic': '/scan_filtered_rawstamp',
-            'output_topic': '/scan',
-        }],
         output='screen'
     )
 
@@ -149,27 +138,42 @@ def generate_launch_description():
                 ]
             ),
 
+# ---------------------------------------------------------
+            # Topic Relay Nodes
             # ---------------------------------------------------------
-            # ZED Topic Restamper
-            # ---------------------------------------------------------
-            # Republish ZED native topics under sim-compatible names with
-            # current ROS time stamps:
+            # Republish ZED native topics under sim-compatible names:
             #   /zed2_left_camera/image_raw
             #   /zed2_left_camera/depth/image_raw
             #   /zed2_left_camera/camera_info
             Node(
-                package='smrr_bringup',
-                executable='zed_topic_restamper.py',
-                name='zed_topic_restamper',
+                package='topic_tools',
+                executable='relay',
+                name='rgb_relay',
                 output='screen',
-                parameters=[{
-                    'rgb_input_topic': '/zed2/zed_node/rgb/color/rect/image',
-                    'rgb_output_topic': '/zed2_left_camera/image_raw',
-                    'depth_input_topic': '/zed2/zed_node/depth/depth_registered',
-                    'depth_output_topic': '/zed2_left_camera/depth/image_raw',
-                    'camera_info_input_topic': '/zed2/zed_node/rgb/color/rect/camera_info',
-                    'camera_info_output_topic': '/zed2_left_camera/camera_info',
-                }],
+                arguments=[
+                    '/zed2/zed_node/rgb/color/rect/image',
+                    '/zed2_left_camera/image_raw',
+                ],
+            ),
+            Node(
+                package='topic_tools',
+                executable='relay',
+                name='depth_relay',
+                output='screen',
+                arguments=[
+                    '/zed2/zed_node/depth/depth_registered',
+                    '/zed2_left_camera/depth/image_raw',
+                ],
+            ),
+            Node(
+                package='topic_tools',
+                executable='relay',
+                name='camera_info_relay',
+                output='screen',
+                arguments=[
+                    '/zed2/zed_node/rgb/color/rect/camera_info',
+                    '/zed2_left_camera/camera_info',
+                ],
             ),
 
         ]
@@ -189,7 +193,6 @@ def generate_launch_description():
         joystick,
         sllidar,
         scan_filter,
-        scan_restamper,
         # odom_path,
         # navigation,
 
