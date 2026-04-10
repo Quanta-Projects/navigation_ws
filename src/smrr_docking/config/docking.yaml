@@ -69,7 +69,7 @@ docking_server:
       subscribe_toggle: false          # always subscribed to topic
 
       # Success/contact signals
-      use_battery_status: false
+      use_battery_status: true
       battery_topic: "/battery_state"
       battery_current_threshold: 0.2
 
@@ -82,7 +82,7 @@ docking_server:
     home_dock:
       type: 'simple_dock'
       frame: "map"
-      pose: [-1.3798, 0.0, 0.1726]         #[-7.866, 20.6802, 1.138]
+      pose: [-9.4701, -2.3305, 1.266]         #[-7.866, 20.6802, 1.138]
       id: 'home'
 
     # Docking controller

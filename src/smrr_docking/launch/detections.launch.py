@@ -109,12 +109,12 @@ def generate_launch_description():
         
         DeclareLaunchArgument(
             'camera_topic',
-            default_value='/zed/zed_node/rgb/color/rect/image',
+            default_value='/camera/camera/color/image_rect',
             description='Topic for rectified image'
         ),
         DeclareLaunchArgument(
             'info_topic',
-            default_value='/zed/zed_node/rgb/color/rect/camera_info',
+            default_value='/camera/camera/color/camera_info',
             description='Topic for camera info'
         ),
 
@@ -133,18 +133,7 @@ def generate_launch_description():
                 ('camera_info', info_topic),
             ],
             parameters=[
-                apriltag_config_path, 
-                {
-                    'publish_tf': True,
-                    'size': 0.20,
-                    'max_hamming': 2,       # Increased from 0 to 2 for robust continuous detection
-                    'decimate': 1.0,        # No decimation for best accuracy
-                    'blur': 0.0,            # No blur
-                    'refine_edges': 1,      # Better edge refinement
-                    'threads': 4,           # Parallel processing for speed
-                    'debug': 0,
-                    'tag_family': 'tag36h11'
-                }
+                apriltag_config_path,
             ],
             output='screen'
         ),

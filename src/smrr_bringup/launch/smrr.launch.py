@@ -22,7 +22,7 @@ def generate_launch_description():
             "launch",
             "hardware_interface.launch.py"
         ),
-        launch_arguments={'port': '/dev/ttyACM1'}.items()
+        launch_arguments={'port': '/dev/ttyACM0'}.items()
     )
 
     controller = IncludeLaunchDescription(

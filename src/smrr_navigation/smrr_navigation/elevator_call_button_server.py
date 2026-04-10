@@ -44,9 +44,9 @@ PRESS_INSET_M    = -0.03  # 7 mm into button surface
 LOOP_SLEEP       = 0.05
 
 # Point-cloud ROI tuning
-BBOX_CENTER_SHRINK = 0.55  # Use center-focused crop to reduce wall dominance in RANSAC
-NEAR_DEPTH_PERCENTILE = 25.0  # Keep points near the closest quartile in ROI
-NEAR_DEPTH_BAND_M = 0.015     # Allow 1.5 cm spread beyond near-depth percentile
+BBOX_CENTER_SHRINK = 0.40  # Use center-focused crop to reduce wall dominance in RANSAC
+NEAR_DEPTH_PERCENTILE = 15.0  # Keep points near the closest quartile in ROI
+NEAR_DEPTH_BAND_M = 0.005     # Allow 1.5 cm spread beyond near-depth percentile
 
 # TF frames
 CAMERA_FRAME     = 'zed2_left_camera_frame_optical'
@@ -636,7 +636,7 @@ class ElevatorCallButtonServer(Node):
         viz_pts = crop.copy()
 
         # ── Step 5: RANSAC plane fit ─────────────────────────────────────────
-        DIST_THRESH = 0.005   # 5 mm inlier threshold
+        DIST_THRESH = 0.003   # 3 mm inlier threshold
         MAX_ITER    = 200
         MIN_INLIERS = 8
         npts        = len(crop)

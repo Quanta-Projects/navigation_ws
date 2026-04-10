@@ -15,7 +15,7 @@ def generate_launch_description():
     # Launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
+        default_value='false',
         description='Use simulation time'
     )
     
@@ -36,11 +36,7 @@ def generate_launch_description():
                 docking_params,
                 {'use_sim_time': use_sim_time}
             ],
-            remappings=[
-                # Remap topics to match your robot's topics
-                ('/tf', 'tf'),
-                ('/tf_static', 'tf_static'),
-            ]
+            remappings=[]
         ),
         
         # Lifecycle manager for docking server (recommended)
