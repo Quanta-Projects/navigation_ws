@@ -7,6 +7,7 @@
 #include <rclcpp_lifecycle/state.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <sensor_msgs/msg/battery_state.hpp>
+#include <std_msgs/msg/bool.hpp>
 
 #include <vector>
 #include <string>
@@ -67,6 +68,12 @@ private:
   static constexpr int DOCK_STABLE_COUNT = 5;  // ~500 ms at 100 ms firmware interval
   bool charge_command_;
   int  dock_connected_count_;   // consecutive is_connected=1 signals received
+
+  // External override: when true, forces charge_command_ = false regardless of
+  // dock connection state.  Set via /disable_charging topic (std_msgs/Bool).
+  // Used by the undocking pipeline to stop charging before driving away.
+  bool charging_disabled_override_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr disable_charging_sub_;
 };
 }  
 

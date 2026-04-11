@@ -12,7 +12,7 @@ namespace smrr_base_controller
 {
 BaseController::BaseController()
 : prev_right_encoder_(0), prev_left_encoder_(0), first_read_(true),
-  charge_command_(false), dock_connected_count_(0)
+  charge_command_(false), dock_connected_count_(0), charging_disabled_override_(false)
 {
 }
 
@@ -85,6 +85,23 @@ CallbackReturn BaseController::on_init(const hardware_interface::HardwareInfo &h
   battery_timer_ = charging_node_->create_wall_timer(
     std::chrono::seconds(1),
     [this]() { battery_pub_->publish(last_battery_state_); });
+
+  // Subscribe to /disable_charging so the undocking pipeline can force-stop
+  // charging before driving the robot away from the dock.
+  disable_charging_sub_ = charging_node_->create_subscription<std_msgs::msg::Bool>(
+    "/disable_charging", rclcpp::SystemDefaultsQoS(),
+    [this](const std_msgs::msg::Bool::SharedPtr msg) {
+      charging_disabled_override_ = msg->data;
+      if (charging_disabled_override_) {
+        charge_command_ = false;
+        dock_connected_count_ = 0;
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                    "Charging disabled via /disable_charging override");
+      } else {
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                    "Charging override released — normal dock logic resumes");
+      }
+    });
 
   charging_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   charging_executor_->add_node(charging_node_);
@@ -167,6 +184,7 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
   // Reset charge command
   charge_command_ = false;
   dock_connected_count_ = 0;
+  charging_disabled_override_ = false;
 
   try
   { 
@@ -508,7 +526,11 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
         // signals — this debounces the connection pin and ensures solid physical
         // contact before current flows.
         // Any single is_connected=0 resets the counter and stops charging immediately.
-        if (is_connected) {
+        // If charging_disabled_override_ is active, always keep charge_command_ false.
+        if (charging_disabled_override_) {
+          charge_command_ = false;
+          dock_connected_count_ = 0;
+        } else if (is_connected) {
           if (!charge_command_) {
             dock_connected_count_++;
             if (dock_connected_count_ >= DOCK_STABLE_COUNT) {
@@ -536,6 +558,7 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
         battery_msg.header.stamp = current_time;
         battery_msg.present     = is_connected;
         battery_msg.percentage  = static_cast<float>(values[6]) / 255.0f;  // 0-255 → 0.0-1.0
+        battery_msg.current     = is_charging ? 1.0f : 0.0f;  // Signal charging to docking server
         battery_msg.power_supply_status = is_charging
           ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
           : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;

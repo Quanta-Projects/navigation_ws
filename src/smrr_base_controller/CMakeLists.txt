@@ -36,6 +36,7 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rclcpp_lifecycle
   sensor_msgs
+  std_msgs
 )
 
 pluginlib_export_plugin_description_file(hardware_interface smrr_base_controller.xml)

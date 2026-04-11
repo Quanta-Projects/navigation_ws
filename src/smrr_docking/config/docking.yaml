@@ -1,7 +1,7 @@
 docking_server:
   ros__parameters:
     # General parameters
-    use_sim_time: true
+    use_sim_time: false
     controller_frequency: 50.0
     initial_perception_timeout: 5.0
     wait_charge_timeout: 20.0
@@ -40,7 +40,7 @@ docking_server:
       # Staging pose configuration (relative to dock pose)
       # For "backward" docking: staging pose should be in front of the dock,
       # with the robot's BACK facing the dock.
-      staging_x_offset: 1.60          # tuned so staging pose is where you want it
+      staging_x_offset: 1.50          # tuned so staging pose is where you want it
       staging_yaw_offset: 0.0
       use_staging_pose: true
       navigate_to_staging_pose: true
@@ -52,7 +52,7 @@ docking_server:
 
       # Offset from detected pose to actual docking pose
       external_detection_translation_x: -0.05
-      external_detection_translation_y: -0.05
+      external_detection_translation_y: 0.02
       external_detection_translation_z: 0.0
 
       # Orientation offsets: keep these only if they are correct for
@@ -71,9 +71,9 @@ docking_server:
       # Success/contact signals
       use_battery_status: true
       battery_topic: "/battery_state"
-      battery_current_threshold: 0.2
+      charging_threshold: 0.2
 
-      use_stall_detection: true
+      use_stall_detection: false
       joint_states_topic: "/joint_states"
       stall_effort_threshold: 0.6
 
@@ -82,7 +82,7 @@ docking_server:
     home_dock:
       type: 'simple_dock'
       frame: "map"
-      pose: [-9.4701, -2.3305, 1.266]         #[-7.866, 20.6802, 1.138]
+      pose: [-9.4701, -2.3305, 1.29]         #[-7.866, 20.6802, 1.138]
       id: 'home'
 
     # Docking controller
@@ -92,9 +92,9 @@ docking_server:
       v_linear_min: 0.00
       v_linear_max: 0.05
       v_angular_max: 0.1
-      slowdown_radius: 0.25
-      rotate_to_heading_angular_vel: 0.04
-      rotate_to_heading_max_angular_accel: 1.0
+      slowdown_radius: 1.0
+      rotate_to_heading_angular_vel: 0.02
+      rotate_to_heading_max_angular_accel: 0.5
       use_collision_detection: false
       costmap_topic: "local_costmap/costmap_raw"
       footprint_topic: "local_costmap/published_footprint"

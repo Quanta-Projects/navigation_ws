@@ -68,7 +68,7 @@ def generate_launch_description():
                 '--frame-id', 'rear_camera_link', 
                 '--child-frame-id', 'rear_cam_link',
                 '--x', '0', '--y', '0', '--z', '0',
-                '--roll', '0', '--pitch', '0.2094', '--yaw', '0'
+                '--roll', '0', '--pitch', '0.2094', '--yaw', '0.0174'
             ]
         ),
         

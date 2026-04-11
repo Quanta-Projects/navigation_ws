@@ -52,4 +52,17 @@ def generate_launch_description():
             ]
         ),
 
+        # Safe undock wrapper — call /undock_robot_safe instead of /undock_robot
+        # Stops charging and waits before forwarding to the real undock action
+        Node(
+            package='smrr_docking',
+            executable='undock_with_charge_stop',
+            name='undock_with_charge_stop',
+            output='screen',
+            parameters=[{
+                'settle_time': 5.0,
+                'charge_stop_timeout': 10.0,
+            }]
+        ),
+
     ])
