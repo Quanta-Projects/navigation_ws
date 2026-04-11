@@ -109,12 +109,12 @@ def generate_launch_description():
         
         DeclareLaunchArgument(
             'camera_topic',
-            default_value='/camera/camera/color/image_rect',
+            default_value='/camera/rear_cam/color/image_raw',
             description='Topic for rectified image'
         ),
         DeclareLaunchArgument(
             'info_topic',
-            default_value='/camera/camera/color/camera_info',
+            default_value='/camera/rear_cam/color/camera_info',
             description='Topic for camera info'
         ),
 
@@ -147,7 +147,7 @@ def generate_launch_description():
             arguments=[
                 '--frame-id', 'tag36h11:0',
                 '--child-frame-id', 'dock_link',
-                '--x', '0', '--y', '-0.35', '--z', '0.23',
+                '--x', '0', '--y', '-0.21', '--z', '0.23',
                 '--roll', '0', '--pitch', '-1.57', '--yaw', '-1.57'
             ],
             output='screen'

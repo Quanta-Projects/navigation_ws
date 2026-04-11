@@ -197,5 +197,5 @@ def generate_launch_description():
         # navigation,
 
         # ==================== Human Tracker (optional) ====================
-        human_tracker_group,
+        # human_tracker_group,
     ])

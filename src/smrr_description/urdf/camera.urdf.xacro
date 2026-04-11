@@ -157,7 +157,7 @@
     
     <!-- Rear Camera Mount (facing backward for docking) -->
     <joint name="rear_camera_joint" type="fixed">
-        <origin xyz="-0.12 0 0.43" rpy="0 0 ${pi}"/>  <!-- Mounted at back, rotated 180° -->
+        <origin xyz="-0.12 0 0.3524" rpy="0 0 ${pi}"/>  <!-- Mounted at back, rotated 180° -->
         <parent link="base_link"/>
         <child link="rear_camera_link"/>
     </joint>

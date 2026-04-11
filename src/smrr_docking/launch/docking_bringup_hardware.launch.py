@@ -49,8 +49,6 @@ def generate_launch_description():
                 'rgb_camera.profile':             '640x480x30',
                 'enable_sync':                    'true',
                 'rgb_camera.power_line_frequency': '1',
-                'rgb_camera.color_qos':           'RELIABLE',
-                'depth_module.depth_qos':         'RELIABLE',
             }.items()
         ),
 
@@ -70,7 +68,7 @@ def generate_launch_description():
                 '--frame-id', 'rear_camera_link', 
                 '--child-frame-id', 'rear_cam_link',
                 '--x', '0', '--y', '0', '--z', '0',
-                '--roll', '0', '--pitch', '0', '--yaw', '0'
+                '--roll', '0', '--pitch', '0.2094', '--yaw', '0'
             ]
         ),
         

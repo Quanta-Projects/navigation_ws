@@ -1,353 +1,352 @@
-[INFO] [launch]: All log files can be found below /home/quanta/.ros/log/2026-04-09-19-36-24-603283-quanta-desktop-115184
+[INFO] [launch]: All log files can be found below /home/quanta/.ros/log/2026-04-10-22-44-30-218081-quanta-desktop-13962
 [INFO] [launch]: Default logging verbosity is set to INFO
-[INFO] [component_container_isolated-1]: process started with pid [115219]
-[INFO] [named_goal_server.py-2]: process started with pid [115221]
-[INFO] [location_subscriber.py-3]: process started with pid [115223]
-[INFO] [floor_arrival_server.py-4]: process started with pid [115227]
-[INFO] [elevator_call_button_server.py-5]: process started with pid [115236]
-[INFO] [smrr_bt_mission_executor-6]: process started with pid [115239]
-[INFO] [apriltag_manager_server.py-7]: process started with pid [115241]
-[component_container_isolated-1] [INFO] [1775743585.812323826] [nav2_container]: Load Library: /opt/ros/humble/lib/libmap_server_core.so
-[smrr_bt_mission_executor-6] [INFO] [1775743585.828795803] [smrr_bt_mission_executor]: BT Mission Executor initialized
-[smrr_bt_mission_executor-6] [INFO] [1775743585.829291501] [smrr_bt_mission_executor]: BT XML: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/behavior_trees/smrr_multifloor.xml
-[smrr_bt_mission_executor-6] [INFO] [1775743585.829448914] [smrr_bt_mission_executor]: Tick rate: 20.0 Hz, Timeout: 300.0 sec
-[component_container_isolated-1] [INFO] [1775743585.840773316] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::CostmapFilterInfoServer>
-[component_container_isolated-1] [INFO] [1775743585.840892201] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapSaver>
-[component_container_isolated-1] [INFO] [1775743585.840909257] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
-[component_container_isolated-1] [INFO] [1775743585.840919754] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
-[component_container_isolated-1] [INFO] [1775743585.851735946] [map_server]: 
+[INFO] [component_container_isolated-1]: process started with pid [13993]
+[INFO] [named_goal_server.py-2]: process started with pid [13995]
+[INFO] [location_subscriber.py-3]: process started with pid [13997]
+[INFO] [floor_arrival_server.py-4]: process started with pid [13999]
+[INFO] [elevator_call_button_server.py-5]: process started with pid [14001]
+[INFO] [smrr_bt_mission_executor-6]: process started with pid [14003]
+[INFO] [apriltag_manager_server.py-7]: process started with pid [14015]
+[smrr_bt_mission_executor-6] [INFO] [1775841271.381224806] [smrr_bt_mission_executor]: BT Mission Executor initialized
+[smrr_bt_mission_executor-6] [INFO] [1775841271.381419266] [smrr_bt_mission_executor]: BT XML: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/behavior_trees/smrr_multifloor.xml
+[smrr_bt_mission_executor-6] [INFO] [1775841271.381441794] [smrr_bt_mission_executor]: Tick rate: 20.0 Hz, Timeout: 300.0 sec
+[component_container_isolated-1] [INFO] [1775841271.399399222] [nav2_container]: Load Library: /opt/ros/humble/lib/libmap_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.423255207] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::CostmapFilterInfoServer>
+[component_container_isolated-1] [INFO] [1775841271.424869260] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapSaver>
+[component_container_isolated-1] [INFO] [1775841271.426073208] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-1] [INFO] [1775841271.427052743] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-1] [INFO] [1775841271.446705727] [map_server]: 
 [component_container_isolated-1] 	map_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743585.851838509] [map_server]: Creating
+[component_container_isolated-1] [INFO] [1775841271.449785195] [map_server]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743585.874680824] [nav2_container]: Load Library: /opt/ros/humble/lib/libamcl_core.so
-[component_container_isolated-1] [INFO] [1775743585.881634063] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
-[component_container_isolated-1] [INFO] [1775743585.881879576] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
-[component_container_isolated-1] [INFO] [1775743585.925463043] [amcl]: 
+[component_container_isolated-1] [INFO] [1775841271.467446468] [nav2_container]: Load Library: /opt/ros/humble/lib/libamcl_core.so
+[component_container_isolated-1] [INFO] [1775841271.473845625] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-1] [INFO] [1775841271.474014838] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-1] [INFO] [1775841271.498801207] [amcl]: 
 [component_container_isolated-1] 	amcl lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743585.931135693] [amcl]: Creating
+[component_container_isolated-1] [INFO] [1775841271.501528266] [amcl]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/amcl' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743585.970372446] [nav2_container]: Load Library: /opt/ros/humble/lib/libnav2_lifecycle_manager_core.so
-[component_container_isolated-1] [INFO] [1775743585.971413027] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1775743585.971475493] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1775743585.997429214] [lifecycle_manager_localization]: Creating
-[component_container_isolated-1] [INFO] [1775743586.013823492] [nav2_container]: Load Library: /opt/ros/humble/lib/libcontroller_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.524306797] [nav2_container]: Load Library: /opt/ros/humble/lib/libnav2_lifecycle_manager_core.so
+[component_container_isolated-1] [INFO] [1775841271.525753844] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1775841271.525837011] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1775841271.545085905] [lifecycle_manager_localization]: Creating
+[component_container_isolated-1] [INFO] [1775841271.555832157] [lifecycle_manager_localization]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_localization' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.029350188] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
-[component_container_isolated-1] [INFO] [1775743586.029456751] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
-[component_container_isolated-1] [INFO] [1775743586.043071987] [lifecycle_manager_localization]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.077803172] [lifecycle_manager_localization]: [34m[1mStarting managed nodes bringup...[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.077923368] [lifecycle_manager_localization]: [34m[1mConfiguring map_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.078191954] [map_server]: Configuring
-[component_container_isolated-1] [INFO] [1775743586.083760791] [map_io]: Loading yaml file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.yaml
-[component_container_isolated-1] [INFO] [1775743586.084559636] [map_io]: resolution: 0.05
-[component_container_isolated-1] [INFO] [1775743586.084738394] [map_io]: origin[0]: -19.7
-[component_container_isolated-1] [INFO] [1775743586.084800700] [map_io]: origin[1]: -3.28
-[component_container_isolated-1] [INFO] [1775743586.084835453] [map_io]: origin[2]: 0
-[component_container_isolated-1] [INFO] [1775743586.084853630] [map_io]: free_thresh: 0.25
-[component_container_isolated-1] [INFO] [1775743586.084866399] [map_io]: occupied_thresh: 0.65
-[component_container_isolated-1] [INFO] [1775743586.084880191] [map_io]: mode: trinary
-[component_container_isolated-1] [INFO] [1775743586.084891775] [map_io]: negate: 0
-[component_container_isolated-1] [INFO] [1775743586.085179082] [map_io]: Loading image_file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm
-[component_container_isolated-1] [INFO] [1775743586.108826449] [controller_server]: 
+[component_container_isolated-1] [INFO] [1775841271.564237777] [lifecycle_manager_localization]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.564394126] [lifecycle_manager_localization]: [34m[1mConfiguring map_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.564871206] [map_server]: Configuring
+[component_container_isolated-1] [INFO] [1775841271.565031460] [map_io]: Loading yaml file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.yaml
+[component_container_isolated-1] [INFO] [1775841271.565469276] [map_io]: resolution: 0.05
+[component_container_isolated-1] [INFO] [1775841271.565494812] [map_io]: origin[0]: -19.7
+[component_container_isolated-1] [INFO] [1775841271.565502812] [map_io]: origin[1]: -3.28
+[component_container_isolated-1] [INFO] [1775841271.565508412] [map_io]: origin[2]: 0
+[component_container_isolated-1] [INFO] [1775841271.565514684] [map_io]: free_thresh: 0.25
+[component_container_isolated-1] [INFO] [1775841271.565520091] [map_io]: occupied_thresh: 0.65
+[component_container_isolated-1] [INFO] [1775841271.565528347] [map_io]: mode: trinary
+[component_container_isolated-1] [INFO] [1775841271.565536539] [map_io]: negate: 0
+[component_container_isolated-1] [INFO] [1775841271.565914677] [map_io]: Loading image_file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm
+[component_container_isolated-1] [INFO] [1775841271.580502369] [nav2_container]: Load Library: /opt/ros/humble/lib/libcontroller_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.595590501] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-1] [INFO] [1775841271.595729986] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-1] [INFO] [1775841271.623153272] [controller_server]: 
 [component_container_isolated-1] 	controller_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.135812399] [controller_server]: Creating controller server
-[component_container_isolated-1] [INFO] [1775743586.180766987] [map_io]: Read map /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm: 463 X 552 map @ 0.05 m/cell
-[component_container_isolated-1] [INFO] [1775743586.194764060] [local_costmap.local_costmap]: 
+[component_container_isolated-1] [INFO] [1775841271.633831397] [map_io]: Read map /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm: 463 X 552 map @ 0.05 m/cell
+[component_container_isolated-1] [INFO] [1775841271.641597443] [lifecycle_manager_localization]: [34m[1mConfiguring amcl[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.642156090] [amcl]: Configuring
+[component_container_isolated-1] [INFO] [1775841271.642413717] [amcl]: initTransforms
+[component_container_isolated-1] [INFO] [1775841271.659705684] [controller_server]: Creating controller server
+[component_container_isolated-1] [INFO] [1775841271.665515027] [amcl]: initPubSub
+[component_container_isolated-1] [INFO] [1775841271.678405564] [amcl]: Subscribed to map topic.
+[component_container_isolated-1] [INFO] [1775841271.693891673] [lifecycle_manager_localization]: [34m[1mActivating map_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.694245651] [map_server]: Activating
+[component_container_isolated-1] [INFO] [1775841271.694586189] [map_server]: Creating bond (map_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841271.694857096] [amcl]: Received a 463 X 552 map @ 0.050 m/pix
+[component_container_isolated-1] [INFO] [1775841271.705631796] [local_costmap.local_costmap]: 
 [component_container_isolated-1] 	local_costmap lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.196125101] [local_costmap.local_costmap]: Creating Costmap
-[component_container_isolated-1] [INFO] [1775743586.205414806] [lifecycle_manager_localization]: [34m[1mConfiguring amcl[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.205755490] [amcl]: Configuring
-[component_container_isolated-1] [INFO] [1775743586.205919080] [amcl]: initTransforms
+[component_container_isolated-1] [INFO] [1775841271.707325112] [local_costmap.local_costmap]: Creating Costmap
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/controller_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.228346404] [nav2_container]: Load Library: /opt/ros/humble/lib/libsmoother_server_core.so
-[component_container_isolated-1] [INFO] [1775743586.236892340] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
-[component_container_isolated-1] [INFO] [1775743586.237002488] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
-[component_container_isolated-1] [INFO] [1775743586.262189526] [amcl]: initPubSub
-[component_container_isolated-1] [INFO] [1775743586.267851999] [smoother_server]: 
+[component_container_isolated-1] [INFO] [1775841271.724517304] [nav2_container]: Load Library: /opt/ros/humble/lib/libsmoother_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.727059950] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-1] [INFO] [1775841271.727174476] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-1] [INFO] [1775841271.756757725] [smoother_server]: 
 [component_container_isolated-1] 	smoother_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.276224200] [amcl]: Subscribed to map topic.
-[component_container_isolated-1] [INFO] [1775743586.285039137] [smoother_server]: Creating smoother server
-[component_container_isolated-1] [INFO] [1775743586.290100565] [lifecycle_manager_localization]: [34m[1mActivating map_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.290576070] [map_server]: Activating
-[component_container_isolated-1] [INFO] [1775743586.290870736] [map_server]: Creating bond (map_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743586.297824455] [amcl]: Received a 463 X 552 map @ 0.050 m/pix
+[component_container_isolated-1] [INFO] [1775841271.760685691] [smoother_server]: Creating smoother server
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/smoother_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.306300532] [nav2_container]: Load Library: /opt/ros/humble/lib/libplanner_server_core.so
-[component_container_isolated-1] [INFO] [1775743586.307567105] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
-[component_container_isolated-1] [INFO] [1775743586.307644228] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
-[component_container_isolated-1] [INFO] [1775743586.376095586] [planner_server]: 
+[component_container_isolated-1] [INFO] [1775841271.770168989] [nav2_container]: Load Library: /opt/ros/humble/lib/libplanner_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.771608805] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-1] [INFO] [1775841271.771691395] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-1] [INFO] [1775841271.794751682] [planner_server]: 
 [component_container_isolated-1] 	planner_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.380019373] [planner_server]: Creating
-[component_container_isolated-1] [INFO] [1775743586.395572150] [lifecycle_manager_localization]: Server map_server connected with bond.
-[component_container_isolated-1] [INFO] [1775743586.395668825] [lifecycle_manager_localization]: [34m[1mActivating amcl[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.396097160] [amcl]: Activating
-[component_container_isolated-1] [INFO] [1775743586.396159914] [amcl]: initialPoseReceived
-[component_container_isolated-1] [INFO] [1775743586.396386930] [amcl]: Setting pose (1775743586.396385): -0.246 0.013 2.598
-[component_container_isolated-1] [INFO] [1775743586.398068238] [amcl]: Creating bond (amcl) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743586.436450465] [global_costmap.global_costmap]: 
+[component_container_isolated-1] [INFO] [1775841271.807424558] [planner_server]: Creating
+[component_container_isolated-1] [INFO] [1775841271.807870470] [lifecycle_manager_localization]: Server map_server connected with bond.
+[component_container_isolated-1] [INFO] [1775841271.807952965] [lifecycle_manager_localization]: [34m[1mActivating amcl[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.808774231] [amcl]: Activating
+[component_container_isolated-1] [INFO] [1775841271.808869270] [amcl]: initialPoseReceived
+[component_container_isolated-1] [INFO] [1775841271.809124337] [amcl]: Setting pose (1775841271.809122): -0.246 0.013 2.598
+[component_container_isolated-1] [INFO] [1775841271.810157088] [amcl]: Creating bond (amcl) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841271.847683213] [amcl]: createLaserObject
+[component_container_isolated-1] [INFO] [1775841271.863561987] [global_costmap.global_costmap]: 
 [component_container_isolated-1] 	global_costmap lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.437639755] [global_costmap.global_costmap]: Creating Costmap
+[component_container_isolated-1] [INFO] [1775841271.864773615] [global_costmap.global_costmap]: Creating Costmap
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/planner_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.456774706] [nav2_container]: Load Library: /opt/ros/humble/lib/libbehavior_server_core.so
-[component_container_isolated-1] [INFO] [1775743586.461402839] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
-[component_container_isolated-1] [INFO] [1775743586.461500026] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
-[component_container_isolated-1] [INFO] [1775743586.482749997] [amcl]: createLaserObject
-[component_container_isolated-1] [INFO] [1775743586.505050436] [lifecycle_manager_localization]: Server amcl connected with bond.
-[component_container_isolated-1] [INFO] [1775743586.505384752] [lifecycle_manager_localization]: [34m[1mManaged nodes are active[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.505543382] [lifecycle_manager_localization]: [34m[1mCreating bond timer...[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.526610978] [behavior_server]: 
+[component_container_isolated-1] [INFO] [1775841271.890985432] [nav2_container]: Load Library: /opt/ros/humble/lib/libbehavior_server_core.so
+[component_container_isolated-1] [INFO] [1775841271.900480090] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[component_container_isolated-1] [INFO] [1775841271.900606871] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[component_container_isolated-1] [INFO] [1775841271.914052183] [lifecycle_manager_localization]: Server amcl connected with bond.
+[component_container_isolated-1] [INFO] [1775841271.914244083] [lifecycle_manager_localization]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.914289043] [lifecycle_manager_localization]: [34m[1mCreating bond timer...[0m[0m
+[component_container_isolated-1] [INFO] [1775841271.943092305] [behavior_server]: 
 [component_container_isolated-1] 	behavior_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/behavior_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.541295531] [nav2_container]: Load Library: /opt/ros/humble/lib/libbt_navigator_core.so
-[component_container_isolated-1] [INFO] [1775743586.544772871] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
-[component_container_isolated-1] [INFO] [1775743586.544860234] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
-[component_container_isolated-1] [INFO] [1775743586.606529335] [bt_navigator]: 
+[apriltag_manager_server.py-7] [INFO] [1775841271.958343794] [apriltag_manager_server]: AprilTagManagerServer ready — service /toggle_apriltag active.
+[component_container_isolated-1] [INFO] [1775841271.962619050] [nav2_container]: Load Library: /opt/ros/humble/lib/libbt_navigator_core.so
+[component_container_isolated-1] [INFO] [1775841271.971591732] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[component_container_isolated-1] [INFO] [1775841271.971729298] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[component_container_isolated-1] [INFO] [1775841272.002111254] [bt_navigator]: 
 [component_container_isolated-1] 	bt_navigator lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.606706013] [bt_navigator]: Creating
+[component_container_isolated-1] [INFO] [1775841272.002645037] [bt_navigator]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/bt_navigator' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.615874499] [nav2_container]: Load Library: /opt/ros/humble/lib/libwaypoint_follower_core.so
-[component_container_isolated-1] [INFO] [1775743586.617177169] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
-[component_container_isolated-1] [INFO] [1775743586.617280213] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
-[component_container_isolated-1] [INFO] [1775743586.672050573] [waypoint_follower]: 
+[component_container_isolated-1] [INFO] [1775841272.007122882] [nav2_container]: Load Library: /opt/ros/humble/lib/libwaypoint_follower_core.so
+[component_container_isolated-1] [INFO] [1775841272.008489675] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[component_container_isolated-1] [INFO] [1775841272.008598985] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[component_container_isolated-1] [INFO] [1775841272.033381515] [waypoint_follower]: 
 [component_container_isolated-1] 	waypoint_follower lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1775743586.678816606] [waypoint_follower]: Creating
+[component_container_isolated-1] [INFO] [1775841272.034706517] [waypoint_follower]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/waypoint_follower' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.692302716] [nav2_container]: Load Library: /opt/ros/humble/lib/libvelocity_smoother_core.so
-[component_container_isolated-1] [INFO] [1775743586.698476824] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
-[component_container_isolated-1] [INFO] [1775743586.702122969] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
-[component_container_isolated-1] [INFO] [1775743586.765431457] [velocity_smoother]: 
+[component_container_isolated-1] [INFO] [1775841272.042480403] [nav2_container]: Load Library: /opt/ros/humble/lib/libvelocity_smoother_core.so
+[component_container_isolated-1] [INFO] [1775841272.044478513] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[component_container_isolated-1] [INFO] [1775841272.044607599] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[component_container_isolated-1] [INFO] [1775841272.077169167] [velocity_smoother]: 
 [component_container_isolated-1] 	velocity_smoother lifecycle node launched. 
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/velocity_smoother' in container '/nav2_container'
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/velocity_smoother' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.781717155] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1775743586.783120021] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1775743586.837237238] [lifecycle_manager_navigation]: Creating
+[component_container_isolated-1] [INFO] [1775841272.084609618] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1775841272.084707665] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1775841272.100870050] [lifecycle_manager_navigation]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_navigation' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1775743586.882096015] [lifecycle_manager_navigation]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
-[apriltag_manager_server.py-7] [INFO] [1775743586.925287788] [apriltag_manager_server]: AprilTagManagerServer ready — service /toggle_apriltag active.
-[component_container_isolated-1] [INFO] [1775743586.967867668] [lifecycle_manager_navigation]: [34m[1mStarting managed nodes bringup...[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.967987192] [lifecycle_manager_navigation]: [34m[1mConfiguring controller_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743586.968712850] [controller_server]: Configuring controller interface
-[component_container_isolated-1] [INFO] [1775743586.969364457] [controller_server]: getting goal checker plugins..
-[component_container_isolated-1] [INFO] [1775743586.969556208] [controller_server]: Controller frequency set to 30.0000Hz
-[component_container_isolated-1] [INFO] [1775743586.969633266] [local_costmap.local_costmap]: Configuring
-[component_container_isolated-1] [INFO] [1775743586.974786313] [local_costmap.local_costmap]: Using plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1775743586.998622840] [local_costmap.local_costmap]: Subscribed to Topics: scan
-[component_container_isolated-1] [INFO] [1775743587.041514858] [local_costmap.local_costmap]: Initialized plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1775743587.041622958] [local_costmap.local_costmap]: Using plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1775743587.061196613] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1775743587.091367508] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
-[component_container_isolated-1] [INFO] [1775743587.101919979] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
-[component_container_isolated-1] [INFO] [1775743587.106245637] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
-[component_container_isolated-1] [INFO] [1775743587.112448577] [controller_server]: Created controller : FollowPath of type nav2_mppi_controller::MPPIController
-[component_container_isolated-1] [WARN] [1775743587.132043224] [controller_server]: Controller period is less then model dt, consider setting it equal
-[component_container_isolated-1] [INFO] [1775743587.149164856] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
-[component_container_isolated-1] [INFO] [1775743587.149259772] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
-[component_container_isolated-1] [INFO] [1775743587.170992511] [controller_server]: ObstaclesCritic instantiated with 1 power and 30.000000 / 1.000000 weights. Critic will collision check based on circular cost.
-[component_container_isolated-1] [INFO] [1775743587.171534546] [controller_server]: Critic loaded : mppi::critics::ObstaclesCritic
-[component_container_isolated-1] [INFO] [1775743587.183064012] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
-[component_container_isolated-1] [INFO] [1775743587.183161839] [controller_server]: Critic loaded : mppi::critics::GoalCritic
-[named_goal_server.py-2] [INFO] [1775743587.184474430] [named_goal_server]: Loaded 37 named locations across 4 floor(s):
-[named_goal_server.py-2] [INFO] [1775743587.185981299] [named_goal_server]:   Floor: floor0
-[component_container_isolated-1] [INFO] [1775743587.186095575] [controller_server]: GoalAngleCritic instantiated with 1 power, 6.000000 weight, and 0.250000 angular threshold.
-[component_container_isolated-1] [INFO] [1775743587.186180762] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
-[named_goal_server.py-2] [INFO] [1775743587.194282490] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.198143651] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
-[component_container_isolated-1] [INFO] [1775743587.198493232] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
-[component_container_isolated-1] [INFO] [1775743587.198586707] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
-[named_goal_server.py-2] [INFO] [1775743587.203006096] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.203610149] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.204146488] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.207179748] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
-[component_container_isolated-1] [INFO] [1775743587.208816382] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
-[named_goal_server.py-2] [INFO] [1775743587.211673635] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.213724108] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[named_goal_server.py-2] [INFO] [1775743587.216565233] [named_goal_server]:   Floor: floor1
-[named_goal_server.py-2] [INFO] [1775743587.219164077] [named_goal_server]:     - amcl_initial_pose_closed: (-6.26, 0.38, 34.7°)
-[named_goal_server.py-2] [INFO] [1775743587.222365055] [named_goal_server]:     - amcl_initial_pose_open: (-6.26, 0.38, 34.7°)
-[component_container_isolated-1] [INFO] [1775743587.224740115] [controller_server]: PathAngleCritic instantiated with 1 power and 2.000000 weight. Reversing not allowed.
-[component_container_isolated-1] [INFO] [1775743587.224833207] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
-[named_goal_server.py-2] [INFO] [1775743587.226809405] [named_goal_server]:     - elevator_staging: (-5.98, 2.03, -120.9°)
-[named_goal_server.py-2] [INFO] [1775743587.227479605] [named_goal_server]:     - elevator_entry: (-6.01, 1.35, -112.1°)
-[named_goal_server.py-2] [INFO] [1775743587.228033256] [named_goal_server]:     - elevator_inside: (-6.26, 0.38, -145.3°)
-[named_goal_server.py-2] [INFO] [1775743587.230268408] [named_goal_server]:     - elevator_exit: (-5.70, 1.91, 62.7°)
-[named_goal_server.py-2] [INFO] [1775743587.232689742] [named_goal_server]:     - hod_office: (6.61, 6.66, 159.9°)
-[named_goal_server.py-2] [INFO] [1775743587.233458057] [named_goal_server]:     - computer_lab: (6.40, -1.59, 90.0°)
-[named_goal_server.py-2] [INFO] [1775743587.234043838] [named_goal_server]:     - conference_room: (-10.20, 22.60, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.234651155] [named_goal_server]:     - prof_jayasinghe_office: (10.92, 9.46, 179.9°)
-[named_goal_server.py-2] [INFO] [1775743587.235297930] [named_goal_server]:     - prof_kyew_office: (11.28, 7.39, 179.9°)
-[named_goal_server.py-2] [INFO] [1775743587.235882591] [named_goal_server]:     - prof_dileeka_office: (11.76, 5.02, 179.9°)
-[named_goal_server.py-2] [INFO] [1775743587.236426738] [named_goal_server]:     - prof_rohan_office: (12.29, 2.47, 179.9°)
-[named_goal_server.py-2] [INFO] [1775743587.236929060] [named_goal_server]:   Floor: floor2
-[named_goal_server.py-2] [INFO] [1775743587.237435702] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.237920231] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.238406457] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.238888714] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
-[component_container_isolated-1] [INFO] [1775743587.238889994] [controller_server]: Optimizer reset
-[named_goal_server.py-2] [INFO] [1775743587.240016178] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.241062679] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.245546102] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1775743587.246222670] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[named_goal_server.py-2] [INFO] [1775743587.247054348] [named_goal_server]:   Floor: floor3
-[location_subscriber.py-3] [INFO] [1775743587.247165936] [location_subscriber]: Location Subscriber started
-[location_subscriber.py-3] [INFO] [1775743587.247843976] [location_subscriber]:   Subscribing to: location
-[location_subscriber.py-3] [INFO] [1775743587.248403291] [location_subscriber]:   Service client: /go_to_pose
-[named_goal_server.py-2] [INFO] [1775743587.248054767] [named_goal_server]:     - amcl_initial_pose_closed: (-11.42, -0.02, -35.0°)
-[named_goal_server.py-2] [INFO] [1775743587.249096340] [named_goal_server]:     - amcl_initial_pose_open: (-11.42, -0.02, -35.0°)
-[named_goal_server.py-2] [INFO] [1775743587.250469029] [named_goal_server]:     - elevator_staging: (-9.95, 0.04, 150.0°)
-[named_goal_server.py-2] [INFO] [1775743587.251457576] [named_goal_server]:     - elevator_entry: (-10.39, -0.13, 158.1°)
-[named_goal_server.py-2] [INFO] [1775743587.254430001] [named_goal_server]:     - elevator_inside: (-11.42, -0.02, -215.0°)
-[location_subscriber.py-3] [INFO] [1775743587.250732974] [location_subscriber]: Waiting for /go_to_pose service...
-[named_goal_server.py-2] [INFO] [1775743587.263272651] [named_goal_server]:     - elevator_exit: (-9.45, -0.34, -20.8°)
-[named_goal_server.py-2] [INFO] [1775743587.265253266] [named_goal_server]:     - vision_lab: (-12.62, 7.07, -111.6°)
-[named_goal_server.py-2] [INFO] [1775743587.267405950] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[component_container_isolated-1] [INFO] [1775743587.267285626] [MPPIController]: Configured MPPI Controller: FollowPath
-[component_container_isolated-1] [INFO] [1775743587.267394046] [controller_server]: Controller Server has FollowPath  controllers available.
-[named_goal_server.py-2] [INFO] [1775743587.293041100] [named_goal_server]: BT Mission Executor mode enabled. Service: /start_mission
-[named_goal_server.py-2] [INFO] [1775743587.295780365] [named_goal_server]: Initial floor: floor1
-[named_goal_server.py-2] [INFO] [1775743587.296498055] [named_goal_server]: Named Goal Server ready. Service: /go_to_pose
-[component_container_isolated-1] [INFO] [1775743587.304685642] [lifecycle_manager_navigation]: [34m[1mConfiguring smoother_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.305005749] [smoother_server]: Configuring smoother server
-[component_container_isolated-1] [INFO] [1775743587.314564328] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
-[component_container_isolated-1] [INFO] [1775743587.319433333] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
-[component_container_isolated-1] [INFO] [1775743587.322665832] [amcl]: Message Filter dropping message: frame 'rplidar_link' at time 1775743586.195 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
-[component_container_isolated-1] [INFO] [1775743587.330275766] [lifecycle_manager_navigation]: [34m[1mConfiguring planner_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.330614754] [planner_server]: Configuring
-[component_container_isolated-1] [INFO] [1775743587.330696805] [global_costmap.global_costmap]: Configuring
-[component_container_isolated-1] [INFO] [1775743587.338493722] [global_costmap.global_costmap]: Using plugin "static_layer"
-[component_container_isolated-1] [INFO] [1775743587.350841840] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
-[component_container_isolated-1] [INFO] [1775743587.352195744] [global_costmap.global_costmap]: Initialized plugin "static_layer"
-[component_container_isolated-1] [INFO] [1775743587.352268227] [global_costmap.global_costmap]: Using plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1775743587.359056308] [global_costmap.global_costmap]: Subscribed to Topics: scan
-[component_container_isolated-1] [INFO] [1775743587.378003477] [global_costmap.global_costmap]: Initialized plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1775743587.378089368] [global_costmap.global_costmap]: Using plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1775743587.387540967] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1775743587.411275538] [global_costmap.global_costmap]: StaticLayer: Resizing costmap to 463 X 552 at 0.050000 m/pix
-[component_container_isolated-1] [INFO] [1775743587.412079022] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner/NavfnPlanner
-[component_container_isolated-1] [INFO] [1775743587.412156497] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
-[component_container_isolated-1] [INFO] [1775743587.418713434] [planner_server]: Planner Server has GridBased  planners available.
-[component_container_isolated-1] [INFO] [1775743587.452268065] [lifecycle_manager_navigation]: [34m[1mConfiguring behavior_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.452561292] [behavior_server]: Configuring
-[component_container_isolated-1] [INFO] [1775743587.462875546] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors/Spin
-[component_container_isolated-1] [INFO] [1775743587.464768637] [behavior_server]: Configuring spin
-[component_container_isolated-1] [INFO] [1775743587.486603140] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors/BackUp
-[component_container_isolated-1] [INFO] [1775743587.488438725] [behavior_server]: Configuring backup
-[location_subscriber.py-3] [INFO] [1775743587.502974569] [location_subscriber]: /go_to_pose service connected
-[component_container_isolated-1] [INFO] [1775743587.503628865] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors/Wait
-[component_container_isolated-1] [INFO] [1775743587.505342845] [behavior_server]: Configuring wait
-[component_container_isolated-1] [INFO] [1775743587.521344982] [lifecycle_manager_navigation]: [34m[1mConfiguring bt_navigator[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.521669473] [bt_navigator]: Configuring
-[component_container_isolated-1] [INFO] [1775743587.700236453] [lifecycle_manager_navigation]: [34m[1mConfiguring waypoint_follower[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.700740118] [waypoint_follower]: Configuring
-[component_container_isolated-1] [INFO] [1775743587.712428597] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
-[component_container_isolated-1] [INFO] [1775743587.715741131] [lifecycle_manager_navigation]: [34m[1mConfiguring velocity_smoother[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.716080055] [velocity_smoother]: Configuring velocity smoother
-[component_container_isolated-1] [INFO] [1775743587.723424924] [lifecycle_manager_navigation]: [34m[1mActivating controller_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.723696357] [controller_server]: Activating
-[component_container_isolated-1] [INFO] [1775743587.723769672] [local_costmap.local_costmap]: Activating
-[component_container_isolated-1] [INFO] [1775743587.723802825] [local_costmap.local_costmap]: Checking transform
-[component_container_isolated-1] [INFO] [1775743587.723999984] [local_costmap.local_costmap]: start
-[INFO] [startup_localizer.py-8]: process started with pid [115361]
-[component_container_isolated-1] [WARN] [1775743587.775261548] [controller_server]: Parameter controller_server.verbose not found
-[component_container_isolated-1] [INFO] [1775743587.781009560] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1775743587.782343464] [MPPIController]: Activated MPPI Controller: FollowPath
-[component_container_isolated-1] [INFO] [1775743587.782410122] [controller_server]: Creating bond (controller_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743587.890130842] [lifecycle_manager_navigation]: Server controller_server connected with bond.
-[component_container_isolated-1] [INFO] [1775743587.890218173] [lifecycle_manager_navigation]: [34m[1mActivating smoother_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.890572970] [smoother_server]: Activating
-[component_container_isolated-1] [INFO] [1775743587.890642572] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743587.996762948] [lifecycle_manager_navigation]: Server smoother_server connected with bond.
-[component_container_isolated-1] [INFO] [1775743587.996861127] [lifecycle_manager_navigation]: [34m[1mActivating planner_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743587.999049301] [planner_server]: Activating
-[component_container_isolated-1] [INFO] [1775743587.999247900] [global_costmap.global_costmap]: Activating
-[component_container_isolated-1] [INFO] [1775743587.999284638] [global_costmap.global_costmap]: Checking transform
-[component_container_isolated-1] [INFO] [1775743587.999359008] [global_costmap.global_costmap]: Timed out waiting for transform from base_footprint to map to become available, tf error: Lookup would require extrapolation into the past.  Requested time 1775743587.988537 but the earliest data is at time 1775743588.293568, when looking up transform from frame [base_footprint] to frame [map]
-[component_container_isolated-1] [INFO] [1775743588.499621952] [global_costmap.global_costmap]: start
-[component_container_isolated-1] [INFO] [1775743588.551305291] [planner_server]: Activating plugin GridBased of type NavfnPlanner
-[component_container_isolated-1] [INFO] [1775743588.552955302] [planner_server]: Creating bond (planner_server) to lifecycle manager.
-[startup_localizer.py-8] [INFO] [1775743588.566934966] [startup_localizer]: Startup Localizer initialized (odometry-based)
-[startup_localizer.py-8] [INFO] [1775743588.567756787] [startup_localizer]: Sequence: Wait 2.0s -> Drive 1.0m @ 0.15m/s -> Stop 1.0s -> Rotate 360.0° @ 0.5rad/s
-[component_container_isolated-1] [INFO] [1775743588.665932561] [lifecycle_manager_navigation]: Server planner_server connected with bond.
-[component_container_isolated-1] [INFO] [1775743588.666028116] [lifecycle_manager_navigation]: [34m[1mActivating behavior_server[0m[0m
-[component_container_isolated-1] [INFO] [1775743588.666401025] [behavior_server]: Activating
-[component_container_isolated-1] [INFO] [1775743588.666454979] [behavior_server]: Activating spin
-[component_container_isolated-1] [INFO] [1775743588.666493573] [behavior_server]: Activating backup
-[component_container_isolated-1] [INFO] [1775743588.666514949] [behavior_server]: Activating wait
-[component_container_isolated-1] [INFO] [1775743588.666537894] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743588.772600732] [lifecycle_manager_navigation]: Server behavior_server connected with bond.
-[component_container_isolated-1] [INFO] [1775743588.772702079] [lifecycle_manager_navigation]: [34m[1mActivating bt_navigator[0m[0m
-[component_container_isolated-1] [INFO] [1775743588.773614432] [bt_navigator]: Activating
-[component_container_isolated-1] [INFO] [1775743588.972890978] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743589.079563565] [lifecycle_manager_navigation]: Server bt_navigator connected with bond.
-[component_container_isolated-1] [INFO] [1775743589.079774069] [lifecycle_manager_navigation]: [34m[1mActivating waypoint_follower[0m[0m
-[component_container_isolated-1] [INFO] [1775743589.080303175] [waypoint_follower]: Activating
-[component_container_isolated-1] [INFO] [1775743589.080387786] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743589.189851160] [lifecycle_manager_navigation]: Server waypoint_follower connected with bond.
-[component_container_isolated-1] [INFO] [1775743589.189944316] [lifecycle_manager_navigation]: [34m[1mActivating velocity_smoother[0m[0m
-[component_container_isolated-1] [INFO] [1775743589.190512816] [velocity_smoother]: Activating
-[component_container_isolated-1] [INFO] [1775743589.190629268] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1775743589.302337330] [lifecycle_manager_navigation]: Server velocity_smoother connected with bond.
-[component_container_isolated-1] [INFO] [1775743589.302446806] [lifecycle_manager_navigation]: [34m[1mManaged nodes are active[0m[0m
-[component_container_isolated-1] [INFO] [1775743589.302496055] [lifecycle_manager_navigation]: [34m[1mCreating bond timer...[0m[0m
-[startup_localizer.py-8] [INFO] [1775743590.630252024] [startup_localizer]: State: INIT -> FORWARD
-[startup_localizer.py-8] [INFO] [1775743590.631016371] [startup_localizer]: Forward motion starting from (0.638, 7.933)
-[startup_localizer.py-8] [INFO] [1775743590.680212261] [startup_localizer]: Forward: 0.000m / 1.0m
-[floor_arrival_server.py-4] [INFO] [1775743590.779031033] [floor_arrival_server]: Loading YOLO model from: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
-[floor_arrival_server.py-4] [INFO] [1775743590.903759653] [floor_arrival_server]: YOLO model loaded successfully.
-[floor_arrival_server.py-4] [INFO] [1775743590.969799598] [floor_arrival_server]: FloorArrivalServer is ready.
-[startup_localizer.py-8] [INFO] [1775743591.682250809] [startup_localizer]: Forward: 0.075m / 1.0m
-[elevator_call_button_server.py-5] [INFO] [1775743591.795806809] [elevator_call_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
-[elevator_call_button_server.py-5] [INFO] [1775743591.905742647] [elevator_call_button_server]: YOLO model loaded.
-[elevator_call_button_server.py-5] [INFO] [1775743591.941744597] [elevator_call_button_server]: ElevatorCallButtonServer ready — action: detect_call_button
-[startup_localizer.py-8] [INFO] [1775743592.634062934] [startup_localizer]: Forward: 0.224m / 1.0m
-[startup_localizer.py-8] [INFO] [1775743593.680979202] [startup_localizer]: Forward: 0.400m / 1.0m
-[startup_localizer.py-8] [INFO] [1775743594.688442261] [startup_localizer]: Forward: 0.567m / 1.0m
-[startup_localizer.py-8] [INFO] [1775743595.682535564] [startup_localizer]: Forward: 0.729m / 1.0m
-[startup_localizer.py-8] [INFO] [1775743596.689559886] [startup_localizer]: Forward: 0.895m / 1.0m
-[startup_localizer.py-8] [INFO] [1775743597.329412134] [startup_localizer]: Forward motion complete: travelled 1.008m
-[startup_localizer.py-8] [INFO] [1775743597.330272356] [startup_localizer]: State: FORWARD -> STOP1
-[startup_localizer.py-8] [INFO] [1775743598.378995213] [startup_localizer]: State: STOP1 -> ROTATE
-[startup_localizer.py-8] [INFO] [1775743598.379961263] [startup_localizer]: Rotation starting at yaw 81.1°
-[startup_localizer.py-8] [INFO] [1775743598.430957186] [startup_localizer]: Rotation: 0.0° / 360.0° (0.0%)
-[startup_localizer.py-8] [INFO] [1775743599.385040714] [startup_localizer]: Rotation: 9.7° / 360.0° (2.7%)
-[startup_localizer.py-8] [INFO] [1775743600.429500282] [startup_localizer]: Rotation: 42.2° / 360.0° (11.7%)
-[startup_localizer.py-8] [INFO] [1775743601.430865808] [startup_localizer]: Rotation: 72.6° / 360.0° (20.2%)
-[startup_localizer.py-8] [INFO] [1775743602.382404796] [startup_localizer]: Rotation: 100.7° / 360.0° (28.0%)
-[startup_localizer.py-8] [INFO] [1775743603.434338132] [startup_localizer]: Rotation: 132.0° / 360.0° (36.7%)
-[startup_localizer.py-8] [INFO] [1775743604.432803232] [startup_localizer]: Rotation: 162.4° / 360.0° (45.1%)
-[startup_localizer.py-8] [INFO] [1775743605.429890363] [startup_localizer]: Rotation: 192.7° / 360.0° (53.5%)
-[startup_localizer.py-8] [INFO] [1775743606.430746044] [startup_localizer]: Rotation: 222.1° / 360.0° (61.7%)
-[startup_localizer.py-8] [INFO] [1775743607.440288207] [startup_localizer]: Rotation: 251.3° / 360.0° (69.8%)
-[startup_localizer.py-8] [INFO] [1775743608.429831965] [startup_localizer]: Rotation: 281.6° / 360.0° (78.2%)
-[startup_localizer.py-8] [INFO] [1775743609.429886399] [startup_localizer]: Rotation: 311.9° / 360.0° (86.7%)
-[startup_localizer.py-8] [INFO] [1775743610.382887642] [startup_localizer]: Rotation: 341.2° / 360.0° (94.8%)
-[startup_localizer.py-8] [INFO] [1775743611.030407484] [startup_localizer]: Rotation complete: 360.7°
-[startup_localizer.py-8] [INFO] [1775743611.032095992] [startup_localizer]: State: ROTATE -> STOP2
-[startup_localizer.py-8] [INFO] [1775743612.080197985] [startup_localizer]: State: STOP2 -> DONE
-[startup_localizer.py-8] [INFO] [1775743612.129362226] [startup_localizer]: Startup localization sequence completed!
-[startup_localizer.py-8] [INFO] [1775743612.130457401] [startup_localizer]: AMCL should now be converged. Node shutting down.
-[startup_localizer.py-8] [INFO] [1775743613.131985773] [startup_localizer]: Shutting down startup_localizer node
+[component_container_isolated-1] [INFO] [1775841272.107434676] [lifecycle_manager_navigation]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.130978315] [lifecycle_manager_navigation]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.132858411] [lifecycle_manager_navigation]: [34m[1mConfiguring controller_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.134262868] [controller_server]: Configuring controller interface
+[component_container_isolated-1] [INFO] [1775841272.134716364] [controller_server]: getting goal checker plugins..
+[component_container_isolated-1] [INFO] [1775841272.134948200] [controller_server]: Controller frequency set to 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841272.135036935] [local_costmap.local_costmap]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.139085635] [local_costmap.local_costmap]: Using plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1775841272.150736128] [local_costmap.local_costmap]: Subscribed to Topics: scan
+[location_subscriber.py-3] [INFO] [1775841272.153326069] [location_subscriber]: Location Subscriber started
+[location_subscriber.py-3] [INFO] [1775841272.156575263] [location_subscriber]:   Subscribing to: location
+[location_subscriber.py-3] [INFO] [1775841272.159192723] [location_subscriber]:   Service client: /go_to_pose
+[location_subscriber.py-3] [INFO] [1775841272.161836199] [location_subscriber]: Waiting for /go_to_pose service...
+[component_container_isolated-1] [INFO] [1775841272.168621621] [local_costmap.local_costmap]: Initialized plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1775841272.168727315] [local_costmap.local_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1775841272.173678049] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1775841272.191273882] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
+[component_container_isolated-1] [INFO] [1775841272.195810542] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
+[component_container_isolated-1] [INFO] [1775841272.197295990] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
+[component_container_isolated-1] [INFO] [1775841272.200219653] [controller_server]: Created controller : FollowPath of type nav2_mppi_controller::MPPIController
+[component_container_isolated-1] [WARN] [1775841272.212813618] [controller_server]: Controller period is less then model dt, consider setting it equal
+[component_container_isolated-1] [INFO] [1775841272.219636224] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
+[component_container_isolated-1] [INFO] [1775841272.219748894] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
+[component_container_isolated-1] [INFO] [1775841272.225986774] [controller_server]: ObstaclesCritic instantiated with 1 power and 30.000000 / 1.000000 weights. Critic will collision check based on circular cost.
+[component_container_isolated-1] [INFO] [1775841272.226088756] [controller_server]: Critic loaded : mppi::critics::ObstaclesCritic
+[component_container_isolated-1] [INFO] [1775841272.228871206] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
+[component_container_isolated-1] [INFO] [1775841272.228968900] [controller_server]: Critic loaded : mppi::critics::GoalCritic
+[component_container_isolated-1] [INFO] [1775841272.231739254] [controller_server]: GoalAngleCritic instantiated with 1 power, 6.000000 weight, and 0.250000 angular threshold.
+[component_container_isolated-1] [INFO] [1775841272.231828692] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
+[component_container_isolated-1] [INFO] [1775841272.236736674] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
+[component_container_isolated-1] [INFO] [1775841272.236866144] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
+[component_container_isolated-1] [INFO] [1775841272.240087018] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
+[component_container_isolated-1] [INFO] [1775841272.244942681] [controller_server]: PathAngleCritic instantiated with 1 power and 2.000000 weight. Reversing not allowed.
+[component_container_isolated-1] [INFO] [1775841272.245046007] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
+[component_container_isolated-1] [INFO] [1775841272.255389898] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775841272.265352387] [MPPIController]: Configured MPPI Controller: FollowPath
+[component_container_isolated-1] [INFO] [1775841272.265420034] [controller_server]: Controller Server has FollowPath  controllers available.
+[component_container_isolated-1] [INFO] [1775841272.279404760] [lifecycle_manager_navigation]: [34m[1mConfiguring smoother_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.279733235] [smoother_server]: Configuring smoother server
+[component_container_isolated-1] [INFO] [1775841272.294654553] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
+[component_container_isolated-1] [INFO] [1775841272.299013360] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
+[component_container_isolated-1] [INFO] [1775841272.308927403] [lifecycle_manager_navigation]: [34m[1mConfiguring planner_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.309246693] [planner_server]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.309344900] [global_costmap.global_costmap]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.314257074] [global_costmap.global_costmap]: Using plugin "static_layer"
+[component_container_isolated-1] [INFO] [1775841272.322868833] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
+[component_container_isolated-1] [INFO] [1775841272.324759522] [global_costmap.global_costmap]: Initialized plugin "static_layer"
+[component_container_isolated-1] [INFO] [1775841272.324847072] [global_costmap.global_costmap]: Using plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1775841272.329657264] [global_costmap.global_costmap]: Subscribed to Topics: scan
+[component_container_isolated-1] [INFO] [1775841272.345112621] [global_costmap.global_costmap]: Initialized plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1775841272.345249835] [global_costmap.global_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1775841272.349824383] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
+[named_goal_server.py-2] [INFO] [1775841272.359465277] [named_goal_server]: Loaded 37 named locations across 4 floor(s):
+[named_goal_server.py-2] [INFO] [1775841272.360240752] [named_goal_server]:   Floor: floor0
+[named_goal_server.py-2] [INFO] [1775841272.360884998] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.361775927] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.362373805] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.362958083] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.363928851] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.364602792] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
+[component_container_isolated-1] [INFO] [1775841272.361620825] [global_costmap.global_costmap]: StaticLayer: Resizing costmap to 463 X 552 at 0.050000 m/pix
+[component_container_isolated-1] [INFO] [1775841272.362579337] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner/NavfnPlanner
+[component_container_isolated-1] [INFO] [1775841272.362684488] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
+[named_goal_server.py-2] [INFO] [1775841272.365197374] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.365891250] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
+[named_goal_server.py-2] [INFO] [1775841272.366474632] [named_goal_server]:   Floor: floor1
+[named_goal_server.py-2] [INFO] [1775841272.367053663] [named_goal_server]:     - amcl_initial_pose_closed: (-6.26, 0.38, 34.7°)
+[named_goal_server.py-2] [INFO] [1775841272.367607381] [named_goal_server]:     - amcl_initial_pose_open: (-6.26, 0.38, 34.7°)
+[named_goal_server.py-2] [INFO] [1775841272.368309450] [named_goal_server]:     - elevator_staging: (-5.98, 2.03, -120.9°)
+[component_container_isolated-1] [INFO] [1775841272.367897776] [planner_server]: Planner Server has GridBased  planners available.
+[named_goal_server.py-2] [INFO] [1775841272.368908896] [named_goal_server]:     - elevator_entry: (-6.01, 1.35, -112.1°)
+[named_goal_server.py-2] [INFO] [1775841272.369487190] [named_goal_server]:     - elevator_inside: (-6.26, 0.38, -145.3°)
+[named_goal_server.py-2] [INFO] [1775841272.370034093] [named_goal_server]:     - elevator_exit: (-5.70, 1.91, 62.7°)
+[named_goal_server.py-2] [INFO] [1775841272.370573380] [named_goal_server]:     - hod_office: (6.61, 6.66, 159.9°)
+[named_goal_server.py-2] [INFO] [1775841272.371115611] [named_goal_server]:     - computer_lab: (6.40, -1.59, 90.0°)
+[named_goal_server.py-2] [INFO] [1775841272.371654386] [named_goal_server]:     - conference_room: (-10.20, 22.60, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.372205320] [named_goal_server]:     - prof_jayasinghe_office: (10.92, 9.46, 179.9°)
+[named_goal_server.py-2] [INFO] [1775841272.372737791] [named_goal_server]:     - prof_kyew_office: (11.28, 7.39, 179.9°)
+[named_goal_server.py-2] [INFO] [1775841272.373260535] [named_goal_server]:     - prof_dileeka_office: (11.76, 5.02, 179.9°)
+[named_goal_server.py-2] [INFO] [1775841272.374392516] [named_goal_server]:     - prof_rohan_office: (12.29, 2.47, 179.9°)
+[named_goal_server.py-2] [INFO] [1775841272.375449874] [named_goal_server]:   Floor: floor2
+[named_goal_server.py-2] [INFO] [1775841272.376831579] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.377471568] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.378246083] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.378840985] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.379500046] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.380142852] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.380839672] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1775841272.381661994] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
+[named_goal_server.py-2] [INFO] [1775841272.382276640] [named_goal_server]:   Floor: floor3
+[named_goal_server.py-2] [INFO] [1775841272.382864822] [named_goal_server]:     - amcl_initial_pose_closed: (-11.42, -0.02, -35.0°)
+[named_goal_server.py-2] [INFO] [1775841272.383573354] [named_goal_server]:     - amcl_initial_pose_open: (-11.42, -0.02, -35.0°)
+[named_goal_server.py-2] [INFO] [1775841272.384306334] [named_goal_server]:     - elevator_staging: (-9.95, 0.04, 150.0°)
+[named_goal_server.py-2] [INFO] [1775841272.384904788] [named_goal_server]:     - elevator_entry: (-10.39, -0.13, 158.1°)
+[named_goal_server.py-2] [INFO] [1775841272.385611432] [named_goal_server]:     - elevator_inside: (-11.42, -0.02, -215.0°)
+[named_goal_server.py-2] [INFO] [1775841272.386233790] [named_goal_server]:     - elevator_exit: (-9.45, -0.34, -20.8°)
+[named_goal_server.py-2] [INFO] [1775841272.386946418] [named_goal_server]:     - vision_lab: (-12.62, 7.07, -111.6°)
+[named_goal_server.py-2] [INFO] [1775841272.387554184] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
+[component_container_isolated-1] [INFO] [1775841272.388910385] [lifecycle_manager_navigation]: [34m[1mConfiguring behavior_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.389210380] [behavior_server]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.402442895] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors/Spin
+[named_goal_server.py-2] [INFO] [1775841272.404857126] [named_goal_server]: BT Mission Executor mode enabled. Service: /start_mission
+[component_container_isolated-1] [INFO] [1775841272.405125570] [behavior_server]: Configuring spin
+[named_goal_server.py-2] [INFO] [1775841272.405487836] [named_goal_server]: Initial floor: floor1
+[named_goal_server.py-2] [INFO] [1775841272.406129969] [named_goal_server]: Named Goal Server ready. Service: /go_to_pose
+[location_subscriber.py-3] [INFO] [1775841272.414918206] [location_subscriber]: /go_to_pose service connected
+[component_container_isolated-1] [INFO] [1775841272.422708156] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors/BackUp
+[component_container_isolated-1] [INFO] [1775841272.424456511] [behavior_server]: Configuring backup
+[component_container_isolated-1] [INFO] [1775841272.439747967] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors/Wait
+[component_container_isolated-1] [INFO] [1775841272.441872987] [behavior_server]: Configuring wait
+[component_container_isolated-1] [INFO] [1775841272.453379803] [lifecycle_manager_navigation]: [34m[1mConfiguring bt_navigator[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.453693366] [bt_navigator]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.574598448] [lifecycle_manager_navigation]: [34m[1mConfiguring waypoint_follower[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.575011689] [waypoint_follower]: Configuring
+[component_container_isolated-1] [INFO] [1775841272.590038317] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
+[component_container_isolated-1] [INFO] [1775841272.593770063] [lifecycle_manager_navigation]: [34m[1mConfiguring velocity_smoother[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.594086762] [velocity_smoother]: Configuring velocity smoother
+[component_container_isolated-1] [INFO] [1775841272.600941879] [lifecycle_manager_navigation]: [34m[1mActivating controller_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.601283601] [controller_server]: Activating
+[component_container_isolated-1] [INFO] [1775841272.601368112] [local_costmap.local_costmap]: Activating
+[component_container_isolated-1] [INFO] [1775841272.601409743] [local_costmap.local_costmap]: Checking transform
+[component_container_isolated-1] [INFO] [1775841272.601930982] [local_costmap.local_costmap]: start
+[component_container_isolated-1] [WARN] [1775841272.653253836] [controller_server]: Parameter controller_server.verbose not found
+[component_container_isolated-1] [INFO] [1775841272.658455829] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775841272.660106810] [MPPIController]: Activated MPPI Controller: FollowPath
+[component_container_isolated-1] [INFO] [1775841272.660189080] [controller_server]: Creating bond (controller_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841272.765799026] [lifecycle_manager_navigation]: Server controller_server connected with bond.
+[component_container_isolated-1] [INFO] [1775841272.765898064] [lifecycle_manager_navigation]: [34m[1mActivating smoother_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.766282122] [smoother_server]: Activating
+[component_container_isolated-1] [INFO] [1775841272.766358985] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841272.871761478] [lifecycle_manager_navigation]: Server smoother_server connected with bond.
+[component_container_isolated-1] [INFO] [1775841272.871850180] [lifecycle_manager_navigation]: [34m[1mActivating planner_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841272.872258813] [planner_server]: Activating
+[component_container_isolated-1] [INFO] [1775841272.872354652] [global_costmap.global_costmap]: Activating
+[component_container_isolated-1] [INFO] [1775841272.872383291] [global_costmap.global_costmap]: Checking transform
+[component_container_isolated-1] [INFO] [1775841272.872429755] [global_costmap.global_costmap]: Timed out waiting for transform from base_footprint to map to become available, tf error: Lookup would require extrapolation into the past.  Requested time 1775841272.867610 but the earliest data is at time 1775841273.258246, when looking up transform from frame [base_footprint] to frame [map]
+[INFO] [startup_localizer.py-8]: process started with pid [14171]
+[component_container_isolated-1] [INFO] [1775841273.372603694] [global_costmap.global_costmap]: start
+[startup_localizer.py-8] [INFO] [1775841274.026599956] [startup_localizer]: Startup Localizer initialized (odometry-based)
+[startup_localizer.py-8] [INFO] [1775841274.027337960] [startup_localizer]: Sequence: Wait 2.0s -> Drive 1.0m @ 0.15m/s -> Stop 1.0s -> Rotate 360.0° @ 0.5rad/s
+[component_container_isolated-1] [INFO] [1775841275.423848300] [planner_server]: Activating plugin GridBased of type NavfnPlanner
+[component_container_isolated-1] [INFO] [1775841275.425252213] [planner_server]: Creating bond (planner_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841275.529919551] [lifecycle_manager_navigation]: Server planner_server connected with bond.
+[component_container_isolated-1] [INFO] [1775841275.530046684] [lifecycle_manager_navigation]: [34m[1mActivating behavior_server[0m[0m
+[component_container_isolated-1] [INFO] [1775841275.530516021] [behavior_server]: Activating
+[component_container_isolated-1] [INFO] [1775841275.530561876] [behavior_server]: Activating spin
+[component_container_isolated-1] [INFO] [1775841275.530605907] [behavior_server]: Activating backup
+[component_container_isolated-1] [INFO] [1775841275.530632659] [behavior_server]: Activating wait
+[component_container_isolated-1] [INFO] [1775841275.530659378] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841275.636359146] [lifecycle_manager_navigation]: Server behavior_server connected with bond.
+[component_container_isolated-1] [INFO] [1775841275.636468105] [lifecycle_manager_navigation]: [34m[1mActivating bt_navigator[0m[0m
+[component_container_isolated-1] [INFO] [1775841275.636902337] [bt_navigator]: Activating
+[component_container_isolated-1] [INFO] [1775841275.731808526] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841275.840922029] [lifecycle_manager_navigation]: Server bt_navigator connected with bond.
+[component_container_isolated-1] [INFO] [1775841275.841105322] [lifecycle_manager_navigation]: [34m[1mActivating waypoint_follower[0m[0m
+[component_container_isolated-1] [INFO] [1775841275.841723424] [waypoint_follower]: Activating
+[component_container_isolated-1] [INFO] [1775841275.841833502] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1775841275.950050380] [lifecycle_manager_navigation]: Server waypoint_follower connected with bond.
+[component_container_isolated-1] [INFO] [1775841275.950203434] [lifecycle_manager_navigation]: [34m[1mActivating velocity_smoother[0m[0m
+[component_container_isolated-1] [INFO] [1775841275.950793856] [velocity_smoother]: Activating
+[component_container_isolated-1] [INFO] [1775841275.950951581] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
+[startup_localizer.py-8] [INFO] [1775841276.048653307] [startup_localizer]: State: INIT -> FORWARD
+[startup_localizer.py-8] [INFO] [1775841276.049418798] [startup_localizer]: Forward motion starting from (7.050, -1.063)
+[component_container_isolated-1] [INFO] [1775841276.056896721] [lifecycle_manager_navigation]: Server velocity_smoother connected with bond.
+[component_container_isolated-1] [INFO] [1775841276.057016239] [lifecycle_manager_navigation]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-1] [INFO] [1775841276.057036335] [lifecycle_manager_navigation]: [34m[1mCreating bond timer...[0m[0m
+[startup_localizer.py-8] [INFO] [1775841276.098713974] [startup_localizer]: Forward: 0.000m / 1.0m
+[floor_arrival_server.py-4] [INFO] [1775841276.112921224] [floor_arrival_server]: Loading YOLO model from: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
+[floor_arrival_server.py-4] [INFO] [1775841276.223894888] [floor_arrival_server]: YOLO model loaded successfully.
+[floor_arrival_server.py-4] [INFO] [1775841276.299436057] [floor_arrival_server]: FloorArrivalServer is ready.
+[elevator_call_button_server.py-5] [INFO] [1775841276.336476494] [elevator_call_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
+[elevator_call_button_server.py-5] [INFO] [1775841276.444246691] [elevator_call_button_server]: YOLO model loaded.
+[elevator_call_button_server.py-5] [INFO] [1775841276.473857908] [elevator_call_button_server]: ElevatorCallButtonServer ready — action: detect_call_button
+[startup_localizer.py-8] [INFO] [1775841277.100282600] [startup_localizer]: Forward: 0.062m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841278.099856923] [startup_localizer]: Forward: 0.229m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841279.100885557] [startup_localizer]: Forward: 0.400m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841280.100126542] [startup_localizer]: Forward: 0.572m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841281.099718049] [startup_localizer]: Forward: 0.739m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841282.099875402] [startup_localizer]: Forward: 0.914m / 1.0m
+[startup_localizer.py-8] [INFO] [1775841282.599238347] [startup_localizer]: Forward motion complete: travelled 1.002m
+[startup_localizer.py-8] [INFO] [1775841282.601050252] [startup_localizer]: State: FORWARD -> STOP1
+[startup_localizer.py-8] [INFO] [1775841283.649599500] [startup_localizer]: State: STOP1 -> ROTATE
+[startup_localizer.py-8] [INFO] [1775841283.651250769] [startup_localizer]: Rotation starting at yaw 146.8°
+[startup_localizer.py-8] [INFO] [1775841283.699590728] [startup_localizer]: Rotation: 0.0° / 360.0° (0.0%)
+[startup_localizer.py-8] [INFO] [1775841284.699360600] [startup_localizer]: Rotation: 14.1° / 360.0° (3.9%)
+[startup_localizer.py-8] [INFO] [1775841285.700150807] [startup_localizer]: Rotation: 45.5° / 360.0° (12.6%)
+[startup_localizer.py-8] [INFO] [1775841286.700514269] [startup_localizer]: Rotation: 78.0° / 360.0° (21.7%)
+[startup_localizer.py-8] [INFO] [1775841287.699860788] [startup_localizer]: Rotation: 107.3° / 360.0° (29.8%)
+[startup_localizer.py-8] [INFO] [1775841288.699794849] [startup_localizer]: Rotation: 138.7° / 360.0° (38.5%)
+[startup_localizer.py-8] [INFO] [1775841289.699537169] [startup_localizer]: Rotation: 170.1° / 360.0° (47.2%)
+[startup_localizer.py-8] [INFO] [1775841290.699855640] [startup_localizer]: Rotation: 200.4° / 360.0° (55.7%)
+[startup_localizer.py-8] [INFO] [1775841291.699907523] [startup_localizer]: Rotation: 231.9° / 360.0° (64.4%)
+[startup_localizer.py-8] [INFO] [1775841292.700640578] [startup_localizer]: Rotation: 264.4° / 360.0° (73.5%)
+[startup_localizer.py-8] [INFO] [1775841293.700135447] [startup_localizer]: Rotation: 294.8° / 360.0° (81.9%)
+[startup_localizer.py-8] [INFO] [1775841294.699973733] [startup_localizer]: Rotation: 327.3° / 360.0° (90.9%)
+[startup_localizer.py-8] [INFO] [1775841295.699978161] [startup_localizer]: Rotation: 357.7° / 360.0° (99.4%)
+[startup_localizer.py-8] [INFO] [1775841295.799436722] [startup_localizer]: Rotation complete: 362.0°
+[startup_localizer.py-8] [INFO] [1775841295.801428145] [startup_localizer]: State: ROTATE -> STOP2
+[startup_localizer.py-8] [INFO] [1775841296.849551960] [startup_localizer]: State: STOP2 -> DONE
+[startup_localizer.py-8] [INFO] [1775841296.899836047] [startup_localizer]: Startup localization sequence completed!
+[startup_localizer.py-8] [INFO] [1775841296.901318966] [startup_localizer]: AMCL should now be converged. Node shutting down.
+[startup_localizer.py-8] [INFO] [1775841297.904146611] [startup_localizer]: Shutting down startup_localizer node
 [startup_localizer.py-8] Traceback (most recent call last):
 [startup_localizer.py-8]   File "/home/quanta/Desktop/navigation_ws/install/smrr_navigation/lib/smrr_navigation/startup_localizer.py", line 296, in <module>
 [startup_localizer.py-8]     main()
@@ -358,9 +357,539 @@
 [startup_localizer.py-8]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 70, in publish
 [startup_localizer.py-8]     self.__publisher.publish(msg)
 [startup_localizer.py-8] rclpy._rclpy_pybind11.RCLError: Failed to publish: publisher's context is invalid, at ./src/rcl/publisher.c:389
-[ERROR] [startup_localizer.py-8]: process has died [pid 115361, exit code 1, cmd '/home/quanta/Desktop/navigation_ws/install/smrr_navigation/lib/smrr_navigation/startup_localizer.py --ros-args -r __node:=startup_localizer --params-file /tmp/launch_params_o4dw0nz5 --params-file /tmp/launch_params_fk2qbkjw --params-file /tmp/launch_params__zwg0i_j --params-file /tmp/launch_params_6m_i9poj --params-file /tmp/launch_params_5imuhsvk --params-file /tmp/launch_params_99hhttof --params-file /tmp/launch_params_ylbfdk54 --params-file /tmp/launch_params_dfjqqs5l'].
-[component_container_isolated-1] [WARN] [1775743621.704359604] [amcl]: New subscription discovered on topic '/particle_cloud', requesting incompatible QoS. No messages will be sent to it. Last incompatible policy: RELIABILITY_QOS_POLICY
-[component_container_isolated-1] [INFO] [1775743647.012908887] [amcl]: initialPoseReceived
-[component_container_isolated-1] [WARN] [1775743647.013367591] [amcl]: Failed to transform initial pose in time (Lookup would require extrapolation into the future.  Requested time 1775743647.013111 but the latest data is at time 1775743647.001873, when looking up transform from frame [base_footprint] to frame [odom])
-[component_container_isolated-1] [INFO] [1775743647.013473291] [amcl]: Setting pose (1775743647.013471): -9.823 2.549 2.829
-[component_container_isolat
+[ERROR] [startup_localizer.py-8]: process has died [pid 14171, exit code 1, cmd '/home/quanta/Desktop/navigation_ws/install/smrr_navigation/lib/smrr_navigation/startup_localizer.py --ros-args -r __node:=startup_localizer --params-file /tmp/launch_params_0m809876 --params-file /tmp/launch_params_thk9lz0_ --params-file /tmp/launch_params_f3vwo3vd --params-file /tmp/launch_params__l3yt1_5 --params-file /tmp/launch_params_75po19f0 --params-file /tmp/launch_params_6cq_zc03 --params-file /tmp/launch_params_rzdhv6zj --params-file /tmp/launch_params_zvzq9tfo'].
+[component_container_isolated-1] [INFO] [1775841334.756713614] [amcl]: initialPoseReceived
+[component_container_isolated-1] [WARN] [1775841334.756981322] [amcl]: Failed to transform initial pose in time (Lookup would require extrapolation into the future.  Requested time 1775841334.756851 but the latest data is at time 1775841334.747838, when looking up transform from frame [base_footprint] to frame [odom])
+[component_container_isolated-1] [INFO] [1775841334.757050441] [amcl]: Setting pose (1775841334.757048): -9.771 2.588 -0.335
+[component_container_isolated-1] [INFO] [1775841374.745385994] [bt_navigator]: Begin navigating from current location (-9.57, 0.95) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775841374.766557672] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775841374.766771685] [controller_server]: No goal checker was specified in parameter 'current_goal_checker'. Server will use only plugin loaded general_goal_checker . This warning will appear once.
+[component_container_isolated-1] [INFO] [1775841374.772498693] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775841375.800306080] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841376.833633822] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841377.867006940] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841378.900296795] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841379.933624698] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841380.966962488] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841381.966965092] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841383.000293539] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841384.033640961] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841385.066966400] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841386.100305886] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841387.133630141] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841388.166969851] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841389.200308250] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841390.233638424] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775841390.767103710] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775841390.767307675] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775841390.785943715] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775841390.786951730] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775841390.835298890] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841390.864869691] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841390.889547551] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841391.253833234] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841392.287169297] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841393.320518319] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841394.353835246] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841395.387168076] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841396.387161816] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841397.420501591] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841398.453829845] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841399.487165492] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841400.520496434] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775841400.820623831] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775841400.820832819] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775841400.835957558] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775841400.837183746] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
+[component_container_isolated-1] [WARN] [1775841401.391198161] [planner_server]: Planner loop missed its desired rate of 20.0000 Hz. Current loop rate is 1.8089 Hz
+[component_container_isolated-1] [INFO] [1775841401.406727085] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775841402.440309863] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841403.473651494] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841404.228604980] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775841404.266413819] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775841530.731692409] [bt_navigator]: Begin navigating from current location (-9.28, 1.42) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775841530.753466925] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775841530.758478585] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775841531.787080199] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775841532.556701568] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841532.820415045] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841533.853760740] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841534.887074531] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841535.920403489] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841536.954362261] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841537.987082366] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841538.987232807] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841540.020417384] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841541.053738759] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841542.087107781] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841543.120405028] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841544.153725795] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841545.187064737] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841546.220415999] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841547.253729022] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841548.253717098] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841549.287075304] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841550.320403591] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841551.243601431] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775841551.282293520] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775841669.916219018] [bt_navigator]: Begin navigating from current location (-9.36, 0.06) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775841669.937402728] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775841669.944217590] [controller_server]: Optimizer reset
+[component_container_isolated-1] [WARN] [1775841669.973495596] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841670.970952675] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841672.004325120] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841673.037659999] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841674.070966334] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841675.104288221] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841676.138100435] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841677.170967417] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841678.204286328] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841679.237746868] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841680.270958133] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775841680.939088751] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841681.304293235] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775841682.272741199] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841682.304858358] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841682.337627314] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841683.370967888] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841684.370956668] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841685.404291003] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841686.437649401] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841687.470974040] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841688.504288598] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841689.537621045] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775841689.837720698] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775841689.837939606] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775841689.857034839] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775841689.858529342] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775841689.909384204] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841689.935113085] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841689.959749409] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841690.558763295] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841691.592157469] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841692.625415357] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841693.658756507] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841694.658732103] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841695.692183940] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841696.725418244] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841697.758746755] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841698.792145952] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841699.825421919] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775841699.892300577] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775841699.892512733] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775841699.907218247] [behavior_server]: Running spin
+[component_container_isolated-1] [INFO] [1775841699.907425668] [behavior_server]: Turning 1.57 for spin behavior.
+[component_container_isolated-1] [INFO] [1775841701.758003743] [behavior_server]: spin completed successfully
+[component_container_isolated-1] [INFO] [1775841701.807924252] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775841701.813542718] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775841702.841667124] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841703.874868532] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841704.908196915] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841705.941531377] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841706.974877872] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841708.008205742] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841709.044128737] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841710.074875979] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841711.108243433] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841711.197341943] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775841711.236912417] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775841853.286517158] [bt_navigator]: Begin navigating from current location (-10.35, -0.56) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775841853.307557094] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775841853.315864827] [controller_server]: Optimizer reset
+[component_container_isolated-1] [WARN] [1775841853.352529974] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841853.383465745] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841853.411437277] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841854.341130145] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775841854.543726853] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775841854.574752318] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841855.374491391] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841856.407790462] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775841856.674559760] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775841857.441126140] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841858.474488122] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841859.507795961] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841860.507791941] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841861.541213026] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841862.574461250] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841863.607785153] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841864.641123999] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775841864.731598454] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775841864.767232098] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842026.411986249] [bt_navigator]: Begin navigating from current location (-7.65, 0.36) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842026.434138071] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842026.439898647] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842027.468267240] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842028.501768868] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842029.534895718] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842030.568125478] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842031.601649313] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842032.634995904] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842033.668516091] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842034.671608627] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842034.701449152] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842035.734783295] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775842036.434900450] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775842036.435094271] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775842036.452527547] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775842036.453964995] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775842036.494048293] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842036.755920169] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842037.789258823] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842038.822575142] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842039.856014307] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842040.856002415] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842041.889245999] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842042.922582510] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842043.955911404] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842044.989254858] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842046.022576073] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842047.055878536] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842048.013217694] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842048.052642058] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842192.004337261] [bt_navigator]: Begin navigating from current location (-7.59, 0.52) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842192.025486699] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842192.031684675] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842193.059039494] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842194.092397444] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842195.128016988] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842196.159057441] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842197.192403711] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842198.225712734] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842199.259050173] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842200.292377851] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842201.326003477] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [ERROR] [1775842202.026716942] [controller_server]: Failed to make progress
+[component_container_isolated-1] [WARN] [1775842202.026927562] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775842202.044873214] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775842202.046177449] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775842202.110511829] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775842202.136841404] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775842202.159878139] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775842202.181049017] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842202.346409579] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842203.379804969] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842204.413078536] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842205.446409287] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842206.446408947] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842207.479749809] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842208.513078736] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842209.546402894] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842210.546415514] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842211.613077579] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842212.600783941] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842212.616227555] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842212.651350295] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842212.684968229] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842336.674636861] [bt_navigator]: Begin navigating from current location (-9.93, 0.23) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842336.696212820] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842336.701050147] [controller_server]: Optimizer reset
+[component_container_isolated-1] [WARN] [1775842337.409946164] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775842337.451612443] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775842337.503907152] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842337.739626698] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842337.770901727] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842338.770666223] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842339.803985422] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842340.837318732] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842341.870661099] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842342.903992873] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842343.937322376] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842344.937357619] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842345.970645842] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842347.003987537] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842348.037309263] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842349.070657134] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842350.103998252] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842351.137322923] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842352.170653865] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842352.823777214] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842352.855279151] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842402.733387964] [bt_navigator]: Begin navigating from current location (-7.71, -0.36) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842402.757164654] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842402.763776864] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842403.790741449] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842404.824093447] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842405.857388646] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842406.324015978] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842406.890766212] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842406.924936680] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842407.925571530] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842408.957407713] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842409.990742592] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842411.024057343] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842412.057402589] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842413.057407785] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842414.090733351] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842415.125179795] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842416.157389797] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842417.190725635] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842418.224055362] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842419.113844129] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842419.144165574] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842464.876246797] [bt_navigator]: Begin navigating from current location (-9.69, 0.79) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842464.897748229] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842464.902428247] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842465.932136946] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842466.964684765] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842467.999635329] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842469.031304763] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842470.064670073] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842471.097988696] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842472.131301783] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842473.131301443] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842474.164652609] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842475.198301530] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842475.232085797] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842476.231360637] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842477.264650492] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842478.297977371] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842479.331305914] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842480.364640568] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842481.397996374] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842481.520154459] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842481.557390252] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842571.532218310] [bt_navigator]: Begin navigating from current location (-7.55, 0.22) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842571.553498754] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842571.557324034] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842572.587058077] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842573.620388219] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842574.653735514] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842575.687054936] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842576.325074858] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842576.720385463] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842577.753724469] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842578.787053876] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842579.820385810] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842580.853721169] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842581.853723517] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842582.887069499] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842583.920389242] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842584.953731864] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842585.987245972] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842587.020397365] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842588.053723924] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842589.087054994] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842590.120394641] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842591.153723663] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842591.210463706] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842591.242945339] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842656.821429242] [bt_navigator]: Begin navigating from current location (-7.95, 1.83) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842656.843161743] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842656.847827937] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842657.877309408] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842658.910663358] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842659.943969469] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842660.977315611] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842662.010645401] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842663.043982488] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842664.077309878] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842665.110635893] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842666.143970612] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842667.143972671] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842668.177313918] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842669.210670364] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842670.243977403] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842671.277310425] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842672.310649880] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842673.343962743] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842674.343969986] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842674.644012745] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842675.377310401] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842676.410645631] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842677.443981566] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842678.477319388] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842678.900475063] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842678.932194949] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842822.879924521] [bt_navigator]: Begin navigating from current location (-9.17, 1.14) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842822.901808476] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842822.906172627] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842823.968712169] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842825.002270147] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842826.035366406] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842827.068694212] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842828.102028035] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842829.102029647] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842830.135361837] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842830.502830476] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842830.518874303] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842830.530556924] [controller_server]: Optimizer reset
+[component_container_isolated-1] [ERROR] [1775842830.530775960] [controller_server]: Optimizer fail to compute path
+[component_container_isolated-1] [WARN] [1775842830.531009204] [controller_server]: [follow_path] [ActionServer] Aborting handle.
+[component_container_isolated-1] [INFO] [1775842830.551057093] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
+[component_container_isolated-1] [INFO] [1775842830.552812008] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [WARN] [1775842830.622919923] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842831.156331291] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842832.056483276] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842832.189751064] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842832.332111595] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842833.223000376] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842834.256358134] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842835.289666421] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842836.323000691] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842837.356343409] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842838.389669008] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842839.423006478] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842840.423004826] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842841.278470680] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842841.310696445] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775842950.030281337] [bt_navigator]: Begin navigating from current location (-10.24, -0.58) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775842950.051396844] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775842950.056703167] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775842951.084955029] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775842951.486541753] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775842952.118305710] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842953.151630612] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842954.184968925] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842955.218262169] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842956.251629384] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842957.285197228] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842958.318291064] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842959.351630978] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842960.351625597] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842961.384952604] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842962.418290721] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842963.451634421] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842964.484958347] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775842964.506455612] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775842964.540963738] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843040.007967775] [bt_navigator]: Begin navigating from current location (-9.68, -0.20) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843040.029655315] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843040.033662411] [controller_server]: Optimizer reset
+[component_container_isolated-1] [WARN] [1775843040.230396166] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843041.063206825] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843042.096557924] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843043.129864963] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843044.163214659] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843045.196548003] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843046.229858011] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843046.963541378] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843047.230178384] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843048.263216614] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843049.296547859] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843050.329895484] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843050.784655844] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843050.819109453] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843113.490928752] [bt_navigator]: Begin navigating from current location (-7.77, 1.21) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843113.512199549] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843113.516201788] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843114.546797875] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843115.579085498] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843116.612415852] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843117.647750368] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843118.679090339] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843119.712433352] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843120.745750338] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843121.779079597] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843122.714050262] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843122.812407477] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843123.845880626] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843124.845749729] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843125.879082758] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843126.912428364] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843127.946937355] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843128.979096266] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843130.012411192] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843130.713027694] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843131.045757779] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843131.214320635] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775843131.447042556] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843132.079093110] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843133.112419663] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843133.535217542] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843133.571916573] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843263.747454616] [bt_navigator]: Begin navigating from current location (-7.93, 1.03) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843263.770562721] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843263.777800412] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843264.804112077] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843265.837459485] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843266.870799246] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843267.904102456] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843268.937466518] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843269.970785019] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843270.970873383] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843272.004127842] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843273.037454449] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843274.070774822] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843275.104131805] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843276.137452907] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843277.170779208] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843278.204119406] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843279.237448852] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843280.270966460] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843281.304089888] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843282.304110126] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843283.337445099] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843284.370778370] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843284.924971159] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843284.959978718] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843342.421346346] [bt_navigator]: Begin navigating from current location (-9.57, 0.98) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843342.443423244] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843342.448545253] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843343.477797876] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843344.510968997] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843345.544288415] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843346.577588014] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843347.610971030] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843348.644308584] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843349.677620383] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843350.710968351] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843351.178815725] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [WARN] [1775843351.677767583] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843351.744308253] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843352.744293326] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843353.777777245] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843354.810960576] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843355.277917004] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843355.844427439] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843356.878262512] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843357.910971167] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843358.680301229] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843358.944295890] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843359.780126334] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843359.944294027] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843360.977637511] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843361.168185193] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843361.202535023] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843506.168605084] [bt_navigator]: Begin navigating from current location (-9.04, -1.63) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843506.192264701] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843506.197148820] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843507.225829755] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843508.259164119] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843509.292490159] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843510.325822053] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843510.415202605] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843510.449566171] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843569.379817078] [bt_navigator]: Begin navigating from current location (-9.31, 0.69) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843569.401743801] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843569.407131427] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843570.468684997] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843571.501988842] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843572.501974768] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843573.535319704] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843574.568796211] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843575.601973662] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843576.635484153] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843577.668648540] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843578.701972210] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843579.735321416] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843580.768656373] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843581.802610270] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843582.802046118] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843583.835323026] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843584.657814459] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843584.690532926] [bt_navigator]: Goal succeeded
+[component_container_isolated-1] [INFO] [1775843676.809478007] [bt_navigator]: Begin navigating from current location (-10.19, -0.27) to (-8.99, -0.80)
+[component_container_isolated-1] [INFO] [1775843676.830705433] [controller_server]: Received a goal, begin computing control effort.
+[component_container_isolated-1] [INFO] [1775843676.834937195] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1775843677.864287787] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843678.897792921] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [WARN] [1775843679.165479370] [controller_server]: Control loop missed its desired rate of 30.0000Hz
+[component_container_isolated-1] [INFO] [1775843679.930939831] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843680.964278877] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843681.998071190] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843683.031179336] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843684.064279938] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843685.097614090] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843686.097608341] [controller_server]: Passing new path to controller.
+[component_container_isolated-1] [INFO] [1775843686.785659853] [controller_server]: Reached the goal!
+[component_container_isolated-1] [INFO] [1775843686.820022999] [bt_navigator]: Goal succeeded
