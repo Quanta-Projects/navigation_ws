@@ -15,7 +15,7 @@ def generate_launch_description():
     # Launch arguments
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
+        default_value='false',
         description='Use simulation time'
     )
     
@@ -36,11 +36,7 @@ def generate_launch_description():
                 docking_params,
                 {'use_sim_time': use_sim_time}
             ],
-            remappings=[
-                # Remap topics to match your robot's topics
-                ('/tf', 'tf'),
-                ('/tf_static', 'tf_static'),
-            ]
+            remappings=[]
         ),
         
         # Lifecycle manager for docking server (recommended)
@@ -54,6 +50,19 @@ def generate_launch_description():
                 {'autostart': True},
                 {'use_sim_time': use_sim_time}
             ]
+        ),
+
+        # Safe undock wrapper — call /undock_robot_safe instead of /undock_robot
+        # Stops charging and waits before forwarding to the real undock action
+        Node(
+            package='smrr_docking',
+            executable='undock_with_charge_stop',
+            name='undock_with_charge_stop',
+            output='screen',
+            parameters=[{
+                'settle_time': 5.0,
+                'charge_stop_timeout': 10.0,
+            }]
         ),
 
     ])

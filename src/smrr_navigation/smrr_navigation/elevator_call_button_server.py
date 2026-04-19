@@ -1,88 +1,88 @@
 #!/usr/bin/env python3
-"""
-elevator_call_button_server.py
--------------------------------
-Action server: detect_call_button  (smrr_interfaces/action/DetectCallButton)
 
-Uses the same button_detection.pt model and the same YOLO class-ID approach as
-floor_arrival_server.py — no HSV thresholding.
-
-Given current_floor and target_floor:
-  1. Infer direction: UP if target index > current index, else DOWN.
-  2. Look up the YOLO unlit_class for that direction from DIRECTION_CLASS_MAP.
-  3. Wait until the unlit button is detected with confidence >= INFERENCE_CONF.
-  4. Sample depth pixels inside the bounding box, unproject to 3-D using the
-     camera intrinsics from /zed2_left_camera/camera_info.
-  5. Fit a plane to the 3-D point cloud via SVD.
-     The last right-singular vector is the plane normal (least-variance direction).
-  6. Guarantee the normal points toward the camera (−Z in optical frame).
-  7. Compute:
-       press_point    = 3-D centroid of the depth samples   (on button surface)
-       approach_point = press_point + 0.03 m × normal       (3 cm outward)
-  8. Transform both from left_camera_link_optical → link_0_fake via TF2.
-  9. Publish approach_point to /xyz_target (geometry_msgs/Point).
-     Return both points in the action result (float64 fields).
-
-NOTE: Verify DIRECTION_CLASS_MAP class IDs against your model by running
-      test_floor_vision.py and checking which class IDs appear for the
-      up/down call buttons.
-"""
-
+import math
 import os
+import struct
 import time
 
 import cv2
 import numpy as np
 import rclpy
-from rclpy.node import Node
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
+import tf2_geometry_msgs
+import tf2_ros
+from ament_index_python.packages import get_package_share_directory
+from cv_bridge import CvBridge
+from geometry_msgs.msg import (
+    Point, PointStamped, Pose, PoseArray, Vector3Stamped,
+)
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-import tf2_ros
-import tf2_geometry_msgs
-
-from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import Point, PointStamped
-from cv_bridge import CvBridge
-from ament_index_python.packages import get_package_share_directory
+from rclpy.node import Node
+from sensor_msgs.msg import CameraInfo, Image, LaserScan, PointCloud2, PointField
+from visualization_msgs.msg import Marker, MarkerArray
 from ultralytics import YOLO
 
 from smrr_interfaces.action import DetectCallButton
 
-# ---------------------------------------------------------------------------
-# Constants — same model as floor_arrival_server.py
-# ---------------------------------------------------------------------------
 
 MODEL_PATH = os.path.join(
     get_package_share_directory('smrr_navigation'),
     'models',
+
     'button_detection.pt',
 )
 
-# Map direction → YOLO class IDs for the call button's unlit / lit state.
-# Pattern mirrors FLOOR_CLASS_MAP in floor_arrival_server.py.
-# !! Verify these IDs with test_floor_vision.py for your trained model !!
 DIRECTION_CLASS_MAP = {
-    "UP":   {"unlit_class": 0,  "lit_class": 1},   # up / up_lit
-    "DOWN": {"unlit_class": 10, "lit_class": 11},  # down / down_lit
+    'UP':   {'unlit_class': 10, 'lit_class': 11},
+    'DOWN': {'unlit_class': 0,  'lit_class': 1},
 }
 
-INFERENCE_CONF    = 0.15   # same as floor_arrival_server.py
-APPROACH_DIST_M   = 0.03   # 3 cm outward along the button plane normal
-DEPTH_STEP        = 2      # pixel stride when sampling depth in bbox
-MIN_PLANE_PTS     = 20     # minimum valid depth samples for a plane fit
-LOOP_SLEEP        = 0.05   # ~20 Hz poll rate
+INFERENCE_CONF   = 0.15
+APPROACH_DIST_M  = 0.06    # 5 cm outward along button normal
+PRESS_INSET_M    = -0.06  # 7 mm into button surface
+LOOP_SLEEP       = 0.05
 
-CAMERA_FRAME = 'left_camera_link_optical'
-TARGET_FRAME = 'link_0_fake'
-RGB_TOPIC    = '/zed2_left_camera/image_raw'
-DEPTH_TOPIC  = '/zed2_left_camera/depth/image_raw'
-INFO_TOPIC   = '/zed2_left_camera/camera_info'
+# Point-cloud ROI tuning
+BBOX_CENTER_SHRINK = 0.40  # Use center-focused crop to reduce wall dominance in RANSAC
+NEAR_DEPTH_PERCENTILE = 15.0  # Keep points near the closest quartile in ROI
+NEAR_DEPTH_BAND_M = 0.005     # Allow 1.5 cm spread beyond near-depth percentile
 
+# TF frames
+CAMERA_FRAME     = 'zed2_left_camera_frame_optical'
+TARGET_FRAME     = 'link_0_fake'   # coordinates computed in this frame
+PUBLISH_FRAME_ID = 'link_0'        # frame_id written into /button_press_goal header
+                                    # link_0 and link_0_fake are colocated;
+                                    # MoveIt commander uses setPoseReferenceFrame("link_0")
 
-# ---------------------------------------------------------------------------
-# Node
-# ---------------------------------------------------------------------------
+# Topics
+RGB_TOPIC        = '/zed2_left_camera/image_raw'
+INFO_TOPIC       = '/zed2_left_camera/camera_info'
+POINTCLOUD_TOPIC = '/zed2/zed_node/point_cloud/cloud_registered'
+SCAN_TOPIC       = '/scan'
+
+# LiDAR constants
+LIDAR_FRAME       = 'rplidar_link'
+LIDAR_MAX_RANGE   = 8.0
+LIDAR_MIN_RANGE   = 0.10
+WALL_FIT_MIN_PTS  = 10
+WALL_ANGULAR_HALF = 0.35   # ±20 degrees in radians
+
+# EEF orientation published with button_press_goal.
+# Measured from arm at pressing configuration.
+EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301)  # x, y, z, w
+
+# Manual offsets (meters) in TARGET_FRAME (link_0_fake).
+# Applied only to points published on /button_press_goal.
+# Separate tuning for each button direction.
+BUTTON_GOAL_OFFSET_UP_X = 0.0
+BUTTON_GOAL_OFFSET_UP_Y = -0.07
+BUTTON_GOAL_OFFSET_UP_Z = 0.0
+
+BUTTON_GOAL_OFFSET_DOWN_X = 0.0
+BUTTON_GOAL_OFFSET_DOWN_Y = -0.07
+BUTTON_GOAL_OFFSET_DOWN_Z = -0.01
+
 
 class ElevatorCallButtonServer(Node):
 
@@ -91,31 +91,62 @@ class ElevatorCallButtonServer(Node):
         self._cb_group = ReentrantCallbackGroup()
         self._bridge   = CvBridge()
 
-        # TF2
         self._tf_buffer   = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(
             self._tf_buffer, self, spin_thread=False)
 
-        # Per-goal state (dynamic subscriptions — same pattern as
-        # elevator_direction_server.py)
+        # Per-goal sensor data
         self._latest_rgb   = None
-        self._latest_depth = None
+        self._latest_scan  = None
+        self._latest_cloud = None
         self._camera_info  = None   # cached after first receipt
-        self._rgb_sub      = None
-        self._depth_sub    = None
-        self._info_sub     = None
 
-        # YOLO — same model as floor_arrival_server.py
+        # Persistent subscribers (avoid destroy/create races with executor)
+        self._rgb_sub   = None
+        self._scan_sub  = None
+        self._cloud_sub = None
+        self._info_sub  = None
+
         self.get_logger().info(f'Loading YOLO model: {MODEL_PATH}')
         self._model = YOLO(MODEL_PATH)
         self.get_logger().info('YOLO model loaded.')
 
-        # Publishers
-        self._xyz_pub   = self.create_publisher(Point, '/xyz_target', 10)
         self._debug_pub = self.create_publisher(
             Image, '/floor_vision/debug_image', 1)
+        self._button_press_goal_pub = self.create_publisher(
+            PoseArray, '/button_press_goal', 10)
 
-        # Action server
+        # ── Visualization publishers ──────────────────────────────────────────
+        # /button_detection/full_cloud   — the complete raw ZED2 point cloud
+        #                                  re-published so RViz shows the full scene
+        # /button_detection/plane_cloud  — RANSAC inlier points only, coloured green
+        #                                  overlaid on top of the full cloud in RViz
+        # /button_detection/markers      — MarkerArray in TARGET_FRAME (link_0_fake)
+        #   ARROW  = plane normal vector from press point to approach point
+        #   SPHERE = button center (magenta), approach point (cyan), press point (orange)
+        #   TEXT   = coordinate label floating above approach sphere
+        self._full_cloud_pub = self.create_publisher(
+            PointCloud2, '/button_detection/full_cloud', 1)
+        self._plane_cloud_pub = self.create_publisher(
+            PointCloud2, '/button_detection/plane_cloud', 1)
+        self._plane_marker_pub = self.create_publisher(
+            MarkerArray, '/button_detection/markers', 1)
+        # ─────────────────────────────────────────────────────────────────────
+
+        # Persistent subscriptions: created once for node lifetime.
+        self._rgb_sub = self.create_subscription(
+            Image, RGB_TOPIC, self._rgb_cb, 1,
+            callback_group=self._cb_group)
+        self._scan_sub = self.create_subscription(
+            LaserScan, SCAN_TOPIC, self._scan_cb, 10,
+            callback_group=self._cb_group)
+        self._cloud_sub = self.create_subscription(
+            PointCloud2, POINTCLOUD_TOPIC, self._cloud_cb, 1,
+            callback_group=self._cb_group)
+        self._info_sub = self.create_subscription(
+            CameraInfo, INFO_TOPIC, self._info_cb, 1,
+            callback_group=self._cb_group)
+
         self._action_server = ActionServer(
             self,
             DetectCallButton,
@@ -128,19 +159,19 @@ class ElevatorCallButtonServer(Node):
         self.get_logger().info(
             'ElevatorCallButtonServer ready — action: detect_call_button')
 
-    # ── Subscriber callbacks ─────────────────────────────────────────────
+    # ── Subscriber callbacks ─────────────────────────────────────────────────
 
     def _rgb_cb(self, msg: Image):
         self._latest_rgb = msg
 
-    def _depth_cb(self, msg: Image):
-        self._latest_depth = msg
+    def _scan_cb(self, msg: LaserScan):
+        self._latest_scan = msg
+
+    def _cloud_cb(self, msg: PointCloud2):
+        self._latest_cloud = msg
 
     def _info_cb(self, msg: CameraInfo):
         self._camera_info = msg
-        if self._info_sub is not None:
-            self.destroy_subscription(self._info_sub)
-            self._info_sub = None
 
     @staticmethod
     def _goal_cb(_):   return GoalResponse.ACCEPT
@@ -148,71 +179,15 @@ class ElevatorCallButtonServer(Node):
     @staticmethod
     def _cancel_cb(_): return CancelResponse.ACCEPT
 
-    # ── Helpers ──────────────────────────────────────────────────────────
-
     @staticmethod
     def _parse_floor(s: str) -> int:
         return int(s.strip().lower().replace('floor', ''))
 
-    def _fit_plane(self, bbox, depth_img: np.ndarray,
-                   fx: float, fy: float,
-                   cx: float, cy: float):
-        """
-        Sample depth pixels inside bbox, unproject to 3-D, fit a plane via SVD.
+    # ── TF2 helper ───────────────────────────────────────────────────────────
 
-        Plane fitting
-        -------------
-        For each sampled pixel (u, v) with depth d:
-            X = (u - cx) * d / fx
-            Y = (v - cy) * d / fy
-            Z = d
-        giving a 3-D point in the camera optical frame.
-
-        Centred matrix A = points - mean(points)  (N × 3)
-        Thin SVD:  A = U S Vt
-        Normal = Vt[-1]  — the direction with the smallest singular value,
-                            i.e. the direction of least variance in the cloud
-                            = normal to the best-fit plane.
-
-        The normal is flipped so it always points toward the camera
-        (negative Z component in the optical frame, where objects are at +Z).
-
-        Returns (centroid_3d, unit_normal) or (None, None).
-        """
-        x1, y1, x2, y2 = bbox
-        pts = []
-        for v in range(y1, y2, DEPTH_STEP):
-            for u in range(x1, x2, DEPTH_STEP):
-                if v >= depth_img.shape[0] or u >= depth_img.shape[1]:
-                    continue
-                d = float(depth_img[v, u])
-                if not (np.isfinite(d) and 0.1 < d < 8.0):
-                    continue
-                pts.append([
-                    (u - cx) * d / fx,   # X — right in optical frame
-                    (v - cy) * d / fy,   # Y — down  in optical frame
-                    d,                   # Z — depth (forward)
-                ])
-
-        if len(pts) < MIN_PLANE_PTS:
-            return None, None
-
-        pts      = np.asarray(pts, dtype=np.float64)
-        centroid = pts.mean(axis=0)
-
-        _, _, Vt = np.linalg.svd(pts - centroid, full_matrices=False)
-        normal   = Vt[-1].copy()
-
-        # Ensure normal points toward camera: objects at +Z → toward-camera is -Z
-        if normal[2] > 0.0:
-            normal = -normal
-        normal /= np.linalg.norm(normal)
-
-        return centroid, normal
-
-    def _to_link0_fake(self, point_cam: np.ndarray,
-                       cam_frame: str) -> np.ndarray | None:
-        """Transform a 3-D point from cam_frame to link_0_fake via TF2."""
+    def _to_link0(self, point_cam: np.ndarray,
+                  cam_frame: str) -> 'np.ndarray | None':
+        """Transform a 3-D point from cam_frame to TARGET_FRAME via TF2."""
         ps = PointStamped()
         ps.header.frame_id = cam_frame
         ps.header.stamp    = rclpy.time.Time().to_msg()
@@ -230,7 +205,74 @@ class ElevatorCallButtonServer(Node):
                 f'TF lookup {cam_frame}→{TARGET_FRAME}: {exc}')
             return None
         out = tf2_geometry_msgs.do_transform_point(ps, tf)
-        return np.array([out.point.x, out.point.y, out.point.z])
+        return np.array([out.point.x, out.point.y, out.point.z],
+                        dtype=np.float64)
+
+    # ── Publisher ────────────────────────────────────────────────────────────
+
+    def _publish_button_press_goal(self,
+                                   approach_lf: np.ndarray,
+                                   press_lf: np.ndarray,
+                                   direction: str) -> None:
+        """
+        Publish approach and press poses to /button_press_goal.
+
+        Coordinates are in TARGET_FRAME (link_0_fake).
+        Direction-specific offsets are added in TARGET_FRAME to both
+        approach and press coordinates immediately before publishing.
+        Header frame_id is PUBLISH_FRAME_ID ('link_0') because
+        link_0_fake and link_0 are the same physical frame and the
+        MoveIt commander uses setPoseReferenceFrame("link_0").
+        """
+        qx, qy, qz, qw = EEF_ORIENTATION
+
+        direction_norm = direction.strip().upper()
+        if direction_norm == 'UP':
+            offset = np.array([
+                BUTTON_GOAL_OFFSET_UP_X,
+                BUTTON_GOAL_OFFSET_UP_Y,
+                BUTTON_GOAL_OFFSET_UP_Z,
+            ], dtype=np.float64)
+        elif direction_norm == 'DOWN':
+            offset = np.array([
+                BUTTON_GOAL_OFFSET_DOWN_X,
+                BUTTON_GOAL_OFFSET_DOWN_Y,
+                BUTTON_GOAL_OFFSET_DOWN_Z,
+            ], dtype=np.float64)
+        else:
+            self.get_logger().warn(
+                f'Unknown direction "{direction}" for goal offset. '
+                'Using zero offset.')
+            offset = np.zeros(3, dtype=np.float64)
+
+        approach_pub_lf = approach_lf + offset
+        press_pub_lf = press_lf + offset
+
+        approach_pose = Pose()
+        approach_pose.position.x = float(approach_pub_lf[0])
+        approach_pose.position.y = float(approach_pub_lf[1])
+        approach_pose.position.z = float(approach_pub_lf[2])
+        approach_pose.orientation.x = qx
+        approach_pose.orientation.y = qy
+        approach_pose.orientation.z = qz
+        approach_pose.orientation.w = qw
+
+        press_pose = Pose()
+        press_pose.position.x = float(press_pub_lf[0])
+        press_pose.position.y = float(press_pub_lf[1])
+        press_pose.position.z = float(press_pub_lf[2])
+        press_pose.orientation.x = qx
+        press_pose.orientation.y = qy
+        press_pose.orientation.z = qz
+        press_pose.orientation.w = qw
+
+        pa = PoseArray()
+        pa.header.stamp    = self.get_clock().now().to_msg()
+        pa.header.frame_id = PUBLISH_FRAME_ID   # 'link_0'
+        pa.poses           = [approach_pose, press_pose]
+        self._button_press_goal_pub.publish(pa)
+
+    # ── Debug image publisher ─────────────────────────────────────────────────
 
     def _publish_debug(self, frame: np.ndarray, bbox,
                        label: str, color,
@@ -266,7 +308,671 @@ class ElevatorCallButtonServer(Node):
         except Exception:
             pass
 
-    # ── Action execution ─────────────────────────────────────────────────
+    # ── Visualization helpers ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _pack_rgb(r: int, g: int, b: int) -> float:
+        """Pack R,G,B bytes into a single float32 for PointCloud2 RGB field."""
+        packed = struct.pack('BBBB', b, g, r, 0)
+        return struct.unpack('f', packed)[0]
+
+    def _publish_plane_visualization(
+            self,
+            all_crop_pts: np.ndarray,
+            inlier_mask: np.ndarray,
+            centroid: np.ndarray,
+            normal: np.ndarray,
+            approach_lf: np.ndarray,
+            press_lf: np.ndarray,
+            button_center_lf: np.ndarray,
+            cloud_frame: str,
+    ) -> None:
+        """
+        Publish two RViz-compatible visualizations of the fitted plane.
+
+        1. /button_detection/plane_cloud  (PointCloud2, cloud_frame)
+           Publishes ONLY the RANSAC inlier points coloured bright green.
+           In RViz, add BOTH /button_detection/full_cloud (the complete raw
+           ZED2 scene) AND /button_detection/plane_cloud side-by-side.
+           The green inlier cluster will visually overlay the full scene,
+           making it immediately clear which surface was fitted as the button
+           plane.
+
+        2. /button_detection/markers  (MarkerArray, TARGET_FRAME = link_0_fake)
+           id=0  ARROW  : press_lf → approach_lf (shows normal direction, cyan)
+           id=1  SPHERE : button center (bbox ray–plane intersection) — MAGENTA, 18mm
+                          This is the primary button position result.
+                          It differs from the inlier mean when inliers are skewed.
+           id=2  SPHERE : approach point  — CYAN,   20mm
+           id=3  SPHERE : press point     — ORANGE, 12mm
+           id=4  TEXT   : coordinate label floating 5cm above approach sphere
+        """
+        stamp = self.get_clock().now().to_msg()
+
+        # ── 1. Green inlier-only PointCloud2 in the cloud sensor frame ────────
+        inlier_pts = all_crop_pts[inlier_mask]
+
+        fields = [
+            PointField(name='x',   offset=0,  datatype=PointField.FLOAT32, count=1),
+            PointField(name='y',   offset=4,  datatype=PointField.FLOAT32, count=1),
+            PointField(name='z',   offset=8,  datatype=PointField.FLOAT32, count=1),
+            PointField(name='rgb', offset=12, datatype=PointField.FLOAT32, count=1),
+        ]
+        point_step = 16   # 4 fields × 4 bytes each
+
+        green = self._pack_rgb(0, 255, 0)   # pure bright green for inliers
+
+        buf = bytearray(len(inlier_pts) * point_step)
+        for i, pt in enumerate(inlier_pts):
+            offset = i * point_step
+            struct.pack_into('ffff', buf, offset,
+                             float(pt[0]), float(pt[1]),
+                             float(pt[2]), green)
+
+        cloud_viz = PointCloud2()
+        cloud_viz.header.stamp    = stamp
+        cloud_viz.header.frame_id = cloud_frame
+        cloud_viz.height          = 1
+        cloud_viz.width           = len(inlier_pts)
+        cloud_viz.fields          = fields
+        cloud_viz.is_bigendian    = False
+        cloud_viz.point_step      = point_step
+        cloud_viz.row_step        = point_step * len(inlier_pts)
+        cloud_viz.data            = bytes(buf)
+        cloud_viz.is_dense        = True
+        self._plane_cloud_pub.publish(cloud_viz)
+
+        # ── 2. MarkerArray in TARGET_FRAME (link_0_fake) ──────────────────────
+
+        def _base_marker(mid: int, mtype: int) -> Marker:
+            m = Marker()
+            m.header.stamp    = stamp
+            m.header.frame_id = TARGET_FRAME
+            m.ns              = 'button_detection'
+            m.id              = mid
+            m.type            = mtype
+            m.action          = Marker.ADD
+            # Zero lifetime means marker persists until replaced/deleted.
+            m.lifetime        = rclpy.duration.Duration(seconds=0.0).to_msg()
+            return m
+
+        markers = MarkerArray()
+
+        # id=0  ARROW: tail = press_lf, tip = approach_lf
+        # Points outward from wall along the plane normal —
+        # immediate visual confirmation that the normal direction is correct.
+        arrow = _base_marker(0, Marker.ARROW)
+        arrow.scale.x = 0.005   # shaft diameter (m)
+        arrow.scale.y = 0.010   # head diameter (m)
+        arrow.scale.z = 0.015   # head length (m)
+        arrow.color.r = 0.0
+        arrow.color.g = 1.0
+        arrow.color.b = 1.0     # cyan
+        arrow.color.a = 1.0
+        tail = Point()
+        tail.x = float(press_lf[0])
+        tail.y = float(press_lf[1])
+        tail.z = float(press_lf[2])
+        tip = Point()
+        tip.x = float(approach_lf[0])
+        tip.y = float(approach_lf[1])
+        tip.z = float(approach_lf[2])
+        arrow.points = [tail, tip]
+        markers.markers.append(arrow)
+
+        # ── CHANGED: id=1 now shows button_center_lf (bbox ray–plane intersection)
+        # This is the 3D position of the exact geometric center of the button,
+        # computed by projecting the bounding box center pixel onto the fitted plane.
+        # Colour: MAGENTA — distinguishes it clearly from approach (cyan) and press (orange).
+        # Size: 18mm — larger than press (12mm), slightly smaller than approach (20mm).
+        btn_sph = _base_marker(1, Marker.SPHERE)
+        btn_sph.pose.position.x  = float(button_center_lf[0])
+        btn_sph.pose.position.y  = float(button_center_lf[1])
+        btn_sph.pose.position.z  = float(button_center_lf[2])
+        btn_sph.pose.orientation.w = 1.0
+        btn_sph.scale.x = btn_sph.scale.y = btn_sph.scale.z = 0.018
+        btn_sph.color.r = 1.0
+        btn_sph.color.g = 0.0
+        btn_sph.color.b = 1.0   # magenta — button center (ray-plane intersection)
+        btn_sph.color.a = 1.0
+        markers.markers.append(btn_sph)
+
+        # id=2  SPHERE: approach point (cyan, 20mm)
+        app_sph = _base_marker(2, Marker.SPHERE)
+        app_sph.pose.position.x  = float(approach_lf[0])
+        app_sph.pose.position.y  = float(approach_lf[1])
+        app_sph.pose.position.z  = float(approach_lf[2])
+        app_sph.pose.orientation.w = 1.0
+        app_sph.scale.x = app_sph.scale.y = app_sph.scale.z = 0.020
+        app_sph.color.r = 0.0
+        app_sph.color.g = 1.0
+        app_sph.color.b = 1.0   # cyan
+        app_sph.color.a = 0.85
+        markers.markers.append(app_sph)
+
+        # id=3  SPHERE: press point (orange, 12mm)
+        prs_sph = _base_marker(3, Marker.SPHERE)
+        prs_sph.pose.position.x  = float(press_lf[0])
+        prs_sph.pose.position.y  = float(press_lf[1])
+        prs_sph.pose.position.z  = float(press_lf[2])
+        prs_sph.pose.orientation.w = 1.0
+        prs_sph.scale.x = prs_sph.scale.y = prs_sph.scale.z = 0.012
+        prs_sph.color.r = 1.0
+        prs_sph.color.g = 0.5
+        prs_sph.color.b = 0.0   # orange
+        prs_sph.color.a = 1.0
+        markers.markers.append(prs_sph)
+
+        # id=4  TEXT: coordinate label floating 5 cm above the approach sphere
+        txt = _base_marker(4, Marker.TEXT_VIEW_FACING)
+        txt.pose.position.x  = float(approach_lf[0])
+        txt.pose.position.y  = float(approach_lf[1])
+        txt.pose.position.z  = float(approach_lf[2]) + 0.05
+        txt.pose.orientation.w = 1.0
+        txt.scale.z  = 0.025   # text height in metres
+        txt.color.r  = txt.color.g = txt.color.b = 1.0
+        txt.color.a  = 1.0
+        txt.text = (
+            f'center   ({button_center_lf[0]:.3f},{button_center_lf[1]:.3f},'
+            f'{button_center_lf[2]:.3f})\n'
+            f'approach ({approach_lf[0]:.3f},{approach_lf[1]:.3f},'
+            f'{approach_lf[2]:.3f})\n'
+            f'press    ({press_lf[0]:.3f},{press_lf[1]:.3f},'
+            f'{press_lf[2]:.3f})'
+        )
+        markers.markers.append(txt)
+
+        self._plane_marker_pub.publish(markers)
+
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # ── PRIMARY: ZED2 Point Cloud + RANSAC ───────────────────────────────────
+
+    def _extract_button_pose_pointcloud(
+            self,
+            cloud_msg: PointCloud2,
+            bbox,
+            image_width: int,
+            image_height: int,
+            fx: float, fy: float, cx: float, cy: float,
+            optical_frame: str) -> 'dict | None':
+        """
+        Extract button plane pose from ZED2 organised point cloud.
+
+        The ZED2 publishes cloud_registered in zed2_left_camera_frame
+        (non-optical, X-forward ROS convention). The normal direction
+        enforcement uses a frame-agnostic dot-product check against the
+        camera-origin vector rather than assuming a fixed forward axis.
+
+        Steps:
+          1. Decode raw PointCloud2 bytes directly (fast, no Python list).
+             Handles row-padding correctly via np.ascontiguousarray.
+             Uses .copy() before .view(float32) to guarantee contiguity.
+             2. Scale image-space bbox into cloud pixel space.
+             3. Apply center-shrunk crop inside bbox to reduce wall dominance.
+             4. Remove NaN/inf and out-of-range points.
+             5. Median Euclidean-depth outlier filter (rejects specular spikes).
+             6. RANSAC plane fit (5 mm inlier threshold, 200 iterations).
+             7. SVD refinement on inlier subset — gives best-fit plane normal
+             and a scalar D for the plane equation n·p + D = 0.
+             8. Frame-agnostic normal enforcement: dot(normal, -centroid) > 0.
+             9. CHANGED: Button center = bbox center ray projected onto fitted plane.
+             The bounding box center pixel defines a camera ray in the optical
+             frame. That ray is transformed into the cloud frame via TF2 and
+             intersected with the RANSAC-fitted plane. This gives the correct
+             geometric center of the button regardless of where the RANSAC
+             inliers happen to cluster within the bounding box.
+             Fallback to inlier centroid if the TF lookup or intersection fails.
+             10. Compute approach and press offsets along the plane normal from
+             the button center computed in step 7.
+             11. Transform both points to TARGET_FRAME (link_0_fake) via TF2.
+
+        Returns dict with keys:
+          approach_lf, press_lf, normal_cam, centroid_cam, button_center_lf,
+          inlier_count, viz_pts, inlier_mask, cloud_frame
+        or None on failure.
+        """
+        # Save original bbox center BEFORE clipping — this is the pixel that
+        # represents the true center of the detected button bounding box.
+        bbox_u_c = (bbox[0] + bbox[2]) / 2.0
+        bbox_v_c = (bbox[1] + bbox[3]) / 2.0
+
+        if image_width <= 0 or image_height <= 0:
+            self.get_logger().warn('[PC-RANSAC] Invalid image resolution for bbox scaling.')
+            return None
+
+        # Scale YOLO bbox from image pixel grid to cloud pixel grid.
+        sx = cloud_msg.width / float(image_width)
+        sy = cloud_msg.height / float(image_height)
+
+        x1, y1, x2, y2 = bbox
+        x1 = int(math.floor(x1 * sx))
+        y1 = int(math.floor(y1 * sy))
+        x2 = int(math.ceil(x2 * sx))
+        y2 = int(math.ceil(y2 * sy))
+
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(cloud_msg.width, x2)
+        y2 = min(cloud_msg.height, y2)
+        if x2 <= x1 or y2 <= y1:
+            return None
+
+        # Use a center-focused crop to reduce wall points around the button.
+        roi_w = x2 - x1
+        roi_h = y2 - y1
+        cx_roi = 0.5 * (x1 + x2)
+        cy_roi = 0.5 * (y1 + y2)
+        shr_w = max(2.0, roi_w * BBOX_CENTER_SHRINK)
+        shr_h = max(2.0, roi_h * BBOX_CENTER_SHRINK)
+
+        x1s = int(math.floor(cx_roi - 0.5 * shr_w))
+        y1s = int(math.floor(cy_roi - 0.5 * shr_h))
+        x2s = int(math.ceil(cx_roi + 0.5 * shr_w))
+        y2s = int(math.ceil(cy_roi + 0.5 * shr_h))
+
+        x1 = max(x1, x1s)
+        y1 = max(y1, y1s)
+        x2 = min(x2, x2s)
+        y2 = min(y2, y2s)
+        if x2 <= x1 or y2 <= y1:
+            return None
+
+        # ── Step 1: fast raw-byte decode of organised point cloud ─────────────
+        #
+        # Layout: cloud_msg.data is a flat byte buffer of length H * row_step.
+        # Each row contains W points, each of point_step bytes.
+        # row_step >= W * point_step (may include trailing padding bytes).
+        # x, y, z are float32 values at known byte offsets within each point.
+        #
+        # Two contiguity guarantees are required for np.view(float32):
+        #   (a) The (H, row_step) → crop of width W*point_step → reshape to
+        #       (H*W, point_step) may be non-contiguous if row_step > W*point_step.
+        #       Fixed by np.ascontiguousarray() before reshape.
+        #   (b) Slicing columns from a C-contiguous 2D array always produces
+        #       a non-contiguous array. Fixed by .copy() before .view().
+
+        field_offsets = {f.name: f.offset for f in cloud_msg.fields}
+        if not all(n in field_offsets for n in ('x', 'y', 'z')):
+            self.get_logger().warn('[PC-RANSAC] PointCloud2 missing x/y/z fields.')
+            return None
+
+        x_off      = field_offsets['x']
+        y_off      = field_offsets['y']
+        z_off      = field_offsets['z']
+        point_step = cloud_msg.point_step
+        row_step   = cloud_msg.row_step
+
+        if point_step <= max(x_off, y_off, z_off) + 3:
+            self.get_logger().warn(
+                '[PC-RANSAC] point_step too small for x/y/z offsets.')
+            return None
+
+        raw = np.frombuffer(cloud_msg.data, dtype=np.uint8)
+        expected_bytes = cloud_msg.height * row_step
+        if raw.size != expected_bytes:
+            self.get_logger().warn(
+                f'[PC-RANSAC] Cloud byte-size mismatch: '
+                f'got {raw.size}, expected {expected_bytes}')
+            return None
+
+        # Reshape to (H, row_step), strip row padding, reshape to (H*W, point_step)
+        # np.ascontiguousarray ensures the result is C-contiguous before reshape
+        # even when row_step > width * point_step (padding present).
+        raw_2d = raw.reshape(cloud_msg.height, row_step)
+        packed = np.ascontiguousarray(
+            raw_2d[:, :cloud_msg.width * point_step]
+        ).reshape(cloud_msg.height * cloud_msg.width, point_step)
+
+        f32 = np.dtype('>f4' if cloud_msg.is_bigendian else '<f4')
+
+        # .copy() makes each 4-byte column slice C-contiguous before .view()
+        x_col = packed[:, x_off:x_off + 4].copy().view(f32).reshape(-1)
+        y_col = packed[:, y_off:y_off + 4].copy().view(f32).reshape(-1)
+        z_col = packed[:, z_off:z_off + 4].copy().view(f32).reshape(-1)
+
+        pts  = np.column_stack((x_col, y_col, z_col)).reshape(
+            cloud_msg.height, cloud_msg.width, 3)
+
+        # Crop to YOLO bounding box: pts[row, col] == pts[v, u]
+        crop = pts[y1:y2, x1:x2, :].reshape(-1, 3).astype(np.float64)
+
+        # ── Step 2: remove NaN/inf and out-of-range points ────────────────────
+        valid  = np.isfinite(crop).all(axis=1)
+        crop   = crop[valid]
+        if len(crop) == 0:
+            return None
+
+        # Euclidean distance from camera origin is frame-agnostic depth proxy
+        depths   = np.linalg.norm(crop, axis=1)
+        in_range = (depths > 0.05) & (depths <= 5.0)
+        crop     = crop[in_range]
+        if len(crop) < 8:
+            return None
+
+        # ── Step 3: near-depth gate (bias toward button face over wall) ──────
+        depths = np.linalg.norm(crop, axis=1)
+        near_depth = float(np.percentile(depths, NEAR_DEPTH_PERCENTILE))
+        near_mask = depths <= (near_depth + NEAR_DEPTH_BAND_M)
+        crop = crop[near_mask]
+        if len(crop) < 8:
+            return None
+
+        # ── Step 4: median-depth outlier filter (rejects specular spikes) ────
+        depths       = np.linalg.norm(crop, axis=1)
+        median_depth = float(np.median(depths))
+        close_mask   = np.abs(depths - median_depth) <= 0.02
+        crop         = crop[close_mask]
+        if len(crop) < 8:
+            return None
+
+        # ── Keep a copy of all valid crop points for visualization ────────────
+        # This is saved here, after all pre-filtering but before RANSAC,
+        # so the visualization shows exactly which points RANSAC received.
+        viz_pts = crop.copy()
+
+        # ── Step 5: RANSAC plane fit ─────────────────────────────────────────
+        DIST_THRESH = 0.003   # 3 mm inlier threshold
+        MAX_ITER    = 200
+        MIN_INLIERS = 8
+        npts        = len(crop)
+        best_count  = 0
+        best_mask   = None
+        rng         = np.random.default_rng()
+
+        for _ in range(MAX_ITER):
+            idx        = rng.choice(npts, size=3, replace=False)
+            p1, p2, p3 = crop[idx]
+            normal     = np.cross(p2 - p1, p3 - p1)
+            norm_len   = np.linalg.norm(normal)
+            if norm_len < 1e-8:
+                continue              # degenerate / collinear sample — skip
+            normal /= norm_len
+            d       = -np.dot(normal, p1)
+
+            # Vectorised inlier count: point-to-plane distance < threshold
+            dists = np.abs(crop @ normal + d)
+            mask  = dists < DIST_THRESH
+            count = int(mask.sum())
+            if count > best_count:
+                best_count = count
+                best_mask  = mask
+
+        if best_mask is None or best_count < MIN_INLIERS:
+            return None
+
+        # ── Step 6: SVD refinement on inlier subset ──────────────────────────
+        inliers          = crop[best_mask]
+        inlier_centroid  = inliers.mean(axis=0)   # any point on the plane
+        _, _, Vt         = np.linalg.svd(inliers - inlier_centroid,
+                                          full_matrices=False)
+        # Last row of Vt = direction of minimum variance = plane normal
+        normal   = Vt[-1].copy()
+        if np.linalg.norm(normal) < 1e-8:
+            return None
+        normal /= np.linalg.norm(normal)
+
+        # ── Step 7: frame-agnostic normal direction enforcement ───────────────
+        # Camera origin is [0, 0, 0] in the cloud frame.
+        # The normal must point FROM the button surface TOWARD the camera,
+        # i.e. dot(normal, camera_origin - inlier_centroid) > 0.
+        # This is correct for both optical (Z-forward) and non-optical (X-forward)
+        # cloud frames — no axis assumption is made.
+        toward_camera      = -inlier_centroid
+        toward_camera_norm = np.linalg.norm(toward_camera)
+        if toward_camera_norm < 1e-8:
+            return None
+        toward_camera /= toward_camera_norm
+        if np.dot(normal, toward_camera) < 0:
+            normal = -normal
+
+        # ── Step 8: button center = bbox center ray projected onto fitted plane ─
+        #
+        # The RANSAC inlier mean is NOT used as the button center. Instead:
+        #   a. The bounding box center pixel (bbox_u_c, bbox_v_c) defines a
+        #      camera ray in the optical frame using the pinhole model.
+        #   b. The ray direction vector is transformed from the optical frame
+        #      into the cloud frame via TF2 (pure rotation, same physical origin).
+        #   c. The transformed ray is intersected with the RANSAC-fitted plane
+        #      (expressed in cloud frame) to find the exact 3D button center.
+        #
+        # This decouples the lateral position estimate (bbox center pixel, which
+        # is the most reliable measure of where the button center is in the image)
+        # from the depth estimate (RANSAC plane, which gives the most reliable
+        # measure of how far away the button surface is).
+        #
+        # Fallback: if the TF lookup or intersection fails, use inlier_centroid.
+
+        cam_frame  = cloud_msg.header.frame_id or CAMERA_FRAME
+
+        # Plane scalar D for the SVD-refined plane: n · p + D = 0
+        # Using inlier_centroid as the known point on the plane.
+        D_plane = -np.dot(normal, inlier_centroid)
+
+        button_centroid = inlier_centroid   # default fallback
+
+        # Build the pinhole ray direction in the optical frame
+        dx_opt = (bbox_u_c - cx) / fx
+        dy_opt = (bbox_v_c - cy) / fy
+        dz_opt = 1.0   # Z=1 parametric convention
+
+        ray_opt = Vector3Stamped()
+        ray_opt.header.frame_id = optical_frame
+        ray_opt.header.stamp    = rclpy.time.Time().to_msg()
+        ray_opt.vector.x = float(dx_opt)
+        ray_opt.vector.y = float(dy_opt)
+        ray_opt.vector.z = float(dz_opt)
+
+        try:
+            # Transform the ray direction from optical frame to cloud frame.
+            # Both frames share the same physical camera origin, so this is
+            # purely rotational — no translation needed for a direction vector.
+            tf_opt_to_cloud = self._tf_buffer.lookup_transform(
+                cam_frame, optical_frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=1.0),
+            )
+            ray_cloud_msg = tf2_geometry_msgs.do_transform_vector3(
+                ray_opt, tf_opt_to_cloud)
+            d_cloud = np.array(
+                [ray_cloud_msg.vector.x,
+                 ray_cloud_msg.vector.y,
+                 ray_cloud_msg.vector.z],
+                dtype=np.float64)
+
+            # Ray-plane intersection in cloud frame:
+            #   P(t) = t * d_cloud  (ray from camera origin [0,0,0])
+            #   Plane: n · P + D_plane = 0
+            #   → t = -D_plane / dot(n, d_cloud)
+            denom = np.dot(normal, d_cloud)
+            if abs(denom) < 1e-6:
+                self.get_logger().warn(
+                    '[PC-RANSAC] Bbox center ray parallel to fitted plane — '
+                    'falling back to inlier centroid.')
+            else:
+                t = -D_plane / denom
+                if t <= 0.0:
+                    self.get_logger().warn(
+                        '[PC-RANSAC] Bbox center ray intersection behind camera — '
+                        'falling back to inlier centroid.')
+                else:
+                    button_centroid = t * d_cloud
+                    self.get_logger().info(
+                        '[PC-RANSAC] Button center via ray-plane intersection: '
+                        f'({button_centroid[0]:.4f},{button_centroid[1]:.4f},'
+                        f'{button_centroid[2]:.4f})  '
+                        f'inlier_centroid: '
+                        f'({inlier_centroid[0]:.4f},{inlier_centroid[1]:.4f},'
+                        f'{inlier_centroid[2]:.4f})  '
+                        f'lateral_shift={np.linalg.norm(button_centroid - inlier_centroid):.4f}m')
+
+        except Exception as exc:
+            self.get_logger().warn(
+                f'[PC-RANSAC] TF {optical_frame}→{cam_frame} for ray transform '
+                f'failed: {exc} — falling back to inlier centroid.')
+
+        # ── Step 9: approach and press points in cloud frame ──────────────────
+        approach_cam = button_centroid + APPROACH_DIST_M * normal   # +5 cm outward
+        press_cam    = button_centroid + PRESS_INSET_M   * normal   # -7 mm into button
+
+        # ── Step 10: transform to TARGET_FRAME (link_0_fake) via TF2 ──────────
+        # Use the actual frame_id from the cloud header (e.g. 'zed2_left_camera_frame')
+        # rather than the optical-frame constant, because the cloud is in the
+        # non-optical ROS frame.
+        approach_lf      = self._to_link0(approach_cam,    cam_frame)
+        press_lf         = self._to_link0(press_cam,       cam_frame)
+        button_center_lf = self._to_link0(button_centroid, cam_frame)
+        if approach_lf is None or press_lf is None or button_center_lf is None:
+            return None
+
+        return {
+            'approach_lf':      approach_lf,
+            'press_lf':         press_lf,
+            'button_center_lf': button_center_lf,   # ray-plane intersection in link_0
+            'normal_cam':       normal,
+            'centroid_cam':     button_centroid,     # same point, in cloud frame
+            'inlier_count':     best_count,
+            # ── visualization data ───────────────────────────────────────────
+            'viz_pts':     viz_pts,       # (N, 3) all valid points after pre-filtering
+            'inlier_mask': best_mask,     # (N,) bool — True = RANSAC inlier
+            'cloud_frame': cam_frame,     # frame_id for the coloured cloud publisher
+        }
+
+    # ── SECONDARY: 2D LiDAR + Ray Casting (comparison logging only) ──────────
+
+    def _extract_wall_plane_lidar(
+            self,
+            scan_msg: LaserScan,
+            cam_frame: str):
+        """
+        Fit a wall plane from the 2-D LiDAR scan and return plane
+        coefficients (A, B, C, D) and unit normal expressed in cam_frame.
+
+        cam_frame must be the camera OPTICAL frame so that the ray-plane
+        intersection uses the correct pinhole model axes (Z forward).
+
+        Steps:
+          A. Convert valid beams in ±20° forward sector to 2-D Cartesian
+             in LIDAR_FRAME.
+          B. SVD line fit — last row of Vt = minimum-variance direction
+             = 2-D wall normal.
+          C. Enforce normal points toward robot origin ([0,0] in laser frame).
+          D. Lift to 3-D in LIDAR_FRAME (z=0: scan is horizontal).
+          E. Transform wall centroid point and normal into cam_frame via TF2.
+             The full 3-D rotation applied by TF2 automatically handles the
+             6° camera upward tilt.
+          F. Renormalise; enforce nz < 0 (wall normal toward camera in
+             optical frame where Z is forward).
+          G. Build plane equation Ax + By + Cz + D = 0.
+
+        Returns (A, B, C, D, normal_cam) or (None,)*5 on failure.
+        """
+        wall_pts_list = []
+        for i, r in enumerate(scan_msg.ranges):
+            if not (LIDAR_MIN_RANGE < r < LIDAR_MAX_RANGE):
+                continue
+            angle = scan_msg.angle_min + i * scan_msg.angle_increment
+            if abs(angle) > WALL_ANGULAR_HALF:
+                continue
+            wall_pts_list.append(
+                [r * math.cos(angle), r * math.sin(angle)])
+
+        if len(wall_pts_list) < WALL_FIT_MIN_PTS:
+            self.get_logger().warn(
+                f'[LiDAR] Only {len(wall_pts_list)} beams in ±20° '
+                f'(need {WALL_FIT_MIN_PTS}) — skipping.')
+            return (None, None, None, None, None)
+
+        wall_pts    = np.array(wall_pts_list, dtype=np.float64)
+        centroid_2d = wall_pts.mean(axis=0)
+        _, _, Vt2   = np.linalg.svd(wall_pts - centroid_2d,
+                                     full_matrices=False)
+        # Last row of Vt = minimum-variance direction = 2-D wall normal
+        normal_2d = Vt2[-1].copy()
+
+        # Enforce toward robot origin ([0,0] in laser frame)
+        if np.dot(normal_2d, -centroid_2d) < 0:
+            normal_2d = -normal_2d
+        normal_2d /= np.linalg.norm(normal_2d)
+
+        # Lift to 3-D (horizontal scan → z=0)
+        wall_pt = PointStamped()
+        wall_pt.header.frame_id = LIDAR_FRAME
+        wall_pt.header.stamp    = rclpy.time.Time().to_msg()
+        wall_pt.point.x = float(centroid_2d[0])
+        wall_pt.point.y = float(centroid_2d[1])
+        wall_pt.point.z = 0.0
+
+        wall_n = Vector3Stamped()
+        wall_n.header.frame_id = LIDAR_FRAME
+        wall_n.header.stamp    = rclpy.time.Time().to_msg()
+        wall_n.vector.x = float(normal_2d[0])
+        wall_n.vector.y = float(normal_2d[1])
+        wall_n.vector.z = 0.0   # horizontal scan — no vertical component
+
+        try:
+            tf_lidar_to_cam = self._tf_buffer.lookup_transform(
+                cam_frame, LIDAR_FRAME,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=1.0),
+            )
+        except Exception as exc:
+            self.get_logger().warn(
+                f'[LiDAR] TF {LIDAR_FRAME}→{cam_frame}: {exc}')
+            return (None, None, None, None, None)
+
+        pt_cam = tf2_geometry_msgs.do_transform_point(wall_pt, tf_lidar_to_cam)
+        n_cam  = tf2_geometry_msgs.do_transform_vector3(wall_n, tf_lidar_to_cam)
+
+        p = np.array(
+            [pt_cam.point.x, pt_cam.point.y, pt_cam.point.z],
+            dtype=np.float64)
+        n = np.array(
+            [n_cam.vector.x, n_cam.vector.y, n_cam.vector.z],
+            dtype=np.float64)
+
+        n /= np.linalg.norm(n)
+        # In optical frame Z points forward; wall normal toward camera → nz < 0
+        if n[2] > 0.0:
+            n = -n
+
+        A = float(n[0])
+        B = float(n[1])
+        C = float(n[2])
+        D = float(-(A * p[0] + B * p[1] + C * p[2]))
+
+        return A, B, C, D, n
+
+    def _ray_plane_intersect(self,
+                              u: float, v: float,
+                              fx: float, fy: float,
+                              cx: float, cy: float,
+                              A: float, B: float,
+                              C: float, D: float) -> 'np.ndarray | None':
+        """
+        Intersect the pinhole camera ray through pixel (u, v) with the
+        plane Ax + By + Cz + D = 0 expressed in the camera optical frame.
+
+        Ray parametrisation (Z=1 convention):
+            P(t) = t * [dx, dy, 1]
+            where dx = (u - cx) / fx,  dy = (v - cy) / fy
+
+        Substituting into plane equation gives:
+            t = -D / (A*dx + B*dy + C)
+
+        Returns 3-D point in camera optical frame, or None.
+        """
+        dx    = (u - cx) / fx
+        dy    = (v - cy) / fy
+        denom = A * dx + B * dy + C   # dot(normal, ray_direction)
+        if abs(denom) < 1e-6:
+            return None               # ray parallel to wall
+        t = -D / denom
+        if t <= 0.0:
+            return None               # wall behind camera
+        return np.array([t * dx, t * dy, t], dtype=np.float64)
+
+    # ── Action execution ──────────────────────────────────────────────────────
 
     def _execute_cb(self, goal_handle):
         result   = DetectCallButton.Result()
@@ -276,8 +982,11 @@ class ElevatorCallButtonServer(Node):
         target_floor  = goal_handle.request.target_floor.strip()
 
         try:
-            direction = ('UP' if self._parse_floor(target_floor)
-                         > self._parse_floor(current_floor) else 'DOWN')
+            direction = (
+                'UP' if self._parse_floor(target_floor)
+                      > self._parse_floor(current_floor)
+                else 'DOWN'
+            )
         except ValueError as exc:
             self.get_logger().error(f'Floor parse error: {exc}')
             goal_handle.abort()
@@ -286,27 +995,17 @@ class ElevatorCallButtonServer(Node):
             return result
 
         class_ids   = DIRECTION_CLASS_MAP[direction]
-        unlit_class = class_ids["unlit_class"]
-        lit_class   = class_ids["lit_class"]
+        unlit_class = class_ids['unlit_class']
+        lit_class   = class_ids['lit_class']
 
         self.get_logger().info(
             f'[DetectCallButton] {current_floor}→{target_floor}: '
-            f'{direction} button '
-            f'(unlit_class={unlit_class}, lit_class={lit_class})')
+            f'{direction} (unlit_class={unlit_class}, lit_class={lit_class})')
 
-        # Dynamic subscriptions (same pattern as elevator_direction_server.py)
+        # Reset per-goal sensor state
         self._latest_rgb   = None
-        self._latest_depth = None
-        self._rgb_sub = self.create_subscription(
-            Image, RGB_TOPIC, self._rgb_cb, 1,
-            callback_group=self._cb_group)
-        self._depth_sub = self.create_subscription(
-            Image, DEPTH_TOPIC, self._depth_cb, 1,
-            callback_group=self._cb_group)
-        if self._camera_info is None:
-            self._info_sub = self.create_subscription(
-                CameraInfo, INFO_TOPIC, self._info_cb, 1,
-                callback_group=self._cb_group)
+        self._latest_scan  = None
+        self._latest_cloud = None
 
         try:
             while rclpy.ok() and goal_handle.is_active:
@@ -317,48 +1016,44 @@ class ElevatorCallButtonServer(Node):
                     result.message = 'Cancelled.'
                     return result
 
+                # Wait until all sensor streams are available
                 if (self._latest_rgb   is None
-                        or self._latest_depth is None
-                        or self._camera_info  is None):
+                        or self._camera_info is None
+                        or self._latest_scan  is None
+                        or self._latest_cloud is None):
                     feedback.status    = 'WAITING_FOR_DATA'
                     feedback.direction = direction
                     goal_handle.publish_feedback(feedback)
                     time.sleep(LOOP_SLEEP)
                     continue
 
-                # Convert images
+                # Convert RGB image
                 try:
                     bgr = self._bridge.imgmsg_to_cv2(
                         self._latest_rgb, desired_encoding='bgr8')
-                    enc = self._latest_depth.encoding
-                    if '32FC1' in enc:
-                        depth = self._bridge.imgmsg_to_cv2(
-                            self._latest_depth, desired_encoding='32FC1')
-                    else:
-                        depth = (
-                            self._bridge.imgmsg_to_cv2(
-                                self._latest_depth, desired_encoding='16UC1')
-                            .astype(np.float32) / 1000.0)
                 except Exception as exc:
                     self.get_logger().warn(f'Image conversion: {exc}')
                     time.sleep(LOOP_SLEEP)
                     continue
 
-                K          = self._camera_info.k
-                fx, fy     = K[0], K[4]
-                cx, cy     = K[2], K[5]
-                cam_frame  = (self._camera_info.header.frame_id
-                              or CAMERA_FRAME)
+                # Camera intrinsics (used by LiDAR ray casting only)
+                K         = self._camera_info.k
+                fx, fy    = K[0], K[4]
+                cx, cy    = K[2], K[5]
+                # camera_info frame_id = optical frame — used for LiDAR TF lookup
+                # and also passed to _extract_button_pose_pointcloud as optical_frame
+                # so the bbox center ray can be transformed into the cloud frame.
+                cam_frame = (self._camera_info.header.frame_id or CAMERA_FRAME)
 
-                # ── YOLO inference — same approach as floor_arrival_server ──
-                results = self._model(bgr, conf=INFERENCE_CONF, verbose=False)
-
+                # ── YOLO inference ───────────────────────────────────────────
+                yolo_results = self._model(
+                    bgr, conf=INFERENCE_CONF, verbose=False)
                 detected_unlit = False
                 detected_lit   = False
                 unlit_bbox     = None
 
-                if results and results[0].boxes is not None:
-                    for box in results[0].boxes:
+                if yolo_results and yolo_results[0].boxes is not None:
+                    for box in yolo_results[0].boxes:
                         cls_id = int(box.cls[0].item())
                         if cls_id == unlit_class:
                             detected_unlit = True
@@ -367,34 +1062,33 @@ class ElevatorCallButtonServer(Node):
                         elif cls_id == lit_class:
                             detected_lit = True
 
-                # Annotated debug frame (show only target direction boxes)
+                # Build annotated debug frame
                 annotated = bgr.copy()
-                if results and results[0].boxes is not None:
-                    for box in results[0].boxes:
+                if yolo_results and yolo_results[0].boxes is not None:
+                    for box in yolo_results[0].boxes:
                         cls_id = int(box.cls[0].item())
                         if cls_id not in (unlit_class, lit_class):
                             continue
-                        conf  = float(box.conf[0].item())
+                        conf = float(box.conf[0].item())
                         bx1, by1, bx2, by2 = (
                             int(v) for v in box.xyxy[0].tolist())
-                        col = (0, 255, 0) if cls_id == unlit_class \
-                              else (0, 165, 255)
+                        col = ((0, 255, 0) if cls_id == unlit_class
+                               else (0, 165, 255))
                         cv2.rectangle(annotated,
                                       (bx1, by1), (bx2, by2), col, 2)
                         lbl = (self._model.names[cls_id]
                                if self._model.names else str(cls_id))
                         cv2.putText(annotated, f'{lbl} {conf:.2f}',
                                     (bx2 + 6, (by1 + by2) // 2),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.55,
-                                    col, 2)
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2)
 
-                # State logic mirrors floor_arrival_server.py
+                # ── Button already lit — call already active ──────────────────
                 if detected_lit:
-                    # Button already pressed — wait; don't press again
                     feedback.status    = 'BUTTON_LIT'
                     feedback.direction = direction
                     goal_handle.publish_feedback(feedback)
-                    cv2.putText(annotated, f'{direction} LIT — already pressed',
+                    cv2.putText(annotated,
+                                f'{direction} LIT — already pressed',
                                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 0.7, (0, 165, 255), 2)
                     try:
@@ -403,14 +1097,25 @@ class ElevatorCallButtonServer(Node):
                                 annotated, encoding='bgr8'))
                     except Exception:
                         pass
-                    time.sleep(LOOP_SLEEP)
-                    continue
+                    goal_handle.succeed()
+                    result.success    = True
+                    result.approach_x = 0.0
+                    result.approach_y = 0.0
+                    result.approach_z = 0.0
+                    result.press_x    = 0.0
+                    result.press_y    = 0.0
+                    result.press_z    = 0.0
+                    result.message    = (
+                        f'{direction} button already lit; call already active.')
+                    return result
 
-                elif not detected_unlit:
+                # ── No unlit button detected this frame ──────────────────────
+                if not detected_unlit or unlit_bbox is None:
                     feedback.status    = 'NO_DETECTION'
                     feedback.direction = direction
                     goal_handle.publish_feedback(feedback)
-                    cv2.putText(annotated, f'{direction} not found',
+                    cv2.putText(annotated,
+                                f'{direction} not found',
                                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                                 0.7, (0, 0, 255), 2)
                     try:
@@ -422,67 +1127,125 @@ class ElevatorCallButtonServer(Node):
                     time.sleep(LOOP_SLEEP)
                     continue
 
-                # ── Unlit button found — fit plane from depth ─────────────
-                #
-                # Unproject each depth sample in the bounding box:
-                #   X = (u - cx) * d / fx
-                #   Y = (v - cy) * d / fy
-                #   Z = d
-                # Fit plane via SVD; normal = direction of least variance.
-                # approach = centroid + 0.03 * normal  (3 cm toward camera)
-                # press    = centroid                  (on button surface)
-                # ─────────────────────────────────────────────────────────
+                # ════════════════════════════════════════════════════════════
+                # SECONDARY: LiDAR + ray casting
+                # Comparison logging ONLY — never published to any topic.
+                # Uses cam_frame = optical frame from camera_info header.
+                # ════════════════════════════════════════════════════════════
+                A, B, C, D, lidar_normal = self._extract_wall_plane_lidar(
+                    self._latest_scan, cam_frame)
 
-                centroid, normal = self._fit_plane(
-                    unlit_bbox, depth, fx, fy, cx, cy)
+                if A is not None:
+                    u_c = (unlit_bbox[0] + unlit_bbox[2]) / 2.0
+                    v_c = (unlit_bbox[1] + unlit_bbox[3]) / 2.0
+                    button_cam_lidar = self._ray_plane_intersect(
+                        u_c, v_c, fx, fy, cx, cy, A, B, C, D)
 
-                if centroid is None:
+                    if button_cam_lidar is not None:
+                        approach_cam_lidar = (
+                            button_cam_lidar + APPROACH_DIST_M * lidar_normal)
+                        press_cam_lidar    = (
+                            button_cam_lidar + PRESS_INSET_M   * lidar_normal)
+
+                        approach_lf_lidar = self._to_link0(
+                            approach_cam_lidar, cam_frame)
+                        press_lf_lidar    = self._to_link0(
+                            press_cam_lidar,    cam_frame)
+
+                        if (approach_lf_lidar is not None
+                                and press_lf_lidar is not None):
+                            self.get_logger().info(
+                                '[LiDAR-Ray] '
+                                'approach_{} = ({:.4f},{:.4f},{:.4f})  '
+                                'press_{} = ({:.4f},{:.4f},{:.4f})  '
+                                '[NOT published — comparison only]'.format(
+                                    TARGET_FRAME,
+                                    approach_lf_lidar[0],
+                                    approach_lf_lidar[1],
+                                    approach_lf_lidar[2],
+                                    TARGET_FRAME,
+                                    press_lf_lidar[0],
+                                    press_lf_lidar[1],
+                                    press_lf_lidar[2],
+                                )
+                            )
+                        else:
+                            self.get_logger().warn(
+                                f'[LiDAR-Ray] TF to {TARGET_FRAME} failed.')
+                    else:
+                        self.get_logger().warn(
+                            '[LiDAR-Ray] Ray-plane intersection failed.')
+                else:
                     self.get_logger().warn(
-                        '[DetectCallButton] Too few valid depth samples — '
-                        'retrying.')
+                        '[LiDAR-Ray] Wall plane extraction failed.')
+
+                # ════════════════════════════════════════════════════════════
+                # PRIMARY: ZED2 Point Cloud + RANSAC
+                # Publishes to /button_press_goal on success.
+                # Uses actual cloud frame_id from the PointCloud2 header.
+                # ════════════════════════════════════════════════════════════
+                pc_result = self._extract_button_pose_pointcloud(
+                    self._latest_cloud, unlit_bbox,
+                    int(self._latest_rgb.width), int(self._latest_rgb.height),
+                    fx, fy, cx, cy, cam_frame)   # ── CHANGED: pass intrinsics + optical frame
+
+                if pc_result is None:
+                    self.get_logger().warn(
+                        '[PC-RANSAC] Failed — insufficient valid depth '
+                        'points in YOLO bbox. LiDAR comparison logged above. '
+                        'NOT publishing — retrying.')
                     feedback.status    = 'DEPTH_INSUFFICIENT'
                     feedback.direction = direction
                     goal_handle.publish_feedback(feedback)
                     time.sleep(LOOP_SLEEP)
                     continue
 
-                press_cam    = centroid
-                approach_cam = centroid + APPROACH_DIST_M * normal
+                # Primary succeeded — log and publish
+                approach_lf      = pc_result['approach_lf']
+                press_lf         = pc_result['press_lf']
+                button_center_lf = pc_result['button_center_lf']
+                centroid_cam     = pc_result['centroid_cam']
+                inlier_count     = int(pc_result['inlier_count'])
 
                 self.get_logger().info(
-                    f'[DetectCallButton] cam-frame — '
-                    f'press({press_cam[0]:.4f},{press_cam[1]:.4f},'
-                    f'{press_cam[2]:.4f}) '
-                    f'normal({normal[0]:.3f},{normal[1]:.3f},'
-                    f'{normal[2]:.3f})')
+                    '[PC-RANSAC] inliers={}  '
+                    'button_center_{}_fake = ({:.4f},{:.4f},{:.4f})  '
+                    'approach_{}_fake = ({:.4f},{:.4f},{:.4f})  '
+                    'press_{}_fake = ({:.4f},{:.4f},{:.4f})  '
+                    '[PUBLISHING to /button_press_goal]'.format(
+                        inlier_count,
+                        'link_0',
+                        button_center_lf[0], button_center_lf[1], button_center_lf[2],
+                        'link_0',
+                        approach_lf[0],      approach_lf[1],      approach_lf[2],
+                        'link_0',
+                        press_lf[0],         press_lf[1],         press_lf[2],
+                    )
+                )
 
-                press_lf    = self._to_link0_fake(press_cam,    cam_frame)
-                approach_lf = self._to_link0_fake(approach_cam, cam_frame)
+                self._publish_button_press_goal(approach_lf, press_lf, direction)
+                self._publish_debug(annotated, unlit_bbox, '',
+                                    (0, 255, 0), approach_lf, press_lf)
 
-                if press_lf is None or approach_lf is None:
-                    feedback.status    = 'TF_ERROR'
-                    feedback.direction = direction
-                    goal_handle.publish_feedback(feedback)
-                    time.sleep(LOOP_SLEEP)
-                    continue
+                # ── Publish full raw ZED2 cloud for scene context ─────────────
+                # Re-publish self._latest_cloud directly — no decoding needed.
+                # In RViz add this topic alongside /button_detection/plane_cloud
+                # to see the green fitted plane overlaid on the full scene.
+                self._full_cloud_pub.publish(self._latest_cloud)
+                # ─────────────────────────────────────────────────────────────
 
-                # Publish approach point to /xyz_target
-                self._xyz_pub.publish(Point(
-                    x=approach_lf[0],
-                    y=approach_lf[1],
-                    z=approach_lf[2]))
-
-                self.get_logger().info(
-                    f'[DetectCallButton] link_0_fake approach '
-                    f'({approach_lf[0]:.6f},{approach_lf[1]:.6f},'
-                    f'{approach_lf[2]:.6f})')
-                self.get_logger().info(
-                    f'[DetectCallButton] link_0_fake press    '
-                    f'({press_lf[0]:.6f},{press_lf[1]:.6f},'
-                    f'{press_lf[2]:.6f})')
-
-                self._publish_debug(annotated, None, '', (0, 255, 0),
-                                    approach_lf, press_lf)
+                # ── Publish green inlier plane cloud + markers ────────────────
+                self._publish_plane_visualization(
+                    all_crop_pts     = pc_result['viz_pts'],
+                    inlier_mask      = pc_result['inlier_mask'],
+                    centroid         = centroid_cam,
+                    normal           = pc_result['normal_cam'],
+                    approach_lf      = approach_lf,
+                    press_lf         = press_lf,
+                    button_center_lf = button_center_lf,   # ── CHANGED: pass ray-plane result
+                    cloud_frame      = pc_result['cloud_frame'],
+                )
+                # ─────────────────────────────────────────────────────────────
 
                 feedback.status    = 'LOCALISED'
                 feedback.direction = direction
@@ -497,11 +1260,12 @@ class ElevatorCallButtonServer(Node):
                 result.press_y    = float(press_lf[1])
                 result.press_z    = float(press_lf[2])
                 result.message    = (
-                    f'{direction} unlit button localised. '
+                    f'{direction} unlit button localised via PC-RANSAC. '
                     f'approach=({approach_lf[0]:.4f},{approach_lf[1]:.4f},'
                     f'{approach_lf[2]:.4f}) '
                     f'press=({press_lf[0]:.4f},{press_lf[1]:.4f},'
-                    f'{press_lf[2]:.4f})')
+                    f'{press_lf[2]:.4f}) '
+                    f'inliers={inlier_count}')
                 return result
 
             result.success = False
@@ -509,20 +1273,13 @@ class ElevatorCallButtonServer(Node):
             return result
 
         finally:
-            for attr in ('_rgb_sub', '_depth_sub', '_info_sub'):
-                sub = getattr(self, attr, None)
-                if sub is not None:
-                    self.destroy_subscription(sub)
-                    setattr(self, attr, None)
+            # Keep subscriptions alive; only clear per-goal cached messages.
             self._latest_rgb   = None
-            self._latest_depth = None
+            self._latest_scan  = None
+            self._latest_cloud = None
             self.get_logger().info(
-                '[DetectCallButton] Camera subscriptions released.')
+                '[DetectCallButton] Goal finished; sensor caches reset.')
 
-
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
 
 def main(args=None):
     rclpy.init(args=args)

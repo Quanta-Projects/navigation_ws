@@ -103,7 +103,7 @@ def generate_launch_description():
             # ---------------------------------------------------------
             # ZED Camera Launch
             # ---------------------------------------------------------
-            # IMU remains enabled via the override YAML.
+            # IMU publishing is disabled — EKF uses wheel odometry only.
             # ZED positional tracking / visual odometry is disabled.
             # publish_tf remains disabled to avoid TF conflict with robot's odom frame.
             IncludeLaunchDescription(
@@ -113,6 +113,7 @@ def generate_launch_description():
                     'camera_name': 'zed2',
                     'publish_tf': 'false',
                     'publish_map_tf': 'false',
+                    'publish_imu_tf': 'false',
                     'publish_urdf': 'true',
                     'use_sim_time': 'false',
                     'ros_params_override_path': zed_override_config,
@@ -120,7 +121,7 @@ def generate_launch_description():
             ),
 
             # ---------------------------------------------------------
-            # Static Transform Bridge
+            # Static Transform Bridges
             # ---------------------------------------------------------
             # camera_link  (robot URDF body frame)
             #   -> zed2_camera_link  (ZED SDK body frame, camera_name=zed2)
@@ -137,7 +138,7 @@ def generate_launch_description():
                 ]
             ),
 
-            # ---------------------------------------------------------
+# ---------------------------------------------------------
             # Topic Relay Nodes
             # ---------------------------------------------------------
             # Republish ZED native topics under sim-compatible names:

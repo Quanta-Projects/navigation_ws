@@ -29,6 +29,7 @@ setup(
     entry_points={
         'console_scripts': [
             'tf_to_pose = smrr_docking.tf_to_pose:main',
+            'undock_with_charge_stop = smrr_docking.undock_with_charge_stop:main',
         ],
     },
 )

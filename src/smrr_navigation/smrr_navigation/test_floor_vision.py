@@ -11,6 +11,7 @@ import os
 import cv2
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from ament_index_python.packages import get_package_share_directory
@@ -47,7 +48,7 @@ class TestFloorVision(Node):
             Image,
             "/zed2_left_camera/image_raw",
             self._image_cb,
-            1,
+            qos_profile_sensor_data,
         )
 
         self.create_timer(0.1, self._process)
