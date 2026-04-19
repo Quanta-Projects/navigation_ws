@@ -39,8 +39,8 @@ DIRECTION_CLASS_MAP = {
 }
 
 INFERENCE_CONF   = 0.15
-APPROACH_DIST_M  = 0.08    # 5 cm outward along button normal
-PRESS_INSET_M    = -0.03  # 7 mm into button surface
+APPROACH_DIST_M  = 0.06    # 5 cm outward along button normal
+PRESS_INSET_M    = -0.06  # 7 mm into button surface
 LOOP_SLEEP       = 0.05
 
 # Point-cloud ROI tuning
@@ -70,7 +70,18 @@ WALL_ANGULAR_HALF = 0.35   # ±20 degrees in radians
 
 # EEF orientation published with button_press_goal.
 # Measured from arm at pressing configuration.
-EEF_ORIENTATION = (-0.0458, -0.6507, -0.7513, 0.1006)  # x, y, z, w
+EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301)  # x, y, z, w
+
+# Manual offsets (meters) in TARGET_FRAME (link_0_fake).
+# Applied only to points published on /button_press_goal.
+# Separate tuning for each button direction.
+BUTTON_GOAL_OFFSET_UP_X = 0.0
+BUTTON_GOAL_OFFSET_UP_Y = -0.07
+BUTTON_GOAL_OFFSET_UP_Z = 0.0
+
+BUTTON_GOAL_OFFSET_DOWN_X = 0.0
+BUTTON_GOAL_OFFSET_DOWN_Y = -0.07
+BUTTON_GOAL_OFFSET_DOWN_Z = -0.01
 
 
 class ElevatorCallButtonServer(Node):
@@ -201,30 +212,55 @@ class ElevatorCallButtonServer(Node):
 
     def _publish_button_press_goal(self,
                                    approach_lf: np.ndarray,
-                                   press_lf: np.ndarray) -> None:
+                                   press_lf: np.ndarray,
+                                   direction: str) -> None:
         """
         Publish approach and press poses to /button_press_goal.
 
         Coordinates are in TARGET_FRAME (link_0_fake).
+        Direction-specific offsets are added in TARGET_FRAME to both
+        approach and press coordinates immediately before publishing.
         Header frame_id is PUBLISH_FRAME_ID ('link_0') because
         link_0_fake and link_0 are the same physical frame and the
         MoveIt commander uses setPoseReferenceFrame("link_0").
         """
         qx, qy, qz, qw = EEF_ORIENTATION
 
+        direction_norm = direction.strip().upper()
+        if direction_norm == 'UP':
+            offset = np.array([
+                BUTTON_GOAL_OFFSET_UP_X,
+                BUTTON_GOAL_OFFSET_UP_Y,
+                BUTTON_GOAL_OFFSET_UP_Z,
+            ], dtype=np.float64)
+        elif direction_norm == 'DOWN':
+            offset = np.array([
+                BUTTON_GOAL_OFFSET_DOWN_X,
+                BUTTON_GOAL_OFFSET_DOWN_Y,
+                BUTTON_GOAL_OFFSET_DOWN_Z,
+            ], dtype=np.float64)
+        else:
+            self.get_logger().warn(
+                f'Unknown direction "{direction}" for goal offset. '
+                'Using zero offset.')
+            offset = np.zeros(3, dtype=np.float64)
+
+        approach_pub_lf = approach_lf + offset
+        press_pub_lf = press_lf + offset
+
         approach_pose = Pose()
-        approach_pose.position.x = float(approach_lf[0])
-        approach_pose.position.y = float(approach_lf[1])
-        approach_pose.position.z = float(approach_lf[2])
+        approach_pose.position.x = float(approach_pub_lf[0])
+        approach_pose.position.y = float(approach_pub_lf[1])
+        approach_pose.position.z = float(approach_pub_lf[2])
         approach_pose.orientation.x = qx
         approach_pose.orientation.y = qy
         approach_pose.orientation.z = qz
         approach_pose.orientation.w = qw
 
         press_pose = Pose()
-        press_pose.position.x = float(press_lf[0])
-        press_pose.position.y = float(press_lf[1])
-        press_pose.position.z = float(press_lf[2])
+        press_pose.position.x = float(press_pub_lf[0])
+        press_pose.position.y = float(press_pub_lf[1])
+        press_pose.position.z = float(press_pub_lf[2])
         press_pose.orientation.x = qx
         press_pose.orientation.y = qy
         press_pose.orientation.z = qz
@@ -1187,7 +1223,7 @@ class ElevatorCallButtonServer(Node):
                     )
                 )
 
-                self._publish_button_press_goal(approach_lf, press_lf)
+                self._publish_button_press_goal(approach_lf, press_lf, direction)
                 self._publish_debug(annotated, unlit_bbox, '',
                                     (0, 255, 0), approach_lf, press_lf)
 

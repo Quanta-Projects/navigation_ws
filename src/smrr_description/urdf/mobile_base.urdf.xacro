@@ -365,7 +365,8 @@
   <link name="link_0_fake"/>
 
   <joint name="link_0_fake_joint" type="fixed">
-    <origin xyz="-0.04 -0.235 1.11974" rpy="0 0 0"/>
+    <!-- <origin xyz="-0.05799 -0.21910 1.18100" rpy="0.01475 -0.01943 -0.07311"/> -->
+    <origin xyz="-0.04869 -0.21265 1.21385" rpy="-0.00434 0.02883 -0.08261"/>
     <parent link="base_link"/>
     <child  link="link_0_fake"/>
   </joint>
