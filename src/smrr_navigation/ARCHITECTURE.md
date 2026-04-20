@@ -24,7 +24,8 @@
    - 4.5 [startup_localizer.py](#45-startup_localizerpy)
    - 4.6 [location_subscriber.py](#46-location_subscriberpy)
    - 4.7 [test_floor_vision.py](#47-test_floor_visionpy)
-   - 4.8 [door_classifier_node.py (Legacy)](#48-door_classifier_nodepy-legacy)
+   - 4.8 [elevator_call_button_server.py](#48-elevator_call_button_serverpy)
+   - 4.9 [door_classifier_node.py (Legacy)](#49-door_classifier_nodepy-legacy)
 5. [Behavior Tree Architecture](#5-behavior-tree-architecture)
    - 5.1 [BT Mission Executor (C++)](#51-bt-mission-executor-c)
    - 5.2 [smrr_multifloor.xml — Full Structure](#52-smrr_multifloortxml--full-structure)
@@ -69,6 +70,7 @@
 | AMCL freeze during in-elevator spin | `SetAMCLParams` BT node raises thresholds to ~∞ |
 | Map switching at runtime | `nav2_msgs/srv/LoadMap` via `SwitchMap` BT node |
 | AMCL re-initialization after floor switch | `PublishInitialPose` BT node with optional AprilTag TF correction |
+| Elevator call button detection & 3D localisation | `DetectCallButton` action — YOLO class detection + ZED2 organised point-cloud RANSAC plane fit → approach/press waypoints in `link_0` frame |
 | Named location resolution | YAML-backed `/go_to_pose` service, floor-aware lookup |
 | Startup localization | Odometry-driven forward + rotate sequence |
 | Dynamic AprilTag node management | `apriltag_manager_server` starts/stops `apriltag_ros` on demand |
@@ -123,6 +125,7 @@ smrr_navigation/
 │   ├── named_goal_client.py               # CLI test client
 │   ├── named_goal_server.py               # Named location resolver + mission dispatcher
 │   ├── smrr_multifloor_bt_navigator.py    # Legacy Python action server (not used)
+│   ├── elevator_call_button_server.py     # Action server: YOLO + ZED2 point-cloud RANSAC call button localisation
 │   ├── startup_localizer.py               # AMCL convergence motion sequence
 │   └── test_floor_vision.py               # Debug visualizer: all YOLO detections on camera
 ├── src/
@@ -144,7 +147,12 @@ smrr_navigation/
 │       ├── check_elevator_direction_action.cpp
 │       ├── toggle_apriltag_action.cpp
 │       ├── build_pose_vector_action.cpp
-│       └── clear_costmaps_action.cpp
+│       ├── clear_costmaps_action.cpp
+│       ├── detect_call_button_action.cpp
+│       ├── update_pose_timestamp_action.cpp
+│       ├── wait_for_door_open_action.cpp          # Legacy: depth-based door detection (unused)
+│       ├── wait_for_door_open_depth_action.cpp    # Legacy: depth-based door detection (unused)
+│       └── wait_for_door_open_model_action.cpp    # Legacy: model-based door detection (unused)
 ├── CMakeLists.txt   # Hybrid ament_cmake + ament_cmake_python
 ├── package.xml
 └── setup.py         # Python entry points (9 executables)
@@ -173,6 +181,7 @@ The package uses **hybrid `ament_cmake` + `ament_cmake_python`**:
 | `location_subscriber` | location_subscriber | `/location` topic bridge |
 | `floor_arrival_server` | floor_arrival_server | `/check_floor_arrival` action server |
 | `elevator_direction_server` | elevator_direction_server | `check_elevator_direction` action server |
+| `elevator_call_button_server` | elevator_call_button_server | `detect_call_button` action server — YOLO + ZED2 RANSAC |
 | `apriltag_manager_server` | apriltag_manager_server | `/toggle_apriltag` service |
 | `door_classifier_node` | door_classifier_node | Legacy ONNX depth inference (not launched) |
 | `test_floor_vision` | test_floor_vision | YOLO debug visualizer |
@@ -223,6 +232,14 @@ Nodes launched by `smrr_world_navigation.launch.py`:
    │     YOLO + HSV: detects up/down arrow illumination
    │     Publishes /floor_vision/debug_image
    │
+   ├── elevator_call_button_server  — detect_call_button (DetectCallButton action)
+   │     Subscribes /zed2_left_camera/image_raw, /zed2_left_camera/camera_info
+   │               /zed2/zed_node/point_cloud/cloud_registered
+   │     YOLO class detection + ZED2 organised point-cloud RANSAC plane fit
+   │     Publishes /button_press_goal (PoseArray: approach + press in link_0 frame)
+   │     Publishes /button_detection/full_cloud, /button_detection/plane_cloud (RViz debug)
+   │     Publishes /button_detection/markers (MarkerArray), /floor_vision/debug_image
+   │
    ├── apriltag_manager_server    — /toggle_apriltag (std_srvs/SetBool service)
    │     Starts/stops apriltag_ros as a subprocess on demand
    │
@@ -242,14 +259,20 @@ Nodes launched by `smrr_world_navigation.launch.py`:
 |---|---|---|---|
 | `/cmd_vel` | geometry_msgs/Twist | controller_server, startup_localizer | Robot velocity commands |
 | `/initialpose` | geometry_msgs/PoseWithCovarianceStamped | PublishInitialPose BT node | AMCL re-localization trigger |
-| `/floor_vision/debug_image` | sensor_msgs/Image | floor_arrival_server, elevator_direction_server | Annotated YOLO frames |
+| `/floor_vision/debug_image` | sensor_msgs/Image | floor_arrival_server, elevator_direction_server, elevator_call_button_server | Annotated YOLO frames |
+| `/button_press_goal` | geometry_msgs/PoseArray | elevator_call_button_server | Approach + press poses in `link_0` frame for arm controller |
+| `/button_detection/full_cloud` | sensor_msgs/PointCloud2 | elevator_call_button_server | Raw ZED2 scene cloud re-published for RViz context |
+| `/button_detection/plane_cloud` | sensor_msgs/PointCloud2 | elevator_call_button_server | RANSAC inlier points (green) for RViz overlay |
+| `/button_detection/markers` | visualization_msgs/MarkerArray | elevator_call_button_server | Arrow, sphere, text markers in `link_0_fake` frame |
 
 #### Subscribed Topics
 
 | Topic | Type | Subscriber | Purpose |
 |---|---|---|---|
 | `/location` | std_msgs/String | location_subscriber | High-level location command |
-| `/zed2_left_camera/image_raw` | sensor_msgs/Image | floor_arrival_server, elevator_direction_server | Camera feed for YOLO |
+| `/zed2_left_camera/image_raw` | sensor_msgs/Image | floor_arrival_server, elevator_direction_server, elevator_call_button_server | Camera feed for YOLO |
+| `/zed2_left_camera/camera_info` | sensor_msgs/CameraInfo | elevator_call_button_server | Camera intrinsics for pinhole ray-plane intersection |
+| `/zed2/zed_node/point_cloud/cloud_registered` | sensor_msgs/PointCloud2 | elevator_call_button_server | Organised ZED2 point cloud for RANSAC plane fit |
 | `/zed2_left_camera/depth/image_raw` | sensor_msgs/Image | door_classifier_node (legacy) | Depth for ONNX classifier |
 | `/diff_drive_controller/odom` | nav_msgs/Odometry | startup_localizer | Odometry for motion tracking |
 | `/amcl_pose` | geometry_msgs/PoseWithCovarianceStamped | named_goal_server | Current pose estimate |
@@ -269,6 +292,7 @@ Nodes launched by `smrr_world_navigation.launch.py`:
 | `*/spin` | nav2_msgs/Spin action | behavior_server | Spin BT node |
 | `/check_floor_arrival` | CheckFloorArrival action | floor_arrival_server | CheckFloorArrival BT node |
 | `check_elevator_direction` | CheckElevatorDirection action | elevator_direction_server | CheckElevatorDirection BT node |
+| `detect_call_button` | DetectCallButton action | elevator_call_button_server | DetectCallButton BT node |
 | `/global_costmap/clear_entirely_global_costmap` | nav2_msgs/ClearEntireCostmap | Nav2 | ClearEntireCostmap BT node |
 | `/local_costmap/clear_entirely_local_costmap` | nav2_msgs/ClearEntireCostmap | Nav2 | ClearEntireCostmap BT node |
 | `/controller_server/set_parameters` | rcl_interfaces/SetParameters | controller_server | SetControllerParams BT node |
@@ -304,6 +328,7 @@ External / UI ──→ /location (std_msgs/String) "office_101"
             │                                │
     NavigateToPose                  [Cross-floor sequence]
     (Nav2 → MPPI)                   → Navigate to elevator_staging
+                                    → DetectCallButton (YOLO + ZED2 RANSAC → /button_press_goal)
                                     → CallElevator
                                     → Wait for door open (ComputePathToPose polling)
                                     → NavigateThroughPoses (entry → inside)
@@ -391,6 +416,28 @@ bool success; int32 nav_status; string message
 ---
 # Feedback
 string state; string active_floor_id; string active_step
+```
+
+### `DetectCallButton.action`
+
+```yaml
+# Goal: floors to determine direction (UP/DOWN) and target button class
+string current_floor    # e.g. "floor0"
+string target_floor     # e.g. "floor2"
+---
+# Result: two waypoints in link_0 frame (computed via link_0_fake TF)
+bool   success
+float64 approach_x      # 6 cm outward along button plane normal
+float64 approach_y
+float64 approach_z
+float64 press_x         # 6 cm into button surface from plane
+float64 press_y
+float64 press_z
+string message
+---
+# Feedback: per-cycle status
+string status           # WAITING_FOR_DATA | NO_DETECTION | BUTTON_LIT | DEPTH_INSUFFICIENT | LOCALISED
+string direction        # UP | DOWN
 ```
 
 ---
@@ -552,7 +599,74 @@ Standalone debug visualizer. Runs YOLO on the live camera feed and publishes an 
 
 ---
 
-### 4.8 door_classifier_node.py (Legacy)
+### 4.8 elevator_call_button_server.py
+
+**Action:** `detect_call_button` (DetectCallButton)
+
+Detects the elevator call button (UP or DOWN) and localises it in 3D using the ZED2 left camera and its organised point cloud. On success it publishes two arm waypoints — an approach point 6 cm in front of the button plane and a press point 6 cm into the surface — to `/button_press_goal` for the arm controller.
+
+**Direction inference:**
+```python
+direction = "UP" if int(target_floor[-1]) > int(current_floor[-1]) else "DOWN"
+```
+
+**YOLO class mapping (button_detection.pt):**
+
+| Direction | Unlit class | Lit class |
+|---|---|---|
+| UP (call) | 10 | 11 |
+| DOWN (call) | 0 | 1 |
+
+**Detection pipeline per goal cycle:**
+1. Wait until RGB image, camera info, and ZED2 registered point cloud are all available.
+2. Run YOLO at 20 Hz (`conf=0.15`) on the RGB frame to find the `unlit_class` bounding box.
+3. If the `lit_class` is detected (button already illuminated) → succeed immediately (`BUTTON_LIT`).
+4. If no unlit button detected → feedback `NO_DETECTION`, retry next frame.
+5. Call `_extract_button_pose_pointcloud()`:
+   - Scale YOLO bounding box from image pixel space to cloud pixel space.
+   - Crop a center-focused sub-ROI (`BBOX_CENTER_SHRINK=0.40`) to suppress wall points.
+   - Decode raw ZED2 `PointCloud2` bytes directly via `np.frombuffer` + `np.view(float32)`.
+   - Filter: remove NaN/inf, keep depths 0.05–5.0 m, apply near-depth percentile gate (15th percentile + 5 mm band), apply median-depth outlier filter (±20 mm).
+   - RANSAC plane fit: 200 iterations, 3 mm inlier threshold, minimum 8 inliers.
+   - SVD refinement on inlier subset → best-fit plane normal + scalar D.
+   - Frame-agnostic normal enforcement: `dot(normal, -centroid) > 0` (toward camera).
+   - **Button center via ray-plane intersection:** bbox center pixel → pinhole ray in optical frame → TF2 rotation into cloud frame → intersect with RANSAC plane. This decouples lateral position (bbox center pixel) from depth (plane). Falls back to inlier centroid on TF failure.
+   - Compute `approach_cam = button_centroid + 0.06 * normal` and `press_cam = button_centroid - 0.06 * normal`.
+   - TF2 transform `approach_cam` and `press_cam` from cloud frame → `link_0_fake` (= `link_0`).
+6. Publish `PoseArray` to `/button_press_goal` (header `frame_id = "link_0"`, poses[0]=approach, poses[1]=press) with `EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301)`.
+7. Publish RViz visualizations: `/button_detection/full_cloud`, `/button_detection/plane_cloud` (green inliers), `/button_detection/markers` (arrow + spheres + text in `link_0_fake`).
+8. Return action result with approach/press coordinates in `link_0_fake`.
+
+**Per-direction goal offsets** applied in `link_0_fake` before publishing to `/button_press_goal`:
+
+| Direction | X offset | Y offset | Z offset |
+|---|---|---|---|
+| UP | 0.0 m | −0.07 m | 0.0 m |
+| DOWN | 0.0 m | −0.07 m | −0.01 m |
+
+**Key constants:**
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `INFERENCE_CONF` | 0.15 | YOLO confidence threshold |
+| `APPROACH_DIST_M` | 0.06 m | Distance outward from button plane |
+| `PRESS_INSET_M` | −0.06 m | Distance into button surface |
+| `BBOX_CENTER_SHRINK` | 0.40 | Center-crop ratio to reduce wall dominance |
+| `NEAR_DEPTH_PERCENTILE` | 15.0 | Percentile for near-depth gate |
+| `NEAR_DEPTH_BAND_M` | 0.005 m | Band above near-depth percentile |
+| `CAMERA_FRAME` | `zed2_left_camera_frame_optical` | Optical frame for ray direction |
+| `TARGET_FRAME` | `link_0_fake` | Output coordinate frame |
+| `PUBLISH_FRAME_ID` | `link_0` | `frame_id` written into `/button_press_goal` header |
+| `POINTCLOUD_TOPIC` | `/zed2/zed_node/point_cloud/cloud_registered` | ZED2 organised point cloud |
+
+**Subscribers (persistent, node lifetime):**
+- `/zed2_left_camera/image_raw` (Image)
+- `/zed2_left_camera/camera_info` (CameraInfo)
+- `/zed2/zed_node/point_cloud/cloud_registered` (PointCloud2)
+
+---
+
+### 4.9 door_classifier_node.py (Legacy)
 
 ONNX-based depth image classifier. Loads `door_classifier_3.onnx` (TinyCNN, ~15K params) and classifies elevator door state as OPEN/CLOSED from a 96×96 normalised depth patch.
 
@@ -603,6 +717,8 @@ Root (BehaviorTree id="MissionTree")
       ├─ IsDifferentFloor
       ├─ GetNamedPose (elevator_staging, current_floor)
       ├─ NavigateToPose (→ elevator_staging)
+      ├─ DetectCallButton (current_floor → target_floor)          ← YOLO + ZED2 RANSAC → /button_press_goal
+      ├─ GetNamedPose (elevator_inside, current_floor)            ← pre-fetched for ComputePathToPose
       │
       ├─ RetryUntilSuccessful(2) [CallElevatorAndEnter]
       │  └─ Sequence
@@ -612,6 +728,7 @@ Root (BehaviorTree id="MissionTree")
       │     ├─ RetryUntilSuccessful(3000) [WaitForPath_Entry]
       │     │  └─ Delay(500ms) → ComputePathToPose(inside_pose)
       │     ├─ GetNamedPose (elevator_entry, current_floor)
+      │     ├─ GetNamedPose (elevator_inside, current_floor)     ← re-fetched inside retry
       │     ├─ BuildPoseVector (entry_pose + inside_pose)
       │     └─ NavigateThroughPoses
       │
@@ -677,6 +794,21 @@ If `current_floor_id == target_floor_id`, dispatch directly to Nav2. No elevator
 
 ### 5.4 Cross-Floor Branch — Elevator Entry
 
+Before the entry retry loop, the BT runs two steps that are outside the retry so they execute only once regardless of how many retries occur:
+
+```xml
+<!-- Detect UP/DOWN call button and publish arm waypoints -->
+<DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
+
+<!-- Pre-fetch inside_pose so it is on the blackboard for ComputePathToPose polling -->
+<GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}"
+              location_key="elevator_inside" pose="{inside_pose}"/>
+```
+
+`DetectCallButton` triggers `elevator_call_button_server` which uses YOLO to locate the correct call button (class 10/11 for UP, 0/1 for DOWN) and then fits a RANSAC plane to the ZED2 point cloud crop to compute 3D approach and press waypoints. These are published to `/button_press_goal` for the arm controller and the BT action returns SUCCESS once localised.
+
+Then the entry retry loop:
+
 ```xml
 <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
   <Sequence name="CallWaitAndEnter">
@@ -692,6 +824,7 @@ If `current_floor_id == target_floor_id`, dispatch directly to Nav2. No elevator
     </RetryUntilSuccessful>
 
     <GetNamedPose location_key="elevator_entry" .../>
+    <GetNamedPose location_key="elevator_inside" .../>
     <BuildPoseVector pose1="{entry_pose}" pose2="{inside_pose}" poses="{entry_poses}"/>
     <NavigateThroughPoses server_name="/navigate_through_poses" goals="{entry_poses}"/>
   </Sequence>
@@ -701,6 +834,8 @@ If `current_floor_id == target_floor_id`, dispatch directly to Nav2. No elevator
 **Why inflation is reduced:** The elevator gap is tight; 0.5 m inflation causes path planning to fail through the narrow door. Reduced to 0.325 m to allow a feasible path.
 
 **Why velocity is increased:** 0.75 m/s carries the robot through the door with momentum, reducing the chance of stopping partway through.
+
+**Why `elevator_inside` is fetched twice:** The pre-fetch before the retry loop puts `inside_pose` on the blackboard so the `ComputePathToPose` door-poll can use it immediately. The re-fetch inside the retry loop refreshes it before `NavigateThroughPoses` to ensure correctness on retries.
 
 ---
 
@@ -812,6 +947,7 @@ After successful exit, the robot navigates to the original target destination us
 | `PublishInitialPose` | AsyncAction | Publishes `/initialpose`; optionally corrects pose using AprilTag TF lookup |
 | `CheckFloorArrival` | AsyncAction | Action client wrapping `/check_floor_arrival`; blocks until arrived |
 | `CheckElevatorDirection` | AsyncAction | Action client wrapping `check_elevator_direction`; blocks until direction confirmed |
+| `DetectCallButton` | AsyncAction | Action client wrapping `detect_call_button`; YOLO + ZED2 RANSAC localises call button; blocks until waypoints published to `/button_press_goal` |
 | `SetAMCLParams` | AsyncAction | Updates `update_min_d` + `update_min_a` on the AMCL node via parameter service |
 | `SetControllerParams` | AsyncAction | Updates `max_vel_x` on the controller server via parameter service |
 | `SetCostmapInflation` | AsyncAction | Updates `inflation_radius` on both local + global costmaps |
@@ -1084,9 +1220,10 @@ Starts the full simulation stack:
 5. `location_subscriber` — topic bridge
 6. `floor_arrival_server` — YOLO floor arrival action server
 7. `elevator_direction_server` — YOLO+HSV direction action server
-8. `apriltag_manager_server` — dynamic AprilTag process management
-9. `startup_localizer` (conditional on `enable_startup_localizer` arg)
-10. `rviz2`
+8. `elevator_call_button_server` — YOLO + ZED2 RANSAC call button detection and localisation action server
+9. `apriltag_manager_server` — dynamic AprilTag process management
+10. `startup_localizer` (conditional on `enable_startup_localizer` arg)
+11. `rviz2`
 
 **Key launch arguments:**
 
@@ -1107,6 +1244,20 @@ Mirrors the simulation launch but omits Gazebo:
 - Default `initial_floor_id`: `floor1` (physical robot setup)
 - `use_rviz`: `false` by default (headless deployment)
 - `enable_startup_localizer`: `true` by default
+
+Nodes launched (hardware):
+
+1. `nav2_bringup/bringup_launch.py`
+2. `smrr_bt_mission_executor`
+3. `named_goal_server`
+4. `location_subscriber`
+5. `floor_arrival_server`
+6. `elevator_call_button_server` — YOLO + ZED2 RANSAC call button action server
+7. `apriltag_manager_server`
+8. `startup_localizer` (conditional)
+9. `rviz2` (conditional on `use_rviz`)
+
+> **Note:** `elevator_direction_server` is **not** launched in the hardware configuration.
 
 ---
 
@@ -1152,6 +1303,16 @@ Mirrors the simulation launch but omits Gazebo:
  5. IsSameFloor → FAILURE; IsDifferentFloor → SUCCESS
  6. GetNamedPose(elevator_staging, floor0) → (-2.50, 0.80, 90°)
  7. NavigateToPose(-2.50, 0.80) — robot drives to elevator staging position
+
+ 7.5 DetectCallButton(floor0 → floor1):
+       - Determines direction = UP (floor1 > floor0)
+       - YOLO identifies unlit UP button (class 10) bounding box in camera frame
+       - ZED2 registered point cloud: RANSAC fits button surface plane
+       - Ray-plane intersection computes button center from bbox center pixel
+       - Computes approach_lf (6 cm from plane, in link_0_fake) + press_lf (6 cm into surface)
+       - Publishes PoseArray to /button_press_goal for arm controller
+       - Pre-fetches elevator_inside pose onto blackboard
+       - BT DetectCallButton action returns SUCCESS
 
  8. [RetryUntilSuccessful x2] CallElevatorAndEnter:
       a. CallElevator(floor0)             — press call button

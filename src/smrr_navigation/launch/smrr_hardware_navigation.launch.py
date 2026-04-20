@@ -232,6 +232,22 @@ def generate_launch_description():
     )
 
     # ---------------------------------------------------------------------------
+    # Elevator Floor Button Server
+    # Presses floor panel buttons (G/1/2/3) inside elevator via YOLO + RANSAC;
+    # verifies press via lit-button detection
+    # ---------------------------------------------------------------------------
+    elevator_floor_button_server = Node(
+        package='smrr_navigation',
+        executable='elevator_floor_button_server.py',
+        name='elevator_floor_button_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': False},
+            {'yolo_model_path': yolo_model_path}
+        ]
+    )
+
+    # ---------------------------------------------------------------------------
     # BT Mission Executor
     # Runs the smrr_multifloor BehaviorTree for same/cross-floor navigation
     # ---------------------------------------------------------------------------
@@ -335,6 +351,9 @@ def generate_launch_description():
 
         # Elevator call button server (YOLO + depth)
         elevator_call_button_server,
+
+        # Elevator floor button server (YOLO + depth, inside elevator)
+        elevator_floor_button_server,
 
         # BT Mission Executor (multi-floor behavior tree)
         bt_mission_executor,

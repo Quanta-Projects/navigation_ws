@@ -1,6 +1,7 @@
 # Goal: floors to determine direction and target class
 string current_floor    # e.g. "floor0"
 string target_floor     # e.g. "floor2"
+geometry_msgs/PoseStamped inside_pose   # elevator inside pose for door-open press verification
 ---
 # Result: two waypoints in link_0_fake frame
 bool   success
@@ -13,5 +14,5 @@ float64 press_z
 string message
 ---
 # Feedback: per-cycle status
-string status           # WAITING_FOR_DATA | NO_DETECTION | BUTTON_LIT | DEPTH_INSUFFICIENT | TF_ERROR | LOCALISED
+string status           # WAITING_FOR_DATA | NO_DETECTION | BUTTON_LIT | DEPTH_INSUFFICIENT | TF_ERROR | LOCALISED | AWAITING_PRESS | VERIFYING
 string direction        # UP | DOWN

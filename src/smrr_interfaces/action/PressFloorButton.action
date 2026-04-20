@@ -1,0 +1,16 @@
+# Goal: target floor to determine which panel button to press
+string target_floor     # "floor0" | "floor1" | "floor2" | "floor3"
+---
+# Result: two waypoints in link_0_fake frame
+bool   success
+float64 approach_x      # 6 cm outward along button plane normal
+float64 approach_y
+float64 approach_z
+float64 press_x         # button surface centre
+float64 press_y
+float64 press_z
+string message
+---
+# Feedback: per-cycle status
+string status           # WAITING_FOR_DATA | NO_DETECTION | BUTTON_LIT | DEPTH_INSUFFICIENT | LOCALISED | AWAITING_PRESS | VERIFYING
+string floor            # target floor id

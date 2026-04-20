@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import enum
 import math
 import os
 import struct
+import threading
 import time
 
 import cv2
@@ -10,16 +12,19 @@ import numpy as np
 import rclpy
 import tf2_geometry_msgs
 import tf2_ros
+from action_msgs.msg import GoalStatus
 from ament_index_python.packages import get_package_share_directory
 from cv_bridge import CvBridge
 from geometry_msgs.msg import (
-    Point, PointStamped, Pose, PoseArray, Vector3Stamped,
+    Point, PointStamped, Pose, PoseArray, PoseStamped, Vector3Stamped,
 )
-from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from nav2_msgs.action import ComputePathToPose as Nav2ComputePathToPose
+from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from sensor_msgs.msg import CameraInfo, Image, LaserScan, PointCloud2, PointField
+from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
+from std_msgs.msg import Bool
 from visualization_msgs.msg import Marker, MarkerArray
 from ultralytics import YOLO
 
@@ -59,14 +64,6 @@ PUBLISH_FRAME_ID = 'link_0'        # frame_id written into /button_press_goal he
 RGB_TOPIC        = '/zed2_left_camera/image_raw'
 INFO_TOPIC       = '/zed2_left_camera/camera_info'
 POINTCLOUD_TOPIC = '/zed2/zed_node/point_cloud/cloud_registered'
-SCAN_TOPIC       = '/scan'
-
-# LiDAR constants
-LIDAR_FRAME       = 'rplidar_link'
-LIDAR_MAX_RANGE   = 8.0
-LIDAR_MIN_RANGE   = 0.10
-WALL_FIT_MIN_PTS  = 10
-WALL_ANGULAR_HALF = 0.35   # ±20 degrees in radians
 
 # EEF orientation published with button_press_goal.
 # Measured from arm at pressing configuration.
@@ -83,6 +80,28 @@ BUTTON_GOAL_OFFSET_DOWN_X = 0.0
 BUTTON_GOAL_OFFSET_DOWN_Y = -0.07
 BUTTON_GOAL_OFFSET_DOWN_Z = -0.01
 
+# ── Press-and-verify state machine ───────────────────────────────────────────
+PRESS_COMPLETE_TOPIC    = '/press_complete'
+MAX_PRESS_ATTEMPTS      = 3        # arm press retries before FAILURE
+ARM_TIMEOUT_SEC         = 180.0     # max seconds waiting for /press_complete
+VERIFY_TIMEOUT_SEC      = 10.0      # seconds to verify after arm signals done
+VERIFY_SETTLE_SEC       = 0.5      # settle delay before polling starts
+VERIFY_LIT_MIN_FRAMES   = 2        # consecutive YOLO lit-class frames to confirm
+VERIFY_PATH_POLL_SEC    = 0.3      # sleep between verification loop iterations
+
+# Nav2 path-planner call timeouts (used inside _door_is_open)
+PATH_SERVER_WAIT_SEC    = 0.5
+PATH_GOAL_TIMEOUT_SEC   = 1.5
+PATH_RESULT_TIMEOUT_SEC = 1.5
+
+
+class _PressState(enum.Enum):
+    WAITING_FOR_DATA = 'WAITING_FOR_DATA'
+    DETECTING        = 'DETECTING'
+    AWAITING_PRESS   = 'AWAITING_PRESS'
+    VERIFYING        = 'VERIFYING'
+    CONFIRMED        = 'CONFIRMED'
+
 
 class ElevatorCallButtonServer(Node):
 
@@ -97,13 +116,11 @@ class ElevatorCallButtonServer(Node):
 
         # Per-goal sensor data
         self._latest_rgb   = None
-        self._latest_scan  = None
         self._latest_cloud = None
         self._camera_info  = None   # cached after first receipt
 
         # Persistent subscribers (avoid destroy/create races with executor)
         self._rgb_sub   = None
-        self._scan_sub  = None
         self._cloud_sub = None
         self._info_sub  = None
 
@@ -137,9 +154,6 @@ class ElevatorCallButtonServer(Node):
         self._rgb_sub = self.create_subscription(
             Image, RGB_TOPIC, self._rgb_cb, 1,
             callback_group=self._cb_group)
-        self._scan_sub = self.create_subscription(
-            LaserScan, SCAN_TOPIC, self._scan_cb, 10,
-            callback_group=self._cb_group)
         self._cloud_sub = self.create_subscription(
             PointCloud2, POINTCLOUD_TOPIC, self._cloud_cb, 1,
             callback_group=self._cb_group)
@@ -156,6 +170,18 @@ class ElevatorCallButtonServer(Node):
             cancel_callback=self._cancel_cb,
             callback_group=self._cb_group,
         )
+
+        # ── Press-complete signal from arm controller ─────────────────────────
+        self._press_complete_event = threading.Event()
+        self._press_complete_sub = self.create_subscription(
+            Bool, PRESS_COMPLETE_TOPIC, self._press_complete_cb, 1,
+            callback_group=self._cb_group)
+
+        # ── Nav2 path-planner client (door-open detection) ────────────────────
+        self._path_client = ActionClient(
+            self, Nav2ComputePathToPose, '/compute_path_to_pose',
+            callback_group=self._cb_group)
+
         self.get_logger().info(
             'ElevatorCallButtonServer ready — action: detect_call_button')
 
@@ -163,9 +189,6 @@ class ElevatorCallButtonServer(Node):
 
     def _rgb_cb(self, msg: Image):
         self._latest_rgb = msg
-
-    def _scan_cb(self, msg: LaserScan):
-        self._latest_scan = msg
 
     def _cloud_cb(self, msg: PointCloud2):
         self._latest_cloud = msg
@@ -838,148 +861,113 @@ class ElevatorCallButtonServer(Node):
             'cloud_frame': cam_frame,     # frame_id for the coloured cloud publisher
         }
 
-    # ── SECONDARY: 2D LiDAR + Ray Casting (comparison logging only) ──────────
+    # ── Arm press-complete subscriber ────────────────────────────────────────
 
-    def _extract_wall_plane_lidar(
-            self,
-            scan_msg: LaserScan,
-            cam_frame: str):
+    def _press_complete_cb(self, msg: Bool):
+        """Arm controller publishes True to /press_complete when motion is done."""
+        if msg.data:
+            self._press_complete_event.set()
+
+    # ── Door-open check via Nav2 path planner ────────────────────────────────
+
+    def _door_is_open(self, inside_pose: PoseStamped) -> bool:
         """
-        Fit a wall plane from the 2-D LiDAR scan and return plane
-        coefficients (A, B, C, D) and unit normal expressed in cam_frame.
+        Return True if Nav2 can plan a path to inside_pose (door is open).
 
-        cam_frame must be the camera OPTICAL frame so that the ray-plane
-        intersection uses the correct pinhole model axes (Z forward).
-
-        Steps:
-          A. Convert valid beams in ±20° forward sector to 2-D Cartesian
-             in LIDAR_FRAME.
-          B. SVD line fit — last row of Vt = minimum-variance direction
-             = 2-D wall normal.
-          C. Enforce normal points toward robot origin ([0,0] in laser frame).
-          D. Lift to 3-D in LIDAR_FRAME (z=0: scan is horizontal).
-          E. Transform wall centroid point and normal into cam_frame via TF2.
-             The full 3-D rotation applied by TF2 automatically handles the
-             6° camera upward tilt.
-          F. Renormalise; enforce nz < 0 (wall normal toward camera in
-             optical frame where Z is forward).
-          G. Build plane equation Ax + By + Cz + D = 0.
-
-        Returns (A, B, C, D, normal_cam) or (None,)*5 on failure.
+        Polls /compute_path_to_pose with GridBased planner.
+        Returns False immediately if inside_pose has no frame_id set.
+        Uses tight timeouts so the verification loop stays responsive.
+        The MultiThreadedExecutor resolves the action client futures in its
+        own threads while this method busy-waits.
         """
-        wall_pts_list = []
-        for i, r in enumerate(scan_msg.ranges):
-            if not (LIDAR_MIN_RANGE < r < LIDAR_MAX_RANGE):
-                continue
-            angle = scan_msg.angle_min + i * scan_msg.angle_increment
-            if abs(angle) > WALL_ANGULAR_HALF:
-                continue
-            wall_pts_list.append(
-                [r * math.cos(angle), r * math.sin(angle)])
+        if not inside_pose.header.frame_id:
+            return False
+        if not self._path_client.wait_for_server(
+                timeout_sec=PATH_SERVER_WAIT_SEC):
+            return False
 
-        if len(wall_pts_list) < WALL_FIT_MIN_PTS:
-            self.get_logger().warn(
-                f'[LiDAR] Only {len(wall_pts_list)} beams in ±20° '
-                f'(need {WALL_FIT_MIN_PTS}) — skipping.')
-            return (None, None, None, None, None)
+        goal = Nav2ComputePathToPose.Goal()
+        goal.goal       = inside_pose
+        goal.planner_id = 'GridBased'
 
-        wall_pts    = np.array(wall_pts_list, dtype=np.float64)
-        centroid_2d = wall_pts.mean(axis=0)
-        _, _, Vt2   = np.linalg.svd(wall_pts - centroid_2d,
-                                     full_matrices=False)
-        # Last row of Vt = minimum-variance direction = 2-D wall normal
-        normal_2d = Vt2[-1].copy()
+        future   = self._path_client.send_goal_async(goal)
+        deadline = time.time() + PATH_GOAL_TIMEOUT_SEC
+        while not future.done() and time.time() < deadline:
+            time.sleep(0.05)
+        if not future.done():
+            return False
 
-        # Enforce toward robot origin ([0,0] in laser frame)
-        if np.dot(normal_2d, -centroid_2d) < 0:
-            normal_2d = -normal_2d
-        normal_2d /= np.linalg.norm(normal_2d)
+        gh = future.result()
+        if not gh.accepted:
+            return False
 
-        # Lift to 3-D (horizontal scan → z=0)
-        wall_pt = PointStamped()
-        wall_pt.header.frame_id = LIDAR_FRAME
-        wall_pt.header.stamp    = rclpy.time.Time().to_msg()
-        wall_pt.point.x = float(centroid_2d[0])
-        wall_pt.point.y = float(centroid_2d[1])
-        wall_pt.point.z = 0.0
+        result_future = gh.get_result_async()
+        deadline2 = time.time() + PATH_RESULT_TIMEOUT_SEC
+        while not result_future.done() and time.time() < deadline2:
+            time.sleep(0.05)
+        if not result_future.done():
+            return False
 
-        wall_n = Vector3Stamped()
-        wall_n.header.frame_id = LIDAR_FRAME
-        wall_n.header.stamp    = rclpy.time.Time().to_msg()
-        wall_n.vector.x = float(normal_2d[0])
-        wall_n.vector.y = float(normal_2d[1])
-        wall_n.vector.z = 0.0   # horizontal scan — no vertical component
+        return result_future.result().status == GoalStatus.STATUS_SUCCEEDED
 
-        try:
-            tf_lidar_to_cam = self._tf_buffer.lookup_transform(
-                cam_frame, LIDAR_FRAME,
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=1.0),
-            )
-        except Exception as exc:
-            self.get_logger().warn(
-                f'[LiDAR] TF {LIDAR_FRAME}→{cam_frame}: {exc}')
-            return (None, None, None, None, None)
+    # ── Post-press verification ───────────────────────────────────────────────
 
-        pt_cam = tf2_geometry_msgs.do_transform_point(wall_pt, tf_lidar_to_cam)
-        n_cam  = tf2_geometry_msgs.do_transform_vector3(wall_n, tf_lidar_to_cam)
-
-        p = np.array(
-            [pt_cam.point.x, pt_cam.point.y, pt_cam.point.z],
-            dtype=np.float64)
-        n = np.array(
-            [n_cam.vector.x, n_cam.vector.y, n_cam.vector.z],
-            dtype=np.float64)
-
-        n /= np.linalg.norm(n)
-        # In optical frame Z points forward; wall normal toward camera → nz < 0
-        if n[2] > 0.0:
-            n = -n
-
-        A = float(n[0])
-        B = float(n[1])
-        C = float(n[2])
-        D = float(-(A * p[0] + B * p[1] + C * p[2]))
-
-        return A, B, C, D, n
-
-    def _ray_plane_intersect(self,
-                              u: float, v: float,
-                              fx: float, fy: float,
-                              cx: float, cy: float,
-                              A: float, B: float,
-                              C: float, D: float) -> 'np.ndarray | None':
+    def _verify_press(self, lit_class: int, inside_pose: PoseStamped,
+                      deadline: float, goal_handle) -> str:
         """
-        Intersect the pinhole camera ray through pixel (u, v) with the
-        plane Ax + By + Cz + D = 0 expressed in the camera optical frame.
+        After the arm signals press complete, confirm via either:
+          BUTTON_LIT : YOLO detects the lit class for VERIFY_LIT_MIN_FRAMES
+                       consecutive frames (elevator on different floor — button
+                       stays lit while travelling).
+          DOOR_OPEN  : Nav2 ComputePathToPose to inside_pose succeeds
+                       (elevator was on same floor — door opens almost immediately
+                       after press; button lit window is only ~0.5 s and unreliable).
 
-        Ray parametrisation (Z=1 convention):
-            P(t) = t * [dx, dy, 1]
-            where dx = (u - cx) / fx,  dy = (v - cy) / fy
-
-        Substituting into plane equation gives:
-            t = -D / (A*dx + B*dy + C)
-
-        Returns 3-D point in camera optical frame, or None.
+        Returns: 'BUTTON_LIT' | 'DOOR_OPEN' | 'TIMEOUT' | 'CANCELLED'
         """
-        dx    = (u - cx) / fx
-        dy    = (v - cy) / fy
-        denom = A * dx + B * dy + C   # dot(normal, ray_direction)
-        if abs(denom) < 1e-6:
-            return None               # ray parallel to wall
-        t = -D / denom
-        if t <= 0.0:
-            return None               # wall behind camera
-        return np.array([t * dx, t * dy, t], dtype=np.float64)
+        time.sleep(VERIFY_SETTLE_SEC)   # let door/button state settle after press
+        consecutive_lit = 0
+
+        while time.time() < deadline:
+            if goal_handle.is_cancel_requested:
+                return 'CANCELLED'
+
+            # ── Door-open check (catches same-floor case) ─────────────────
+            if self._door_is_open(inside_pose):
+                return 'DOOR_OPEN'
+
+            # ── YOLO lit-button check (catches different-floor case) ──────
+            if self._latest_rgb is not None:
+                try:
+                    bgr = self._bridge.imgmsg_to_cv2(
+                        self._latest_rgb, desired_encoding='bgr8')
+                    yolo_res = self._model(bgr, conf=INFERENCE_CONF, verbose=False)
+                    if yolo_res and yolo_res[0].boxes is not None:
+                        classes = yolo_res[0].boxes.cls.cpu().numpy().astype(int)
+                        confs   = yolo_res[0].boxes.conf.cpu().numpy()
+                        if any(int(c) == lit_class and float(cf) > 0.55
+                               for c, cf in zip(classes, confs)):
+                            consecutive_lit += 1
+                            if consecutive_lit >= VERIFY_LIT_MIN_FRAMES:
+                                return 'BUTTON_LIT'
+                        else:
+                            consecutive_lit = 0
+                except Exception as exc:
+                    self.get_logger().warn(f'[Verify] YOLO check error: {exc}')
+
+            time.sleep(VERIFY_PATH_POLL_SEC)
+
+        return 'TIMEOUT'
 
     # ── Action execution ──────────────────────────────────────────────────────
 
-    def _execute_cb(self, goal_handle):
+    def _execute_cb(self, goal_handle):  # noqa: C901
         result   = DetectCallButton.Result()
         feedback = DetectCallButton.Feedback()
 
         current_floor = goal_handle.request.current_floor.strip()
         target_floor  = goal_handle.request.target_floor.strip()
+        inside_pose   = goal_handle.request.inside_pose   # PoseStamped for door check
 
         try:
             direction = (
@@ -1000,282 +988,312 @@ class ElevatorCallButtonServer(Node):
 
         self.get_logger().info(
             f'[DetectCallButton] {current_floor}→{target_floor}: '
-            f'{direction} (unlit_class={unlit_class}, lit_class={lit_class})')
+            f'{direction} (unlit={unlit_class}, lit={lit_class})')
 
-        # Reset per-goal sensor state
-        self._latest_rgb   = None
-        self._latest_scan  = None
-        self._latest_cloud = None
+        approach_lf = None
+        press_lf    = None
+        state       = _PressState.WAITING_FOR_DATA
 
         try:
-            while rclpy.ok() and goal_handle.is_active:
+            for attempt in range(MAX_PRESS_ATTEMPTS):
+                if attempt > 0:
+                    self.get_logger().info(
+                        f'[DetectCallButton] Re-localising — press attempt '
+                        f'{attempt + 1}/{MAX_PRESS_ATTEMPTS}')
 
-                if goal_handle.is_cancel_requested:
-                    goal_handle.canceled()
-                    result.success = False
-                    result.message = 'Cancelled.'
-                    return result
+                # Fresh sensor data each attempt
+                self._latest_rgb   = None
+                self._latest_cloud = None
+                state = _PressState.WAITING_FOR_DATA
 
-                # Wait until all sensor streams are available
-                if (self._latest_rgb   is None
-                        or self._camera_info is None
-                        or self._latest_scan  is None
-                        or self._latest_cloud is None):
-                    feedback.status    = 'WAITING_FOR_DATA'
-                    feedback.direction = direction
-                    goal_handle.publish_feedback(feedback)
-                    time.sleep(LOOP_SLEEP)
-                    continue
-
-                # Convert RGB image
-                try:
-                    bgr = self._bridge.imgmsg_to_cv2(
-                        self._latest_rgb, desired_encoding='bgr8')
-                except Exception as exc:
-                    self.get_logger().warn(f'Image conversion: {exc}')
-                    time.sleep(LOOP_SLEEP)
-                    continue
-
-                # Camera intrinsics (used by LiDAR ray casting only)
-                K         = self._camera_info.k
-                fx, fy    = K[0], K[4]
-                cx, cy    = K[2], K[5]
-                # camera_info frame_id = optical frame — used for LiDAR TF lookup
-                # and also passed to _extract_button_pose_pointcloud as optical_frame
-                # so the bbox center ray can be transformed into the cloud frame.
-                cam_frame = (self._camera_info.header.frame_id or CAMERA_FRAME)
-
-                # ── YOLO inference ───────────────────────────────────────────
-                yolo_results = self._model(
-                    bgr, conf=INFERENCE_CONF, verbose=False)
-                detected_unlit = False
-                detected_lit   = False
-                unlit_bbox     = None
-
-                if yolo_results and yolo_results[0].boxes is not None:
-                    for box in yolo_results[0].boxes:
-                        cls_id = int(box.cls[0].item())
-                        if cls_id == unlit_class:
-                            detected_unlit = True
-                            unlit_bbox = tuple(
-                                map(int, box.xyxy[0].tolist()))
-                        elif cls_id == lit_class:
-                            detected_lit = True
-
-                # Build annotated debug frame
-                annotated = bgr.copy()
-                if yolo_results and yolo_results[0].boxes is not None:
-                    for box in yolo_results[0].boxes:
-                        cls_id = int(box.cls[0].item())
-                        if cls_id not in (unlit_class, lit_class):
-                            continue
-                        conf = float(box.conf[0].item())
-                        bx1, by1, bx2, by2 = (
-                            int(v) for v in box.xyxy[0].tolist())
-                        col = ((0, 255, 0) if cls_id == unlit_class
-                               else (0, 165, 255))
-                        cv2.rectangle(annotated,
-                                      (bx1, by1), (bx2, by2), col, 2)
-                        lbl = (self._model.names[cls_id]
-                               if self._model.names else str(cls_id))
-                        cv2.putText(annotated, f'{lbl} {conf:.2f}',
-                                    (bx2 + 6, (by1 + by2) // 2),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2)
-
-                # ── Button already lit — call already active ──────────────────
-                if detected_lit:
-                    feedback.status    = 'BUTTON_LIT'
-                    feedback.direction = direction
-                    goal_handle.publish_feedback(feedback)
-                    cv2.putText(annotated,
-                                f'{direction} LIT — already pressed',
-                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                0.7, (0, 165, 255), 2)
-                    try:
-                        self._debug_pub.publish(
-                            self._bridge.cv2_to_imgmsg(
-                                annotated, encoding='bgr8'))
-                    except Exception:
-                        pass
-                    goal_handle.succeed()
-                    result.success    = True
-                    result.approach_x = 0.0
-                    result.approach_y = 0.0
-                    result.approach_z = 0.0
-                    result.press_x    = 0.0
-                    result.press_y    = 0.0
-                    result.press_z    = 0.0
-                    result.message    = (
-                        f'{direction} button already lit; call already active.')
-                    return result
-
-                # ── No unlit button detected this frame ──────────────────────
-                if not detected_unlit or unlit_bbox is None:
-                    feedback.status    = 'NO_DETECTION'
-                    feedback.direction = direction
-                    goal_handle.publish_feedback(feedback)
-                    cv2.putText(annotated,
-                                f'{direction} not found',
-                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                0.7, (0, 0, 255), 2)
-                    try:
-                        self._debug_pub.publish(
-                            self._bridge.cv2_to_imgmsg(
-                                annotated, encoding='bgr8'))
-                    except Exception:
-                        pass
-                    time.sleep(LOOP_SLEEP)
-                    continue
-
-                # ════════════════════════════════════════════════════════════
-                # SECONDARY: LiDAR + ray casting
-                # Comparison logging ONLY — never published to any topic.
-                # Uses cam_frame = optical frame from camera_info header.
-                # ════════════════════════════════════════════════════════════
-                A, B, C, D, lidar_normal = self._extract_wall_plane_lidar(
-                    self._latest_scan, cam_frame)
-
-                if A is not None:
-                    u_c = (unlit_bbox[0] + unlit_bbox[2]) / 2.0
-                    v_c = (unlit_bbox[1] + unlit_bbox[3]) / 2.0
-                    button_cam_lidar = self._ray_plane_intersect(
-                        u_c, v_c, fx, fy, cx, cy, A, B, C, D)
-
-                    if button_cam_lidar is not None:
-                        approach_cam_lidar = (
-                            button_cam_lidar + APPROACH_DIST_M * lidar_normal)
-                        press_cam_lidar    = (
-                            button_cam_lidar + PRESS_INSET_M   * lidar_normal)
-
-                        approach_lf_lidar = self._to_link0(
-                            approach_cam_lidar, cam_frame)
-                        press_lf_lidar    = self._to_link0(
-                            press_cam_lidar,    cam_frame)
-
-                        if (approach_lf_lidar is not None
-                                and press_lf_lidar is not None):
-                            self.get_logger().info(
-                                '[LiDAR-Ray] '
-                                'approach_{} = ({:.4f},{:.4f},{:.4f})  '
-                                'press_{} = ({:.4f},{:.4f},{:.4f})  '
-                                '[NOT published — comparison only]'.format(
-                                    TARGET_FRAME,
-                                    approach_lf_lidar[0],
-                                    approach_lf_lidar[1],
-                                    approach_lf_lidar[2],
-                                    TARGET_FRAME,
-                                    press_lf_lidar[0],
-                                    press_lf_lidar[1],
-                                    press_lf_lidar[2],
-                                )
-                            )
-                        else:
-                            self.get_logger().warn(
-                                f'[LiDAR-Ray] TF to {TARGET_FRAME} failed.')
+                # ══════════════════════════════════════════════════════════════
+                # State: WAITING_FOR_DATA
+                # ══════════════════════════════════════════════════════════════
+                while state == _PressState.WAITING_FOR_DATA:
+                    if not (rclpy.ok() and goal_handle.is_active):
+                        break
+                    if goal_handle.is_cancel_requested:
+                        goal_handle.canceled()
+                        result.success = False
+                        result.message = 'Cancelled.'
+                        return result
+                    if (self._latest_rgb   is not None
+                            and self._camera_info is not None
+                            and self._latest_cloud is not None):
+                        state = _PressState.DETECTING
                     else:
+                        feedback.status    = 'WAITING_FOR_DATA'
+                        feedback.direction = direction
+                        goal_handle.publish_feedback(feedback)
+                        time.sleep(LOOP_SLEEP)
+
+                if not (rclpy.ok() and goal_handle.is_active):
+                    break
+
+                # ══════════════════════════════════════════════════════════════
+                # State: DETECTING
+                # YOLO detection + RANSAC localisation loop.
+                # Exits when button localised (→ AWAITING_PRESS) or
+                # already lit (→ CONFIRMED).
+                # ══════════════════════════════════════════════════════════════
+                while state == _PressState.DETECTING:
+                    if not (rclpy.ok() and goal_handle.is_active):
+                        break
+                    if goal_handle.is_cancel_requested:
+                        goal_handle.canceled()
+                        result.success = False
+                        result.message = 'Cancelled.'
+                        return result
+
+                    # Convert RGB image
+                    try:
+                        bgr = self._bridge.imgmsg_to_cv2(
+                            self._latest_rgb, desired_encoding='bgr8')
+                    except Exception as exc:
+                        self.get_logger().warn(f'Image conversion: {exc}')
+                        time.sleep(LOOP_SLEEP)
+                        continue
+
+                    # Camera intrinsics
+                    K        = self._camera_info.k
+                    fx, fy   = K[0], K[4]
+                    cx, cy   = K[2], K[5]
+                    cam_frame = (self._camera_info.header.frame_id or CAMERA_FRAME)
+
+                    # ── YOLO inference ────────────────────────────────────────
+                    yolo_results  = self._model(bgr, conf=INFERENCE_CONF, verbose=False)
+                    detected_unlit = False
+                    detected_lit   = False
+                    unlit_bbox     = None
+
+                    if yolo_results and yolo_results[0].boxes is not None:
+                        for box in yolo_results[0].boxes:
+                            cls_id = int(box.cls[0].item())
+                            if cls_id == unlit_class:
+                                detected_unlit = True
+                                unlit_bbox = tuple(map(int, box.xyxy[0].tolist()))
+                            elif cls_id == lit_class:
+                                detected_lit = True
+
+                    # Build annotated debug frame
+                    annotated = bgr.copy()
+                    if yolo_results and yolo_results[0].boxes is not None:
+                        for box in yolo_results[0].boxes:
+                            cls_id = int(box.cls[0].item())
+                            if cls_id not in (unlit_class, lit_class):
+                                continue
+                            conf = float(box.conf[0].item())
+                            bx1, by1, bx2, by2 = (int(v) for v in box.xyxy[0].tolist())
+                            col = ((0, 255, 0) if cls_id == unlit_class
+                                   else (0, 165, 255))
+                            cv2.rectangle(annotated, (bx1, by1), (bx2, by2), col, 2)
+                            lbl = (self._model.names[cls_id]
+                                   if self._model.names else str(cls_id))
+                            cv2.putText(annotated, f'{lbl} {conf:.2f}',
+                                        (bx2 + 6, (by1 + by2) // 2),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, col, 2)
+
+                    # ── Button already lit — call already active ──────────────
+                    if detected_lit:
+                        feedback.status    = 'BUTTON_LIT'
+                        feedback.direction = direction
+                        goal_handle.publish_feedback(feedback)
+                        cv2.putText(annotated,
+                                    f'{direction} LIT — already pressed',
+                                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.7, (0, 165, 255), 2)
+                        try:
+                            self._debug_pub.publish(
+                                self._bridge.cv2_to_imgmsg(
+                                    annotated, encoding='bgr8'))
+                        except Exception:
+                            pass
+                        # Already pressed — no arm action needed
+                        approach_lf    = np.zeros(3)
+                        press_lf       = np.zeros(3)
+                        result.message = (
+                            f'{direction} button already lit; call already active.')
+                        state = _PressState.CONFIRMED
+                        break
+
+                    # ── No unlit button detected this frame ───────────────────
+                    if not detected_unlit or unlit_bbox is None:
+                        feedback.status    = 'NO_DETECTION'
+                        feedback.direction = direction
+                        goal_handle.publish_feedback(feedback)
+                        cv2.putText(annotated,
+                                    f'{direction} not found',
+                                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.7, (0, 0, 255), 2)
+                        try:
+                            self._debug_pub.publish(
+                                self._bridge.cv2_to_imgmsg(
+                                    annotated, encoding='bgr8'))
+                        except Exception:
+                            pass
+                        time.sleep(LOOP_SLEEP)
+                        continue
+
+                    # ── ZED2 Point Cloud + RANSAC localisation ────────────────
+                    pc_result = self._extract_button_pose_pointcloud(
+                        self._latest_cloud, unlit_bbox,
+                        int(self._latest_rgb.width), int(self._latest_rgb.height),
+                        fx, fy, cx, cy, cam_frame)
+
+                    if pc_result is None:
                         self.get_logger().warn(
-                            '[LiDAR-Ray] Ray-plane intersection failed.')
-                else:
-                    self.get_logger().warn(
-                        '[LiDAR-Ray] Wall plane extraction failed.')
+                            '[PC-RANSAC] Failed — insufficient valid depth '
+                            'points in YOLO bbox. Retrying.')
+                        feedback.status    = 'DEPTH_INSUFFICIENT'
+                        feedback.direction = direction
+                        goal_handle.publish_feedback(feedback)
+                        time.sleep(LOOP_SLEEP)
+                        continue
 
-                # ════════════════════════════════════════════════════════════
-                # PRIMARY: ZED2 Point Cloud + RANSAC
-                # Publishes to /button_press_goal on success.
-                # Uses actual cloud frame_id from the PointCloud2 header.
-                # ════════════════════════════════════════════════════════════
-                pc_result = self._extract_button_pose_pointcloud(
-                    self._latest_cloud, unlit_bbox,
-                    int(self._latest_rgb.width), int(self._latest_rgb.height),
-                    fx, fy, cx, cy, cam_frame)   # ── CHANGED: pass intrinsics + optical frame
+                    # Localisation succeeded — cache waypoints and publish goal
+                    approach_lf      = pc_result['approach_lf']
+                    press_lf         = pc_result['press_lf']
+                    button_center_lf = pc_result['button_center_lf']
+                    centroid_cam     = pc_result['centroid_cam']
+                    inlier_count     = int(pc_result['inlier_count'])
 
-                if pc_result is None:
-                    self.get_logger().warn(
-                        '[PC-RANSAC] Failed — insufficient valid depth '
-                        'points in YOLO bbox. LiDAR comparison logged above. '
-                        'NOT publishing — retrying.')
-                    feedback.status    = 'DEPTH_INSUFFICIENT'
+                    self.get_logger().info(
+                        '[PC-RANSAC] inliers={}  '
+                        'center_link0_fake=({:.4f},{:.4f},{:.4f})  '
+                        'approach=({:.4f},{:.4f},{:.4f})  '
+                        'press=({:.4f},{:.4f},{:.4f})  '
+                        '[PUBLISHING /button_press_goal]'.format(
+                            inlier_count,
+                            button_center_lf[0], button_center_lf[1],
+                            button_center_lf[2],
+                            approach_lf[0],      approach_lf[1],      approach_lf[2],
+                            press_lf[0],         press_lf[1],         press_lf[2],
+                        ))
+
+                    self._publish_button_press_goal(approach_lf, press_lf, direction)
+                    self._publish_debug(annotated, unlit_bbox, '',
+                                        (0, 255, 0), approach_lf, press_lf)
+                    self._full_cloud_pub.publish(self._latest_cloud)
+                    self._publish_plane_visualization(
+                        all_crop_pts     = pc_result['viz_pts'],
+                        inlier_mask      = pc_result['inlier_mask'],
+                        centroid         = centroid_cam,
+                        normal           = pc_result['normal_cam'],
+                        approach_lf      = approach_lf,
+                        press_lf         = press_lf,
+                        button_center_lf = button_center_lf,
+                        cloud_frame      = pc_result['cloud_frame'],
+                    )
+
+                    feedback.status    = 'LOCALISED'
                     feedback.direction = direction
                     goal_handle.publish_feedback(feedback)
-                    time.sleep(LOOP_SLEEP)
-                    continue
+                    state = _PressState.AWAITING_PRESS
+                    break  # exit DETECTING loop
 
-                # Primary succeeded — log and publish
-                approach_lf      = pc_result['approach_lf']
-                press_lf         = pc_result['press_lf']
-                button_center_lf = pc_result['button_center_lf']
-                centroid_cam     = pc_result['centroid_cam']
-                inlier_count     = int(pc_result['inlier_count'])
+                # Guard: node/goal still alive?
+                if not (rclpy.ok() and goal_handle.is_active):
+                    break
 
-                self.get_logger().info(
-                    '[PC-RANSAC] inliers={}  '
-                    'button_center_{}_fake = ({:.4f},{:.4f},{:.4f})  '
-                    'approach_{}_fake = ({:.4f},{:.4f},{:.4f})  '
-                    'press_{}_fake = ({:.4f},{:.4f},{:.4f})  '
-                    '[PUBLISHING to /button_press_goal]'.format(
-                        inlier_count,
-                        'link_0',
-                        button_center_lf[0], button_center_lf[1], button_center_lf[2],
-                        'link_0',
-                        approach_lf[0],      approach_lf[1],      approach_lf[2],
-                        'link_0',
-                        press_lf[0],         press_lf[1],         press_lf[2],
-                    )
-                )
+                if state == _PressState.CONFIRMED:
+                    break  # already-lit fast path
 
-                self._publish_button_press_goal(approach_lf, press_lf, direction)
-                self._publish_debug(annotated, unlit_bbox, '',
-                                    (0, 255, 0), approach_lf, press_lf)
+                if state != _PressState.AWAITING_PRESS:
+                    continue  # DETECTING loop ended without localising — retry
 
-                # ── Publish full raw ZED2 cloud for scene context ─────────────
-                # Re-publish self._latest_cloud directly — no decoding needed.
-                # In RViz add this topic alongside /button_detection/plane_cloud
-                # to see the green fitted plane overlaid on the full scene.
-                self._full_cloud_pub.publish(self._latest_cloud)
-                # ─────────────────────────────────────────────────────────────
-
-                # ── Publish green inlier plane cloud + markers ────────────────
-                self._publish_plane_visualization(
-                    all_crop_pts     = pc_result['viz_pts'],
-                    inlier_mask      = pc_result['inlier_mask'],
-                    centroid         = centroid_cam,
-                    normal           = pc_result['normal_cam'],
-                    approach_lf      = approach_lf,
-                    press_lf         = press_lf,
-                    button_center_lf = button_center_lf,   # ── CHANGED: pass ray-plane result
-                    cloud_frame      = pc_result['cloud_frame'],
-                )
-                # ─────────────────────────────────────────────────────────────
-
-                feedback.status    = 'LOCALISED'
+                # ══════════════════════════════════════════════════════════════
+                # State: AWAITING_PRESS
+                # Block until arm controller publishes True to /press_complete
+                # or ARM_TIMEOUT_SEC elapses.
+                # ══════════════════════════════════════════════════════════════
+                self._press_complete_event.clear()
+                feedback.status    = 'AWAITING_PRESS'
                 feedback.direction = direction
                 goal_handle.publish_feedback(feedback)
+
+                self.get_logger().info(
+                    f'[DetectCallButton] Awaiting /press_complete '
+                    f'(timeout {ARM_TIMEOUT_SEC:.0f}s, '
+                    f'attempt {attempt + 1}/{MAX_PRESS_ATTEMPTS})')
+
+                arm_deadline = time.time() + ARM_TIMEOUT_SEC
+                got_press    = False
+                while time.time() < arm_deadline:
+                    if goal_handle.is_cancel_requested:
+                        goal_handle.canceled()
+                        result.success = False
+                        result.message = 'Cancelled while awaiting arm press.'
+                        return result
+                    if self._press_complete_event.wait(timeout=0.2):
+                        got_press = True
+                        break
+
+                if not got_press:
+                    self.get_logger().warn(
+                        f'[DetectCallButton] No /press_complete within '
+                        f'{ARM_TIMEOUT_SEC:.0f}s '
+                        f'(attempt {attempt + 1}/{MAX_PRESS_ATTEMPTS})')
+                    continue  # next attempt — re-localise and re-publish
+
+                # ══════════════════════════════════════════════════════════════
+                # State: VERIFYING
+                # Check BUTTON_LIT (different floor) or DOOR_OPEN (same floor).
+                # ══════════════════════════════════════════════════════════════
+                feedback.status    = 'VERIFYING'
+                feedback.direction = direction
+                goal_handle.publish_feedback(feedback)
+
+                verify_deadline = time.time() + VERIFY_TIMEOUT_SEC
+                reason = self._verify_press(
+                    lit_class, inside_pose, verify_deadline, goal_handle)
+
+                self.get_logger().info(
+                    f'[DetectCallButton] Verification: {reason} '
+                    f'(attempt {attempt + 1}/{MAX_PRESS_ATTEMPTS})')
+
+                if reason == 'CANCELLED':
+                    goal_handle.canceled()
+                    result.success = False
+                    result.message = 'Cancelled during press verification.'
+                    return result
+
+                if reason in ('BUTTON_LIT', 'DOOR_OPEN'):
+                    state = _PressState.CONFIRMED
+                    result.message = (
+                        f'{direction} press confirmed via {reason}. '
+                        f'approach=({approach_lf[0]:.4f},{approach_lf[1]:.4f},'
+                        f'{approach_lf[2]:.4f}) '
+                        f'press=({press_lf[0]:.4f},{press_lf[1]:.4f},'
+                        f'{press_lf[2]:.4f})')
+                    break
+
+                self.get_logger().warn(
+                    f'[DetectCallButton] Press not confirmed — '
+                    f'retrying (attempt {attempt + 1}/{MAX_PRESS_ATTEMPTS})')
+
+            # ── Final result ──────────────────────────────────────────────────
+            if state == _PressState.CONFIRMED:
                 goal_handle.succeed()
-
                 result.success    = True
-                result.approach_x = float(approach_lf[0])
-                result.approach_y = float(approach_lf[1])
-                result.approach_z = float(approach_lf[2])
-                result.press_x    = float(press_lf[0])
-                result.press_y    = float(press_lf[1])
-                result.press_z    = float(press_lf[2])
-                result.message    = (
-                    f'{direction} unlit button localised via PC-RANSAC. '
-                    f'approach=({approach_lf[0]:.4f},{approach_lf[1]:.4f},'
-                    f'{approach_lf[2]:.4f}) '
-                    f'press=({press_lf[0]:.4f},{press_lf[1]:.4f},'
-                    f'{press_lf[2]:.4f}) '
-                    f'inliers={inlier_count}')
-                return result
-
-            result.success = False
-            result.message = 'Node shutdown before detection.'
+                result.approach_x = float(approach_lf[0]) if approach_lf is not None else 0.0
+                result.approach_y = float(approach_lf[1]) if approach_lf is not None else 0.0
+                result.approach_z = float(approach_lf[2]) if approach_lf is not None else 0.0
+                result.press_x    = float(press_lf[0])    if press_lf    is not None else 0.0
+                result.press_y    = float(press_lf[1])    if press_lf    is not None else 0.0
+                result.press_z    = float(press_lf[2])    if press_lf    is not None else 0.0
+            else:
+                if rclpy.ok() and goal_handle.is_active:
+                    goal_handle.abort()
+                result.success = False
+                if not result.message:
+                    result.message = (
+                        f'Press not confirmed after '
+                        f'{MAX_PRESS_ATTEMPTS} attempts.')
             return result
 
         finally:
             # Keep subscriptions alive; only clear per-goal cached messages.
             self._latest_rgb   = None
-            self._latest_scan  = None
             self._latest_cloud = None
             self.get_logger().info(
                 '[DetectCallButton] Goal finished; sensor caches reset.')

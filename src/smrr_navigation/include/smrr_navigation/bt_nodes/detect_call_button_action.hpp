@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav2_behavior_tree/bt_action_node.hpp"
 #include "smrr_interfaces/action/detect_call_button.hpp"
 
@@ -30,6 +31,8 @@ public:
         "current_floor", "Current floor id, e.g. 'floor0'"),
       BT::InputPort<std::string>(
         "target_floor",  "Target floor id, e.g. 'floor2'"),
+      BT::InputPort<geometry_msgs::msg::PoseStamped>(
+        "inside_pose",   "Elevator inside pose for door-open press verification"),
     });
   }
 

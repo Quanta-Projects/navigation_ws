@@ -48,6 +48,7 @@ setup(
             'apriltag_manager_server = smrr_navigation.apriltag_manager_server:main',
             'elevator_direction_server = smrr_navigation.elevator_direction_server:main',
             'elevator_call_button_server = smrr_navigation.elevator_call_button_server:main',
+            'elevator_floor_button_server = smrr_navigation.elevator_floor_button_server:main',
         ],
     },
 )
