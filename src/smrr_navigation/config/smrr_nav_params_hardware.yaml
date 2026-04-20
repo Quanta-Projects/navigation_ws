@@ -114,7 +114,7 @@ controller_server:
     robot_base_frame: base_footprint
     odom_frame: odom
     odom_topic: /diff_drive_controller/odom
-    controller_frequency: 20.0
+    controller_frequency: 30.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.001
@@ -227,8 +227,8 @@ local_costmap:
     ros__parameters:
       publish_downsampled_costmap: True   
       downsample_scale: 2                  
-      update_frequency: 10.0
-      publish_frequency: 1.0
+      update_frequency: 30.0
+      publish_frequency: 10.0
       global_frame: odom
       robot_base_frame: base_footprint
       use_sim_time: False
@@ -310,7 +310,7 @@ global_costmap:
 map_server:
   ros__parameters:
     use_sim_time: False
-    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/first_floor_with_lift.yaml"
+    yaml_filename: "/home/quanta/Desktop/navigation_ws/src/smrr_navigation/maps/physical_maps/third_floor_with_lift.yaml"
 
 map_saver:
   ros__parameters:

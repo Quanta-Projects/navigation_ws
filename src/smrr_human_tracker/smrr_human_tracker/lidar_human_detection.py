@@ -78,23 +78,26 @@ class ONNXModelWrapper:
 
     # --- public interface expected by Detector.__call__ ---
 
-    def __call__(self, x, inference=True):
+    def __call__(self, x, inference=True, **kwargs):
         """Run ONNX inference on cutout tensor *x*.
 
         Args:
             x: torch.Tensor shaped (B, CT, 1, 56), typically on CUDA.
             inference: ignored (stateless model).
+            **kwargs: absorbs any extra keyword arguments (e.g. ``testing``,
+                ``fea_template``) that dr_spaam's Detector passes through.
 
         Returns:
-            (pred_cls, pred_reg, sim) matching DR-SPAAM convention.
-            sim is always ``None`` (no spatial attention in the ONNX graph).
+            (pred_cls, pred_reg, fea, sim_matrix) matching DR-SPAAM convention.
+            fea and sim_matrix are always ``None`` (no spatial attention in the ONNX graph).
         """
         x_np = x.detach().cpu().numpy()
         cls_np, reg_np = self._session.run(None, {self._input_name: x_np})
         # Return CPU tensors — Detector immediately calls .cpu().numpy() anyway.
         pred_cls = torch.from_numpy(cls_np)
         pred_reg = torch.from_numpy(reg_np)
-        return pred_cls, pred_reg, None
+        # DR-SPAAM Detector.__call__ unpacks 4 values: (pred_cls, pred_reg, fea, sim_matrix)
+        return pred_cls, pred_reg, None, None
 
     def eval(self):
         """No-op, keeps the Detector happy if it ever calls model.eval()."""
@@ -137,7 +140,7 @@ class LidarHumanDetectionNode(Node):
 
         # TF2 buffer and listener for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self, spin_thread=True)
 
         # Check if weight file is provided
         if not weight_file:
@@ -222,18 +225,28 @@ class LidarHumanDetectionNode(Node):
         """Process incoming laser scan and detect people"""
         start_time = time.time()
 
-        # --- 1. STRICT TF LOOKUP (Zero Ego-Motion with Clock Skew Buffer) ---
-        # One lookup per frame eliminates cascading timeout overhead.
+        # --- 1. ADAPTIVE 2-STEP TF LOOKUP ---
         try:
-            target_time = msg.header.stamp
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                msg.header.frame_id,
-                rclpy.time.Time.from_msg(target_time),
-                timeout=rclpy.duration.Duration(seconds=0.05)  # 50ms buffer for hardware clock skew
-            )
+            if self.target_frame == 'map':
+                # Gets transform from Lidar -> Odom (Exact Time) -> Map (Latest Time)
+                transform = self.tf_buffer.lookup_transform_full(
+                    target_frame=self.target_frame,
+                    target_time=rclpy.time.Time(nanoseconds=0),
+                    source_frame=msg.header.frame_id,
+                    source_time=rclpy.time.Time.from_msg(msg.header.stamp),
+                    fixed_frame='odom',
+                    timeout=rclpy.duration.Duration(seconds=0.05)
+                )
+            else:
+                # Direct strict lookup for high-speed frames
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame,
+                    msg.header.frame_id,
+                    rclpy.time.Time.from_msg(msg.header.stamp),
+                    timeout=rclpy.duration.Duration(seconds=0.05)
+                )
         except Exception as e:
-            self.get_logger().warn(f'Dropped frame (TF Sync): {e}', throttle_duration_sec=2.0)
+            self.get_logger().warn(f'Dropped frame (TF Sync to {self.target_frame}): {e}', throttle_duration_sec=2.0)
             return
 
         if not self._detector.laser_spec_set():
@@ -562,7 +575,7 @@ class LidarHumanDetectionNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = LidarHumanDetectionNode()
-    executor = MultiThreadedExecutor()
+    executor = MultiThreadedExecutor(num_threads=8)
     executor.add_node(node)
 
     try:

@@ -1,4 +1,4 @@
-apriltag:
+apriltag_node:
   ros__parameters:
     # setup (defaults)
     image_transport: raw  # image format
@@ -6,19 +6,20 @@ apriltag:
     size: 0.2          # IMPORTANT: Change this to your tag's printed size in meters!
     profile: false
 
-    # tuning of detection (defaults)
-    max_hamming: 0
+    # tuning of detection
+    max_hamming: 2
     detector:
-      threads: 1
-      decimate: 2.0
+      threads: 4
+      decimate: 1.0
       blur: 0.0
-      refine: 1
+      refine: true
       sharpening: 0.25
-      debug: 0
+      debug: false
 
     pose_estimation_method: "pnp"
 
     publish_tf: true
+    approximate_sync: true
 
     # (optional) list of tags
     # If you want to track specific tags, uncomment and fill this:

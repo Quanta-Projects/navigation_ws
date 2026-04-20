@@ -3,7 +3,7 @@
 ROS 2 Action Server for elevator direction verification via YOLO + OpenCV HSV analysis.
 
 Action: smrr_interfaces/action/CheckElevatorDirection
-  Goal:     current_floor (str), target_floor (str)  – e.g. "floor0", "floor2"
+  Goal:     current_floor (str), target_floor (str)   e.g. "floor0", "floor2"
   Feedback: expected_direction (str), status (str), ratio (f32)
   Result:   correct_direction_confirmed (bool), message (str)
 

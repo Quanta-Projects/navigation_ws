@@ -75,7 +75,7 @@ class HumanInstanceTracker(Node):
 
         # TF2 for frame transformations
         self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self, spin_thread=True)
 
         # Predefined colors for different tracked instances (BGR format)
         self.track_colors = [
@@ -350,27 +350,33 @@ class HumanInstanceTracker(Node):
         return np.array([x, y, z])
 
     def publish_detections(self, tracked_humans, header):
-        """Publish tracked humans as PoseArray and MarkerArray with single-shot frame transformation"""
+        """Publish tracked humans as PoseArray and MarkerArray with Adaptive 2-step frame transformation"""
         self.get_logger().info(
             f'Publishing {len(tracked_humans)} humans from frame {header.frame_id} to {self.target_frame}',
             throttle_duration_sec=1.0
         )
-        
-        # --- 1. STRICT TF LOOKUP (Zero Ego-Motion) ---
+
+        # --- 1. ADAPTIVE 2-STEP TF LOOKUP ---
         try:
-            # We use the exact image timestamp to prevent rotation distortion
-            target_time = header.stamp 
-            transform = self.tf_buffer.lookup_transform(
-                self.target_frame,
-                header.frame_id,
-                rclpy.time.Time.from_msg(target_time),
-                timeout=rclpy.duration.Duration(seconds=0.05) # Increased to 50ms to absorb ZED clock skew
-            )
+            if self.target_frame == 'map':
+                # Step A: Exact physical time for local Odometry (Zero Ego-Motion)
+                t_odom_cam = self.tf_buffer.lookup_transform(
+                    'odom', header.frame_id, rclpy.time.Time.from_msg(header.stamp),
+                    timeout=rclpy.duration.Duration(seconds=0.05)
+                )
+                # Step B: Latest available time for SLAM Map (Zero Blocking)
+                t_map_odom = self.tf_buffer.lookup_transform(
+                    self.target_frame, 'odom', rclpy.time.Time(nanoseconds=0),
+                    timeout=rclpy.duration.Duration(seconds=0.0)
+                )
+            else:
+                # Direct strict lookup for high-speed frames
+                transform = self.tf_buffer.lookup_transform(
+                    self.target_frame, header.frame_id, rclpy.time.Time.from_msg(header.stamp),
+                    timeout=rclpy.duration.Duration(seconds=0.05)
+                )
         except Exception as e:
-            self.get_logger().warn(
-                f'TF Sync failed. ZED clock may be skewed. Error: {e}',
-                throttle_duration_sec=2.0
-            )
+            self.get_logger().warn(f'TF Sync failed. Error: {e}', throttle_duration_sec=2.0)
             return
 
         pose_array = PoseArray()
@@ -388,14 +394,19 @@ class HumanInstanceTracker(Node):
             pose_camera.position.z = float(pos_3d[2])
             pose_camera.orientation.w = 1.0
             
-            # --- 2. INSTANT MEMORY TRANSFORM ---
+            # --- 2. MEMORY TRANSFORM ---
             pose_stamped = PoseStamped()
             pose_stamped.header = header
             pose_stamped.pose = pose_camera
             
-            transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
+            if self.target_frame == 'map':
+                # Shift to Odom (Exactly when picture was taken), then to Map (Latest SLAM drift)
+                pose_odom = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, t_odom_cam)
+                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_odom, t_map_odom)
+            else:
+                transformed_pose_stamped = tf2_geometry_msgs.do_transform_pose_stamped(pose_stamped, transform)
+                
             pose_map = transformed_pose_stamped.pose
-            
             pose_map.position.z = float(human['confidence'])
             pose_array.poses.append(pose_map)
 
@@ -502,7 +513,7 @@ class HumanInstanceTracker(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = HumanInstanceTracker()
-    executor = MultiThreadedExecutor()
+    executor = MultiThreadedExecutor(num_threads=8)
     executor.add_node(node)
     
     try:

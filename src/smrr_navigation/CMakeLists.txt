@@ -89,6 +89,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/check_elevator_direction_action.cpp
   src/bt_nodes/build_pose_vector_action.cpp
   src/bt_nodes/detect_call_button_action.cpp
+  src/bt_nodes/press_floor_button_action.cpp
   src/bt_nodes/bt_node_registration.cpp
 )
 

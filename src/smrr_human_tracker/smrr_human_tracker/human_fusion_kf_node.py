@@ -11,11 +11,13 @@ Author: Achira Hansindu
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from geometry_msgs.msg import PoseArray, Pose, Point
+from rclpy.executors import MultiThreadedExecutor
+from geometry_msgs.msg import PoseArray, Pose, Point, PoseStamped
 from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import ColorRGBA
 import numpy as np
 import tf2_ros
+import tf2_geometry_msgs
 from tf2_ros import TransformException
 import math
 from scipy.optimize import linear_sum_assignment
@@ -430,7 +432,7 @@ class HumanFusionKFNode(Node):
         
         # TF
         self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self, spin_thread=True)
         
         # Synchronized subscribers — replaces the old manual timer + cache
         # approach that fused temporally mismatched YOLO / LiDAR frames.
@@ -440,7 +442,7 @@ class HumanFusionKFNode(Node):
         self.ts = ApproximateTimeSynchronizer(
             [self.yolo_sub, self.lidar_sub],
             queue_size=5,
-            slop=0.03  # Tightened to 30 ms tolerance
+            slop=0.15  # Tightened to 30 ms tolerance
         )
         self.ts.registerCallback(self.fusion_callback)
         
@@ -467,28 +469,48 @@ class HumanFusionKFNode(Node):
         self.get_logger().info(f'  Publishing to: fused_humans_kf/poses, fused_humans_kf/markers')
     
     def get_robot_pose_and_yaw(self, target_time):
-        """Get robot's position and heading at the exact time of the sensor reading."""
+        """Get robot's position using Adaptive 2-Step Transform to prevent SLAM latency while ensuring zero ego-motion."""
         try:
-            transform = self.tf_buffer.lookup_transform(
-                self.map_frame,
-                self.base_frame,
-                target_time,
-                timeout=Duration(seconds=0.02) # 20ms max wait
-            )
+            if self.map_frame == 'map':
+                # 1. Exact physical time for local Odometry
+                t_odom_base = self.tf_buffer.lookup_transform(
+                    'odom', self.base_frame, target_time, timeout=Duration(seconds=0.02)
+                )
+                # 2. Latest available time for SLAM Map
+                t_map_odom = self.tf_buffer.lookup_transform(
+                    self.map_frame, 'odom', rclpy.time.Time(nanoseconds=0), timeout=Duration(seconds=0.0)
+                )
+                
+                # Combine them using a blank origin pose
+                pose = PoseStamped()
+                pose.header.frame_id = self.base_frame
+                pose.pose.orientation.w = 1.0
+                
+                pose_odom = tf2_geometry_msgs.do_transform_pose_stamped(pose, t_odom_base)
+                pose_map = tf2_geometry_msgs.do_transform_pose_stamped(pose_odom, t_map_odom)
+            else:
+                # Direct strict lookup
+                transform = self.tf_buffer.lookup_transform(
+                    self.map_frame, self.base_frame, target_time, timeout=Duration(seconds=0.02)
+                )
+                pose = PoseStamped()
+                pose.header.frame_id = self.base_frame
+                pose.pose.orientation.w = 1.0
+                pose_map = tf2_geometry_msgs.do_transform_pose_stamped(pose, transform)
             
-            x = transform.transform.translation.x
-            y = transform.transform.translation.y
+            x = pose_map.pose.position.x
+            y = pose_map.pose.position.y
             
-            quat = transform.transform.rotation
+            quat = pose_map.pose.orientation
             yaw = math.atan2(
                 2.0 * (quat.w * quat.z + quat.x * quat.y),
                 1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z)
             )
             
             return np.array([x, y]), yaw
-        
+            
         except TransformException as e:
-            # We don't want to spam warnings for standard clock skew drops
+            # Silently return None; the pipeline will safely skip this fusion cycle
             return None, None
     
     def is_in_camera_fov(self, point, robot_pos, robot_yaw):
@@ -799,9 +821,11 @@ class HumanFusionKFNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = HumanFusionKFNode()
+    executor = MultiThreadedExecutor(num_threads=8)
+    executor.add_node(node)
     
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:

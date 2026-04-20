@@ -24,6 +24,12 @@ void DetectCallButtonAction::on_tick()
   goal_.current_floor = current_floor;
   goal_.target_floor  = target_floor;
 
+  // inside_pose is optional — server skips door-open check if frame_id is empty
+  geometry_msgs::msg::PoseStamped inside_pose;
+  if (getInput("inside_pose", inside_pose)) {
+    goal_.inside_pose = inside_pose;
+  }
+
   RCLCPP_INFO(
     node_->get_logger(),
     "[DetectCallButton] Sending goal — current: %s, target: %s",

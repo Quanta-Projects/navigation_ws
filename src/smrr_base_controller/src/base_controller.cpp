@@ -1,6 +1,7 @@
 #include "smrr_base_controller/base_controller.hpp"
 #include <hardware_interface/types/hardware_interface_type_values.hpp>
 #include <pluginlib/class_list_macros.hpp>
+#include <sensor_msgs/msg/battery_state.hpp>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -10,13 +11,22 @@
 namespace smrr_base_controller
 {
 BaseController::BaseController()
-: prev_right_encoder_(0), prev_left_encoder_(0), first_read_(true)
+: prev_right_encoder_(0), prev_left_encoder_(0), first_read_(true),
+  charge_command_(false), dock_connected_count_(0), charging_disabled_override_(false)
 {
 }
 
 
 BaseController::~BaseController()
 {
+  // Stop the charging executor thread cleanly before anything else
+  if (charging_executor_) {
+    charging_executor_->cancel();
+    if (charging_exec_thread_.joinable()) {
+      charging_exec_thread_.join();
+    }
+  }
+
   if (arduino_.IsOpen())
   {
     try
@@ -55,6 +65,47 @@ CallbackReturn BaseController::on_init(const hardware_interface::HardwareInfo &h
   position_states_.reserve(6);
   velocity_states_.reserve(2);
   last_run_ = rclcpp::Clock().now();
+
+  // Create a dedicated node for publishing battery/docking status.
+  // A SingleThreadedExecutor is required so the node participates in the
+  // ROS2 graph (DDS discovery) and the publisher is visible to other nodes.
+  charging_node_ = std::make_shared<rclcpp::Node>("base_controller_battery_pub");
+  battery_pub_ = charging_node_->create_publisher<sensor_msgs::msg::BatteryState>(
+    "/battery_state", rclcpp::SystemDefaultsQoS());
+
+  // Initialise last_battery_state_ to a safe default (not connected, not charging).
+  // This is what gets published when the STM is not sending data (not docked).
+  last_battery_state_.present = false;
+  last_battery_state_.percentage = 0.0f;
+  last_battery_state_.power_supply_status =
+    sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+
+  // 1 Hz heartbeat timer — ensures /battery_state is always published even when
+  // the STM sends no serial data (e.g. robot is not docked).
+  battery_timer_ = charging_node_->create_wall_timer(
+    std::chrono::seconds(1),
+    [this]() { battery_pub_->publish(last_battery_state_); });
+
+  // Subscribe to /disable_charging so the undocking pipeline can force-stop
+  // charging before driving the robot away from the dock.
+  disable_charging_sub_ = charging_node_->create_subscription<std_msgs::msg::Bool>(
+    "/disable_charging", rclcpp::SystemDefaultsQoS(),
+    [this](const std_msgs::msg::Bool::SharedPtr msg) {
+      charging_disabled_override_ = msg->data;
+      if (charging_disabled_override_) {
+        charge_command_ = false;
+        dock_connected_count_ = 0;
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                    "Charging disabled via /disable_charging override");
+      } else {
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                    "Charging override released — normal dock logic resumes");
+      }
+    });
+
+  charging_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  charging_executor_->add_node(charging_node_);
+  charging_exec_thread_ = std::thread([this]() { charging_executor_->spin(); });
 
   return CallbackReturn::SUCCESS;
 }
@@ -130,6 +181,11 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
   prev_left_encoder_ = 0;
   first_read_ = true;
 
+  // Reset charge command
+  charge_command_ = false;
+  dock_connected_count_ = 0;
+  charging_disabled_override_ = false;
+
   try
   { 
     // arduino_.SetDTR(false); // Disable DTR
@@ -160,28 +216,35 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
     arduino_.SetBaudRate(LibSerial::BaudRate::BAUD_115200);
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Baud rate set to 115200");
 
-    // Reset the Arduino via DTR (toggling DTR)
-    arduino_.SetDTR(false);
-    RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR set to false");
+    // Reset the Arduino via DTR toggle.
+    // Wrapped in its own try-catch because pty devices (used in testing) do not
+    // support TIOCMSET and will throw — on real hardware this resets the Arduino.
+    try
+    {
+      arduino_.SetDTR(false);
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR set to false");
 
-    // Verify the DTR state
-    bool dtr_state = arduino_.GetDTR();
-    RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR state after setting to false: %s", dtr_state ? "true" : "false");
+      bool dtr_state = arduino_.GetDTR();
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR state after false: %s", dtr_state ? "true" : "false");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    
-    // Set DTR to true
-    arduino_.SetDTR(true);
-    RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR set to true");
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    // Verify the DTR state again
-    dtr_state = arduino_.GetDTR();
-    RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR state after setting to true: %s", dtr_state ? "true" : "false");
+      arduino_.SetDTR(true);
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR set to true");
 
-    // Wait for the Arduino to reboot
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+      dtr_state = arduino_.GetDTR();
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "DTR state after true: %s", dtr_state ? "true" : "false");
 
-    RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Arduino reset completed");
+      // Wait for the Arduino to reboot
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Arduino reset completed");
+    }
+    catch (...)
+    {
+      RCLCPP_WARN(rclcpp::get_logger("BaseController"),
+                  "DTR toggle not supported on port %s (ok for pty/testing) — skipping Arduino reset",
+                  port_.c_str());
+    }
 
  
   }
@@ -206,6 +269,13 @@ CallbackReturn BaseController::on_deactivate(const rclcpp_lifecycle::State &)
   {
     try
     {
+      // Send stop command: zero velocity and stop charging before closing the port
+      std::string stop_cmd = "0.00,0.00,0\n";
+      arduino_.Write(stop_cmd);
+      RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                  "Stop command sent (motors=0, charge=0): %s", stop_cmd.c_str());
+      charge_command_ = false;
+
       arduino_.Close();
     }
     catch (...)
@@ -335,9 +405,17 @@ CallbackReturn BaseController::on_deactivate(const rclcpp_lifecycle::State &)
 hardware_interface::return_type BaseController::read(const rclcpp::Time &,
                                                      const rclcpp::Duration &) {
   if (arduino_.IsOpen()) {
+    // Only attempt a read when the driver has already buffered at least one byte.
+    // This avoids ReadLine throwing a ReadTimeout on every cycle that runs faster
+    // than the firmware's 100 ms feedback interval.
+    if (!arduino_.IsDataAvailable()) {
+      return hardware_interface::return_type::OK;
+    }
+
     try {
       std::string feedback;
-      arduino_.ReadLine(feedback, '\n', 10); // 10ms timeout
+      // Generous timeout: data is already available, so this should return fast.
+      arduino_.ReadLine(feedback, '\n', 100);
 
       // Skip empty messages
       if (feedback.empty()) {
@@ -436,12 +514,69 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
         RCLCPP_WARN(rclcpp::get_logger("BaseController"), 
                    "Unexpected data format. Expected at least 2 values, got %zu", values.size());
       }
-      
+      // Parse charging/docking status:
+      //   values[4] = is_charging   (0 or 1, confirmed by low-level)
+      //   values[5] = is_connected  (0 or 1)
+      //   values[6] = battery_pct   (0-100)
+      if (values.size() >= 7) {
+        bool is_charging   = (values[4] == 1);
+        bool is_connected  = (values[5] == 1);
+
+        // Enable charging only after DOCK_STABLE_COUNT consecutive is_connected=1
+        // signals — this debounces the connection pin and ensures solid physical
+        // contact before current flows.
+        // Any single is_connected=0 resets the counter and stops charging immediately.
+        // If charging_disabled_override_ is active, always keep charge_command_ false.
+        if (charging_disabled_override_) {
+          charge_command_ = false;
+          dock_connected_count_ = 0;
+        } else if (is_connected) {
+          if (!charge_command_) {
+            dock_connected_count_++;
+            if (dock_connected_count_ >= DOCK_STABLE_COUNT) {
+              charge_command_ = true;
+              RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                          "Dock stable (%d consecutive signals) — charge command enabled",
+                          dock_connected_count_);
+            } else {
+              RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                          "Dock signal %d/%d — waiting for stable connection",
+                          dock_connected_count_, DOCK_STABLE_COUNT);
+            }
+          }
+        } else {
+          if (charge_command_ || dock_connected_count_ > 0) {
+            RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                        "Dock disconnected (count was %d) — charge command cleared",
+                        dock_connected_count_);
+          }
+          charge_command_ = false;
+          dock_connected_count_ = 0;
+        }
+
+        sensor_msgs::msg::BatteryState battery_msg;
+        battery_msg.header.stamp = current_time;
+        battery_msg.present     = is_connected;
+        battery_msg.percentage  = static_cast<float>(values[6]) / 255.0f;  // 0-255 → 0.0-1.0
+        battery_msg.current     = is_charging ? 1.0f : 0.0f;  // Signal charging to docking server
+        battery_msg.power_supply_status = is_charging
+          ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
+          : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+
+        // Update cached state so the heartbeat timer always has fresh data
+        last_battery_state_ = battery_msg;
+        // Also publish immediately for low-latency updates
+        battery_pub_->publish(battery_msg);
+
+        RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                    "Dock: connected=%d charging=%d battery=%.1f%%",
+                    is_connected, is_charging, (values[6] / 255.0f) * 100.0f);
+      }      
       last_run_ = current_time;
     }
     catch (const std::exception& e) {
-      RCLCPP_ERROR(rclcpp::get_logger("BaseController"), 
-                  "Error reading/parsing feedback: %s", e.what());
+      RCLCPP_WARN(rclcpp::get_logger("BaseController"),
+                  "Serial read error: %s", e.what());
     }
   }
   return hardware_interface::return_type::OK;
@@ -469,7 +604,7 @@ hardware_interface::return_type BaseController::write(const rclcpp::Time &,
     
     std::stringstream message_stream;
     message_stream << std::fixed << std::setprecision(2) 
-      << scaled_left << "," << scaled_right << ",0.0,0.0,0.0,0.0\n";
+      << scaled_left << "," << scaled_right << "," << (charge_command_ ? 1 : 0) << "\n";
 
     try
     {

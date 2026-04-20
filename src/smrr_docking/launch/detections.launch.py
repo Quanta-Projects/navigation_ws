@@ -11,11 +11,30 @@
 
 #     # 2. SOURCE TOPICS (Derived from your provided list)
 #     # The Raw RGB Camera topics
-#     camera_topic = '/zed2_rear_left_camera/image_raw'
-#     info_topic   = '/zed2_rear_left_camera/camera_info'
+#     camera_topic = '/zed2_rear_left_raw_camera/image_raw'
+#     info_topic   = '/zed2_rear_left_raw_camera/camera_info'
 
 #     return LaunchDescription([
         
+#         # ---------------------------------------------------------
+#         # Node 1: Image Processing (Rectification)
+#         # ---------------------------------------------------------
+#         Node(
+#             package='image_proc',
+#             executable='image_proc',
+#             name='rectify_node_zed',
+#             namespace='zed2_rear_rgb', # Create a clean namespace for output
+#             remappings=[
+#                 # INPUT: Connect to the actual RGB topics from your list
+#                 ('image_raw', camera_topic),
+#                 ('camera_info', info_topic),
+                
+#                 # OUTPUT: Keep standard name 'image_rect'
+#                 ('image_rect', 'image_rect') 
+#             ],
+#             output='screen'
+#         ),
+
 #         # ---------------------------------------------------------
 #         # Node 2: AprilTag Detection
 #         # ---------------------------------------------------------
@@ -25,7 +44,7 @@
 #             name='apriltag_node',
 #             remappings=[
 #                 # INPUT: Listen to the rectified output from Node 1
-#                 ('image_rect', camera_topic), 
+#                 ('image_rect', '/zed2_rear_rgb/image_rect'), 
                 
 #                 # INPUT: Camera Info comes directly from the source
 #                 ('camera_info', info_topic),
@@ -34,14 +53,8 @@
 #                 apriltag_config_path, 
 #                 {
 #                     'publish_tf': True,
-#                     'size': 0.20,
-#                     'max_hamming': 2,       # Increased from 0 to 2 for robust continuous detection
-#                     'decimate': 1.0,        # No decimation for best accuracy
-#                     'blur': 0.0,            # No blur
-#                     'refine_edges': 1,      # Better edge refinement
-#                     'threads': 4,           # Parallel processing for speed
-#                     'debug': 0,
-#                     'tag_family': 'tag36h11'
+#                     'size': 0.20,      # Force correct size
+#                     'max_hamming': 0
 #                 }
 #             ],
 #             output='screen'
@@ -78,6 +91,8 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -86,11 +101,23 @@ def generate_launch_description():
     apriltag_config_path = os.path.join(pkg_share, 'config', 'apriltag.yaml')
 
     # --- REAL HARDWARE TOPICS ---
-    camera_topic = '/zed/zed_node/rgb/color/rect/image'
-    info_topic   = '/zed/zed_node/rgb/color/rect/camera_info'
+    # Default to 'zed' namespace, but allow override
+    camera_topic = LaunchConfiguration('camera_topic')
+    info_topic = LaunchConfiguration('info_topic')
 
     return LaunchDescription([
         
+        DeclareLaunchArgument(
+            'camera_topic',
+            default_value='/camera/rear_cam/color/image_raw',
+            description='Topic for rectified image'
+        ),
+        DeclareLaunchArgument(
+            'info_topic',
+            default_value='/camera/rear_cam/color/camera_info',
+            description='Topic for camera info'
+        ),
+
         # ---------------------------------------------------------
         # Node 1: AprilTag Detection
         # ---------------------------------------------------------
@@ -106,18 +133,7 @@ def generate_launch_description():
                 ('camera_info', info_topic),
             ],
             parameters=[
-                apriltag_config_path, 
-                {
-                    'publish_tf': True,
-                    'size': 0.20,
-                    'max_hamming': 2,       # Increased from 0 to 2 for robust continuous detection
-                    'decimate': 1.0,        # No decimation for best accuracy
-                    'blur': 0.0,            # No blur
-                    'refine_edges': 1,      # Better edge refinement
-                    'threads': 4,           # Parallel processing for speed
-                    'debug': 0,
-                    'tag_family': 'tag36h11'
-                }
+                apriltag_config_path,
             ],
             output='screen'
         ),
@@ -128,7 +144,12 @@ def generate_launch_description():
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            arguments=['0', '-0.35', '0.20', '0', '-1.57', '-1.57', 'tag36h11:0', 'dock_link'],
+            arguments=[
+                '--frame-id', 'tag36h11:0',
+                '--child-frame-id', 'dock_link',
+                '--x', '0', '--y', '-0.21', '--z', '0.23',
+                '--roll', '0', '--pitch', '-1.57', '--yaw', '-1.57'
+            ],
             output='screen'
         ),
 

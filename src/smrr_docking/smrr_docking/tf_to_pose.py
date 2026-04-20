@@ -15,7 +15,7 @@ class TfToPosePublisher(Node):
         self.tag_frame = self.get_parameter('tag_frame').get_parameter_value().string_value
 
         # The reference frame for navigation (usually 'odom' or 'map')
-        self.declare_parameter('reference_frame', 'map')
+        self.declare_parameter('reference_frame', 'odom')
         self.ref_frame = self.get_parameter('reference_frame').get_parameter_value().string_value
 
         # --- TF Listener Setup ---
@@ -71,8 +71,12 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        node.destroy_node()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     main()
