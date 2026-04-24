@@ -3,7 +3,7 @@ docking_server:
     # General parameters
     use_sim_time: false
     controller_frequency: 50.0
-    initial_perception_timeout: 5.0
+    initial_perception_timeout: 10.0
     wait_charge_timeout: 20.0
     dock_approach_timeout: 30.0
     undock_timeout: 30.0
@@ -24,7 +24,7 @@ docking_server:
 
     # Misc
     dock_backwards: true         # Humble-era flag; keep true for backward docking
-    dock_prestaging_tolerance: 0.5
+    dock_prestaging_tolerance: 0.2
     introspection_mode: "disabled"
 
     # Dock plugins
@@ -33,14 +33,14 @@ docking_server:
       plugin: 'opennav_docking::SimpleChargingDock'
 
       # Docking behaviour
-      docking_threshold: 0.3
+      docking_threshold: 0.04         # stop positional control 4 cm from dock to avoid 1/r singularity
       dock_direction: "backward"      # your intent is to back into the dock
       rotate_to_dock: false           # ignored on Humble, but OK to leave
 
       # Staging pose configuration (relative to dock pose)
       # For "backward" docking: staging pose should be in front of the dock,
       # with the robot's BACK facing the dock.
-      staging_x_offset: 1.50          # tuned so staging pose is where you want it
+      staging_x_offset: 1.60          # tuned so staging pose is where you want it
       staging_yaw_offset: 0.0
       use_staging_pose: true
       navigate_to_staging_pose: true
@@ -48,20 +48,22 @@ docking_server:
       # Perception input
       use_external_detection_pose: true
       external_detection_pose_topic: "/detected_dock_pose"
-      external_detection_timeout: 1.0   # OK, can increase later if needed
+      external_detection_timeout: 2.0   # OK, can increase later if needed
 
       # Offset from detected pose to actual docking pose
-      external_detection_translation_x: -0.05
-      external_detection_translation_y: 0.02
+      external_detection_translation_x: 0.0
+      external_detection_translation_y: 0.0
       external_detection_translation_z: 0.0
 
-      # Orientation offsets: keep these only if they are correct for
-      # YOUR camera mounting and your detected pose frame.
-      external_detection_rotation_roll: 0.0
-      external_detection_rotation_pitch: 0.0
+      # Orientation offsets: converts AprilTag frame (Z=toward camera) to dock pose frame (X=approach dir).
+      # These are the opennav_docking defaults for a vertically-mounted AprilTag.
+      # The internal setEuler(pitch, roll, yaw) call maps to bullet setEuler(yaw, pitch, roll),
+      # producing a rotation that maps tag-Z to the dock pose X-axis in 2D.
+      external_detection_rotation_roll: -1.5707963
+      external_detection_rotation_pitch: 1.5707963
       external_detection_rotation_yaw: 0.0
 
-      filter_coef: 0.3
+      filter_coef: 0.6              # 0=take new, 1=frozen; higher smooths out close-range AprilTag orientation noise
 
       # TEMP: keep detection always on while debugging
       detector_service_name: ""        # disable toggle
@@ -87,12 +89,12 @@ docking_server:
 
     # Docking controller
     controller:
-      k_phi: 3.0
-      k_delta: 2.5
-      v_linear_min: 0.00
-      v_linear_max: 0.05
+      k_phi: 1.0
+      k_delta: 0.8              # reduced from 1.5 — less aggressive angular correction near dock
+      v_linear_min: 0.01
+      v_linear_max: 0.1
       v_angular_max: 0.1
-      slowdown_radius: 1.0
+      slowdown_radius: 0.5
       rotate_to_heading_angular_vel: 0.02
       rotate_to_heading_max_angular_accel: 0.5
       use_collision_detection: false
@@ -101,4 +103,4 @@ docking_server:
       transform_tolerance: 0.1
       projection_time: 1.0
       simulation_time_step: 0.1
-      dock_collision_threshold: 0.4
+      dock_collision_threshold: 0.05
