@@ -19,6 +19,7 @@
 #include "smrr_navigation/bt_nodes/build_pose_vector_action.hpp"
 #include "smrr_navigation/bt_nodes/check_elevator_direction_action.hpp"
 #include "smrr_navigation/bt_nodes/detect_call_button_action.hpp"
+#include "smrr_navigation/bt_nodes/press_floor_button_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -65,4 +66,12 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
     };
   factory.registerBuilder<smrr_navigation::DetectCallButtonAction>(
     "DetectCallButton", detect_call_button_builder);
+
+  BT::NodeBuilder press_floor_button_builder =
+    [](const std::string & name, const BT::NodeConfiguration & config) {
+      return std::make_unique<smrr_navigation::PressFloorButtonAction>(
+        name, "press_floor_button", config);
+    };
+  factory.registerBuilder<smrr_navigation::PressFloorButtonAction>(
+    "PressFloorButton", press_floor_button_builder);
 }

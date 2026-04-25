@@ -14,7 +14,7 @@ docking_server:
 
     # Motion limits
     max_linear_speed: 0.15
-    max_angular_speed: 0.6
+    max_angular_speed: 0.3
 
     # Frames
     base_frame: "base_link"
@@ -24,7 +24,7 @@ docking_server:
 
     # Misc
     dock_backwards: true         # Humble-era flag; keep true for backward docking
-    dock_prestaging_tolerance: 0.2
+    dock_prestaging_tolerance: 0.1
     introspection_mode: "disabled"
 
     # Dock plugins
@@ -33,7 +33,7 @@ docking_server:
       plugin: 'opennav_docking::SimpleChargingDock'
 
       # Docking behaviour
-      docking_threshold: 0.04         # stop positional control 4 cm from dock to avoid 1/r singularity
+      docking_threshold: 0.4         # stop positional control 4 cm from dock to avoid 1/r singularity
       dock_direction: "backward"      # your intent is to back into the dock
       rotate_to_dock: false           # ignored on Humble, but OK to leave
 
@@ -50,9 +50,11 @@ docking_server:
       external_detection_pose_topic: "/detected_dock_pose"
       external_detection_timeout: 2.0   # OK, can increase later if needed
 
-      # Offset from detected pose to actual docking pose
-      external_detection_translation_x: 0.0
-      external_detection_translation_y: 0.0
+      # Offset from detected pose to actual docking pose.
+      # x: negative pushes target 1 cm deeper into dock (toward wall)
+      # y: negative shifts target to robot's right; flip sign if alignment gets worse
+      external_detection_translation_x: -0.1
+      external_detection_translation_y: -0.03
       external_detection_translation_z: 0.0
 
       # Orientation offsets: converts AprilTag frame (Z=toward camera) to dock pose frame (X=approach dir).
@@ -84,17 +86,19 @@ docking_server:
     home_dock:
       type: 'simple_dock'
       frame: "map"
-      pose: [-9.4701, -2.3305, 1.29]         #[-7.866, 20.6802, 1.138]
+      pose: [-9.49197, -2.4938, 1.29]         #[-7.866, 20.6802, 1.138]
       id: 'home'
 
     # Docking controller
     controller:
-      k_phi: 1.0
-      k_delta: 0.8              # reduced from 1.5 — less aggressive angular correction near dock
+      k_phi: 3.0               # higher value forces robot to start correcting heading immediately from staging pose
+      k_delta: 2.5              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
+      beta: 0.1                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
+      lambda: 2.0               # default, set explicitly
       v_linear_min: 0.01
-      v_linear_max: 0.1
-      v_angular_max: 0.1
-      slowdown_radius: 0.5
+      v_linear_max: 0.08
+      v_angular_max: 0.45        # min turning radius = v_linear_max/v_angular_max = 0.1/0.4 = 0.25m
+      slowdown_radius: 0.50     # robot starts slowing at 50cm: at r=0.32m v_linear=0.064m/s vs 0.1 before → v_angular drops 36%
       rotate_to_heading_angular_vel: 0.02
       rotate_to_heading_max_angular_accel: 0.5
       use_collision_detection: false

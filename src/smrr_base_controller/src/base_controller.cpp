@@ -12,7 +12,8 @@ namespace smrr_base_controller
 {
 BaseController::BaseController()
 : prev_right_encoder_(0), prev_left_encoder_(0), first_read_(true),
-  charge_command_(false), dock_connected_count_(0), charging_disabled_override_(false)
+  charge_command_(false), dock_connected_count_(0), charge_confirmed_count_(0),
+  charging_disabled_override_(false)
 {
 }
 
@@ -184,6 +185,7 @@ CallbackReturn BaseController::on_activate(const rclcpp_lifecycle::State &)
   // Reset charge command
   charge_command_ = false;
   dock_connected_count_ = 0;
+  charge_confirmed_count_ = 0;
   charging_disabled_override_ = false;
 
   try
@@ -275,6 +277,7 @@ CallbackReturn BaseController::on_deactivate(const rclcpp_lifecycle::State &)
       RCLCPP_INFO(rclcpp::get_logger("BaseController"),
                   "Stop command sent (motors=0, charge=0): %s", stop_cmd.c_str());
       charge_command_ = false;
+      charge_confirmed_count_ = 0;
 
       arduino_.Close();
     }
@@ -554,12 +557,38 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
           dock_connected_count_ = 0;
         }
 
+        // Require CHARGE_CONFIRM_COUNT consecutive is_charging=1 signals before
+        // reporting charging to the docking server.  This keeps the robot pressing
+        // into the dock for ~3 s after first contact, ensuring a firm connection
+        // before the approach loop is allowed to stop.
+        bool charging_confirmed = false;
+        if (is_charging) {
+          charge_confirmed_count_++;
+          if (charge_confirmed_count_ >= CHARGE_CONFIRM_COUNT) {
+            charging_confirmed = true;
+            RCLCPP_INFO_ONCE(rclcpp::get_logger("BaseController"),
+                             "Charging confirmed after %d consecutive signals (~3 s)",
+                             charge_confirmed_count_);
+          } else {
+            RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                        "Charging signal %d/%d — holding position for confirmation",
+                        charge_confirmed_count_, CHARGE_CONFIRM_COUNT);
+          }
+        } else {
+          if (charge_confirmed_count_ > 0) {
+            RCLCPP_INFO(rclcpp::get_logger("BaseController"),
+                        "Charging lost (count was %d) — resetting confirmation",
+                        charge_confirmed_count_);
+          }
+          charge_confirmed_count_ = 0;
+        }
+
         sensor_msgs::msg::BatteryState battery_msg;
         battery_msg.header.stamp = current_time;
         battery_msg.present     = is_connected;
         battery_msg.percentage  = static_cast<float>(values[6]) / 255.0f;  // 0-255 → 0.0-1.0
-        battery_msg.current     = is_charging ? 1.0f : 0.0f;  // Signal charging to docking server
-        battery_msg.power_supply_status = is_charging
+        battery_msg.current     = charging_confirmed ? 1.0f : 0.0f;  // only report after 3 s confirmation
+        battery_msg.power_supply_status = charging_confirmed
           ? sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING
           : sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
 
@@ -569,8 +598,8 @@ hardware_interface::return_type BaseController::read(const rclcpp::Time &,
         battery_pub_->publish(battery_msg);
 
         RCLCPP_INFO(rclcpp::get_logger("BaseController"),
-                    "Dock: connected=%d charging=%d battery=%.1f%%",
-                    is_connected, is_charging, (values[6] / 255.0f) * 100.0f);
+                    "Dock: connected=%d charging=%d confirmed=%d battery=%.1f%%",
+                    is_connected, is_charging, charging_confirmed, (values[6] / 255.0f) * 100.0f);
       }      
       last_run_ = current_time;
     }
@@ -593,10 +622,15 @@ hardware_interface::return_type BaseController::write(const rclcpp::Time &,
     RCLCPP_INFO(rclcpp::get_logger("BaseController"), "Writing");
     // Implement communication protocol with the Arduino
     
-    // Map velocity commands from [-6.17, 6.17] to [-100, 100]
+    // Map velocity commands from [-6.17, 6.17] to [-100, 100].
+    // If a charging signal has been detected but not yet confirmed (charge_confirmed_count_ > 0),
+    // suppress wheel motion so the robot stays pressed against the dock without oscillating
+    // while the 3-second debounce accumulates.
     const double SCALE_FACTOR = 100.0 / 6.17;
-    double scaled_left = velocity_commands_.at(0) * SCALE_FACTOR;
-    double scaled_right = velocity_commands_.at(1) * SCALE_FACTOR;
+    const double cmd_left  = (charge_confirmed_count_ > 0) ? 0.0 : velocity_commands_.at(0);
+    const double cmd_right = (charge_confirmed_count_ > 0) ? 0.0 : velocity_commands_.at(1);
+    double scaled_left = cmd_left * SCALE_FACTOR;
+    double scaled_right = cmd_right * SCALE_FACTOR;
     
     // Clamp values to [-100, 100] range
     scaled_left = std::max(-100.0, std::min(100.0, scaled_left));

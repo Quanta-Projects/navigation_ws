@@ -1,9 +1,9 @@
 apriltag_node:
   ros__parameters:
     # setup (defaults)
-    image_transport: raw  # image format
-    family: 36h11         # UPDATED: Set to 36h11 (Standard Tag36h11)
-    size: 0.2          # IMPORTANT: Change this to your tag's printed size in meters!
+    image_transport: "raw"  # REVERTED: Must be "raw" to prevent SIGABRT
+    family: 36h11         
+    size: 0.16          
     profile: false
 
     # tuning of detection
@@ -20,10 +20,3 @@ apriltag_node:
 
     publish_tf: true
     approximate_sync: true
-
-    # (optional) list of tags
-    # If you want to track specific tags, uncomment and fill this:
-    # tag:
-    #   ids:    [1, 2]
-    #   frames: [tag_1_frame, tag_2_frame]
-    #   sizes:  [0.15, 0.15]

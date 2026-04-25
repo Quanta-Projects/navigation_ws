@@ -65,9 +65,15 @@ private:
   // charge_command_ is enabled only after DOCK_STABLE_COUNT consecutive
   // is_connected=1 signals, ensuring the physical contact is stable.
   // Cleared immediately on any is_connected=0 signal.
-  static constexpr int DOCK_STABLE_COUNT = 5;  // ~500 ms at 100 ms firmware interval
+  static constexpr int DOCK_STABLE_COUNT = 5;   // ~500 ms at 100 ms firmware interval
+  // Charging confirmation: is_charging must be true for CHARGE_CONFIRM_COUNT
+  // consecutive firmware ticks (~3 s) before reporting current > 0 to the
+  // docking server.  This keeps the robot pressing into the dock long enough
+  // to form a reliable electrical connection.
+  static constexpr int CHARGE_CONFIRM_COUNT = 30; // ~3 s at 100 ms firmware interval
   bool charge_command_;
-  int  dock_connected_count_;   // consecutive is_connected=1 signals received
+  int  dock_connected_count_;     // consecutive is_connected=1 signals received
+  int  charge_confirmed_count_;   // consecutive is_charging=1 signals received
 
   // External override: when true, forces charge_command_ = false regardless of
   // dock connection state.  Set via /disable_charging topic (std_msgs/Bool).

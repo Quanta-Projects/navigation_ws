@@ -147,7 +147,7 @@ def generate_launch_description():
             arguments=[
                 '--frame-id', 'tag36h11:0',
                 '--child-frame-id', 'dock_link',
-                '--x', '0', '--y', '-0.21', '--z', '0.23',
+                '--x', '0', '--y', '-0.21', '--z', '0.18',
                 '--roll', '0', '--pitch', '-1.57', '--yaw', '-1.57'
             ],
             output='screen'

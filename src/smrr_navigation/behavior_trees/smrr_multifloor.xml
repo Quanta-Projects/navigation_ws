@@ -16,19 +16,21 @@
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
 
+        <!-- Resolve inside pose BEFORE DetectCallButton so it is on the blackboard
+             for the door-open verification check inside the action server. -->
+        <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+
         <!-- Detect the direction call button (UP/DOWN) and publish arm waypoints.
              Uses button_detection.pt YOLO class-based detection (no HSV).
              Publishes approach point (3 cm from button plane) to /xyz_target.
-             Press point is in the action result — arm controller handles motion. -->
-        <DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
-
-        <!-- Resolve inside pose before the retry loop so it is available on the blackboard -->
-        <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+             Press point is in the action result — arm controller handles motion.
+             Also waits for /press_complete then verifies via BUTTON_LIT or DOOR_OPEN. -->
+        <DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}" inside_pose="{inside_pose}"/>
 
         <!-- Elevator entry: call elevator, poll planner until door is open, then enter -->
         <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
           <Sequence name="CallWaitAndEnter">
-            <CallElevator floor_id="{current_floor_id}"/>
+            <!-- <CallElevator floor_id="{current_floor_id}"/> -->
 
             <!-- Keep tighter inflation while crossing elevator gap -->
             <SetCostmapInflation inflation_radius="0.325"/>
@@ -67,6 +69,9 @@
         <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
         <!-- Restore AMCL normal update thresholds -->
         <SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
+
+        <PressFloorButton target_floor="{target_floor_id}"/>
+        
         <!-- Mandatory minimum wait: robot is inside elevator so staging always unreachable;
              wait here before starting door-close detection to avoid false positive -->
         <Wait wait_duration="1.0"/>
@@ -109,7 +114,7 @@
           <Sequence name="ExitAttempt_1">
             <!-- Resolve exit pose before the wait loop begins -->
             <GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}" location_key="elevator_exit" pose="{exit_pose}"/>
-            <CallElevator floor_id="{target_floor_id}"/>
+            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
 
             <CheckFloorArrival target_floor="{target_floor_id}"/>
 
@@ -145,7 +150,7 @@
             <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
-            <CallElevator floor_id="{target_floor_id}"/>
+            <!-- <CallElevator floor_id="{target_floor_id}"/> -->
 
             <CheckFloorArrival target_floor="{target_floor_id}"/>
 

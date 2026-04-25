@@ -27,6 +27,7 @@ public:
     this->declare_parameter("plugin_lib_names", std::vector<std::string>{});
     this->declare_parameter("bt_tick_rate_hz", 20.0);
     this->declare_parameter("bt_timeout_sec", 300.0);
+    this->declare_parameter("locations_file", std::string("locations.yaml"));
 
     // Get parameters
     bt_tick_rate_hz_ = this->get_parameter("bt_tick_rate_hz").as_double();
@@ -130,7 +131,7 @@ private:
       blackboard->set("current_floor_id", request->current_floor_id);
       blackboard->set("target_floor_id", request->target_floor_id);
       blackboard->set("final_pose", final_pose);
-      blackboard->set("locations_file", std::string("locations.yaml"));
+      blackboard->set("locations_file", this->get_parameter("locations_file").as_string());
 
       RCLCPP_INFO(this->get_logger(), "Blackboard set: current_floor_id=%s, target_floor_id=%s", 
                   request->current_floor_id.c_str(), request->target_floor_id.c_str());

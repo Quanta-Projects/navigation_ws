@@ -155,6 +155,19 @@ def generate_launch_description():
         ]
     ),
 
+    # Elevator Floor Button Server - Presses floor panel buttons (G/1/2/3) inside
+    # elevator via YOLO + ZED2 RANSAC; verifies press via lit-button detection
+    Node(
+        package='smrr_navigation',
+        executable='elevator_floor_button_server.py',
+        name='elevator_floor_button_server',
+        output='screen',
+        parameters=[
+            {'use_sim_time': True},
+            {'yolo_model_path': yolo_model_path}
+        ]
+    ),
+
     # BT Mission Executor - Runs BehaviorTree for same-floor navigation
     Node(
         package='smrr_navigation',
