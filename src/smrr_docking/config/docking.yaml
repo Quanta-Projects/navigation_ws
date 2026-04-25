@@ -40,7 +40,7 @@ docking_server:
       # Staging pose configuration (relative to dock pose)
       # For "backward" docking: staging pose should be in front of the dock,
       # with the robot's BACK facing the dock.
-      staging_x_offset: 1.60          # tuned so staging pose is where you want it
+      staging_x_offset: 1.6         # tuned so staging pose is where you want it
       staging_yaw_offset: 0.0
       use_staging_pose: true
       navigate_to_staging_pose: true
@@ -53,7 +53,7 @@ docking_server:
       # Offset from detected pose to actual docking pose.
       # x: negative pushes target 1 cm deeper into dock (toward wall)
       # y: negative shifts target to robot's right; flip sign if alignment gets worse
-      external_detection_translation_x: -0.1
+      external_detection_translation_x: -0.14
       external_detection_translation_y: -0.03
       external_detection_translation_z: 0.0
 
@@ -73,7 +73,7 @@ docking_server:
       subscribe_toggle: false          # always subscribed to topic
 
       # Success/contact signals
-      use_battery_status: true
+      use_battery_status: false
       battery_topic: "/battery_state"
       charging_threshold: 0.2
 
@@ -86,19 +86,19 @@ docking_server:
     home_dock:
       type: 'simple_dock'
       frame: "map"
-      pose: [-9.49197, -2.4938, 1.29]         #[-7.866, 20.6802, 1.138]
+      pose: [-9.49197, -2.4938, 1.281184]         #[-7.866, 20.6802, 1.138]
       id: 'home'
 
     # Docking controller
     controller:
-      k_phi: 3.0               # higher value forces robot to start correcting heading immediately from staging pose
-      k_delta: 2.5              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
-      beta: 0.1                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
+      k_phi: 1.5               # higher value forces robot to start correcting heading immediately from staging pose
+      k_delta: 1.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
+      beta: 0.2                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
       lambda: 2.0               # default, set explicitly
       v_linear_min: 0.01
-      v_linear_max: 0.08
-      v_angular_max: 0.45        # min turning radius = v_linear_max/v_angular_max = 0.1/0.4 = 0.25m
-      slowdown_radius: 0.50     # robot starts slowing at 50cm: at r=0.32m v_linear=0.064m/s vs 0.1 before → v_angular drops 36%
+      v_linear_max: 0.12
+      v_angular_max: 0.4        # min turning radius = v_linear_max/v_angular_max = 0.1/0.4 = 0.25m
+      slowdown_radius: 0.70     # robot starts slowing at 50cm: at r=0.32m v_linear=0.064m/s vs 0.1 before → v_angular drops 36%
       rotate_to_heading_angular_vel: 0.02
       rotate_to_heading_max_angular_accel: 0.5
       use_collision_detection: false
