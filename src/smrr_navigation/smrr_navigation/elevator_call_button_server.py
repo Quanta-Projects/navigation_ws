@@ -23,8 +23,9 @@ from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalRespons
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from visualization_msgs.msg import Marker, MarkerArray
 from ultralytics import YOLO
 
@@ -44,7 +45,7 @@ DIRECTION_CLASS_MAP = {
 }
 
 INFERENCE_CONF   = 0.15
-APPROACH_DIST_M  = 0.04    # 5 cm outward along button normal
+APPROACH_DIST_M  = 0.10    # 10 cm outward along button normal
 PRESS_INSET_M    = -0.04  # 7 mm into button surface
 LOOP_SLEEP       = 0.05
 
@@ -67,14 +68,14 @@ POINTCLOUD_TOPIC = '/zed2/zed_node/point_cloud/cloud_registered'
 
 # EEF orientation published with button_press_goal.
 # Measured from arm at pressing configuration.
-EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301)  # x, y, z, w
+EEF_ORIENTATION = (-0.5, 0.5, -0.5, 0.5)  # x, y, z, w
 
 # Manual offsets (meters) in TARGET_FRAME (link_0_fake).
 # Applied only to points published on /button_press_goal.
 # Separate tuning for each button direction.
 BUTTON_GOAL_OFFSET_UP_X = 0.0
-BUTTON_GOAL_OFFSET_UP_Y = -0.04
-BUTTON_GOAL_OFFSET_UP_Z = 0.015
+BUTTON_GOAL_OFFSET_UP_Y = 0.00
+BUTTON_GOAL_OFFSET_UP_Z = 0.02
 
 BUTTON_GOAL_OFFSET_DOWN_X = 0.0
 BUTTON_GOAL_OFFSET_DOWN_Y = -0.04
@@ -132,6 +133,12 @@ class ElevatorCallButtonServer(Node):
             Image, '/floor_vision/debug_image', 1)
         self._button_press_goal_pub = self.create_publisher(
             PoseArray, '/button_press_goal', 10)
+        self._button_press_direction_pub = self.create_publisher(
+            String, '/target_button', QoSProfile(
+                depth=1,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+                durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            ))
 
         # ── Visualization publishers ──────────────────────────────────────────
         # /button_detection/full_cloud   — the complete raw ZED2 point cloud
@@ -236,9 +243,10 @@ class ElevatorCallButtonServer(Node):
     def _publish_button_press_goal(self,
                                    approach_lf: np.ndarray,
                                    press_lf: np.ndarray,
-                                   direction: str) -> None:
+                                   direction: str,
+                                   button_center_lf: 'np.ndarray | None' = None) -> None:
         """
-        Publish approach and press poses to /button_press_goal.
+        Publish approach pose and button center to /button_press_goal.
 
         Coordinates are in TARGET_FRAME (link_0_fake).
         Direction-specific offsets are added in TARGET_FRAME to both
@@ -289,11 +297,26 @@ class ElevatorCallButtonServer(Node):
         press_pose.orientation.z = qz
         press_pose.orientation.w = qw
 
+        button_pose = Pose()
+        if button_center_lf is not None:
+            btn_pt = button_center_lf + offset
+            button_pose.position.x = float(btn_pt[0])
+            button_pose.position.y = float(btn_pt[1])
+            button_pose.position.z = float(btn_pt[2])
+        button_pose.orientation.x = qx
+        button_pose.orientation.y = qy
+        button_pose.orientation.z = qz
+        button_pose.orientation.w = qw
+
         pa = PoseArray()
         pa.header.stamp    = self.get_clock().now().to_msg()
         pa.header.frame_id = PUBLISH_FRAME_ID   # 'link_0'
-        pa.poses           = [approach_pose, press_pose]
+        pa.poses           = [approach_pose, button_pose]
         self._button_press_goal_pub.publish(pa)
+
+        dir_msg = String()
+        dir_msg.data = direction.strip().upper()
+        self._button_press_direction_pub.publish(dir_msg)
 
     # ── Debug image publisher ─────────────────────────────────────────────────
 
@@ -1170,7 +1193,7 @@ class ElevatorCallButtonServer(Node):
                             press_lf[0],         press_lf[1],         press_lf[2],
                         ))
 
-                    self._publish_button_press_goal(approach_lf, press_lf, direction)
+                    self._publish_button_press_goal(approach_lf, press_lf, direction, button_center_lf)
                     self._publish_debug(annotated, unlit_bbox, '',
                                         (0, 255, 0), approach_lf, press_lf)
                     self._full_cloud_pub.publish(self._latest_cloud)

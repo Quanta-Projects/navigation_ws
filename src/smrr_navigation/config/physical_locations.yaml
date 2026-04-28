@@ -51,8 +51,8 @@ floors:
         y: 0.381
         yaw: 0.606
       elevator_staging:
-        x: -6.440
-        y: 1.940
+        x: -6.2516
+        y: 2.12162
         yaw: -2.116
       elevator_entry:
         x: -6.0064

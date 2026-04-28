@@ -40,7 +40,7 @@ docking_server:
       # Staging pose configuration (relative to dock pose)
       # For "backward" docking: staging pose should be in front of the dock,
       # with the robot's BACK facing the dock.
-      staging_x_offset: 1.60          # tuned so staging pose is where you want it
+      staging_x_offset: 2.5          # tuned so staging pose is where you want it
       staging_yaw_offset: 0.0
       use_staging_pose: true
       navigate_to_staging_pose: true
@@ -73,9 +73,14 @@ docking_server:
       subscribe_toggle: false          # always subscribed to topic
 
       # Success/contact signals
+      # SimpleChargingDock hardcodes the subscription to 'battery_state' (relative
+      # topic) — the battery_topic parameter does not exist in this build.
+      # In docking_bringup.launch.py we remap battery_state -> /dock_confirmed.
+      # dock_confirm_node subscribes to /battery_state and only publishes to
+      # /dock_confirmed after charging current > charging_threshold has been held
+      # continuously for settle_time seconds, preventing premature docking success.
       use_battery_status: true
-      battery_topic: "/battery_state"
-      charging_threshold: 0.2
+      charging_threshold: 0.5
 
       use_stall_detection: false
       joint_states_topic: "/joint_states"
@@ -91,7 +96,7 @@ docking_server:
 
     # Docking controller
     controller:
-      k_phi: 4.0               # higher value forces robot to start correcting heading immediately from staging pose
+      k_phi: 6.0               # higher value forces robot to start correcting heading immediately from staging pose
       k_delta: 3.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
       beta: 0.1                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
       lambda: 2.0               # default, set explicitly
