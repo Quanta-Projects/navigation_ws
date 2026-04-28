@@ -24,7 +24,7 @@ from ultralytics import YOLO
 MODEL_PATH = os.path.join(
     get_package_share_directory('smrr_navigation'),
     'models',
-    'button_detection.pt',
+    'finger_camera_detection..pt',
 )
 
 INFERENCE_CONF = 0.15
@@ -46,7 +46,7 @@ class TestFloorVision(Node):
 
         self.create_subscription(
             Image,
-            "/zed2_left_camera/image_raw",
+            "/image_raw",
             self._image_cb,
             qos_profile_sensor_data,
         )
@@ -85,6 +85,11 @@ class TestFloorVision(Node):
                 x1, y1, x2, y2 = (int(v) for v in box.xyxy[0].tolist())
 
                 cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                self.get_logger().info(
+                    f"Detected: class='{cls_name}'  conf={conf:.4f}  "
+                    f"bbox=({x1},{y1},{x2},{y2})"
+                )
 
                 label = f"{cls_name}  {conf:.2f}"
                 label_x = x2 + 6

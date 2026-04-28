@@ -1,0 +1,98 @@
+/stage1/docking_server:
+  ros__parameters:
+    # === Stage 1: coarse approach — navigate from staging to 3/5 of total distance ===
+    # High k_phi / k_delta: aggressive heading & path correction from far away.
+    # Positional stop only (no battery check).
+    # staging_x_offset = 1.6 m  →  3/5 × 1.6 = 0.96 m travelled  →  robot stops 0.64 m from dock.
+    use_sim_time: false
+    controller_frequency: 50.0
+    initial_perception_timeout: 10.0
+    wait_charge_timeout: 20.0
+    dock_approach_timeout: 30.0
+    undock_timeout: 30.0
+    undock_linear_tolerance: 0.05
+    undock_angular_tolerance: 0.05
+    rotation_angular_tolerance: 0.05
+    max_retries: 3
+
+    # Motion limits
+    max_linear_speed: 0.15
+    max_angular_speed: 0.3
+
+    # Frames
+    base_frame: "base_link"
+    fixed_frame: "odom"
+    odom_topic: "/odom"           # absolute topic — node lives in /stage1/ namespace
+    odom_duration: 0.3
+
+    # Misc
+    dock_backwards: true
+    dock_prestaging_tolerance: 0.1
+    introspection_mode: "disabled"
+
+    # Dock plugins
+    dock_plugins: ['simple_dock']
+    simple_dock:
+      plugin: 'opennav_docking::SimpleChargingDock'
+
+      # Stop at 3/5 of staging distance (0.64 m from dock) — positional threshold only
+      docking_threshold: 0.64
+      dock_direction: "backward"
+      rotate_to_dock: false
+
+      # Staging pose: same as original so Nav2 gets robot to the right start point
+      staging_x_offset: 1.6
+      staging_yaw_offset: 0.0
+      use_staging_pose: true
+      navigate_to_staging_pose: true
+
+      # Perception input
+      use_external_detection_pose: true
+      external_detection_pose_topic: "/detected_dock_pose"
+      external_detection_timeout: 2.0
+      external_detection_translation_x: -0.14
+      external_detection_translation_y: -0.03
+      external_detection_translation_z: 0.0
+      external_detection_rotation_roll: -1.5707963
+      external_detection_rotation_pitch: 1.5707963
+      external_detection_rotation_yaw: 0.0
+      filter_coef: 0.6
+      detector_service_name: ""
+      detector_service_timeout: 0.0
+      subscribe_toggle: false
+
+      # No battery check in Stage 1 — positional threshold is the stop signal
+      use_battery_status: false
+      battery_topic: "/battery_state"
+      charging_threshold: 0.2
+      use_stall_detection: false
+      joint_states_topic: "/joint_states"
+      stall_effort_threshold: 0.6
+
+    # Dock instances
+    docks: ['home_dock']
+    home_dock:
+      type: 'simple_dock'
+      frame: "map"
+      pose: [-9.49197, -2.4938, 1.281184]
+      id: 'home'
+
+    # Docking controller — HIGH gains for early, aggressive correction from staging pose
+    controller:
+      k_phi: 3.0               # HIGH (was 1.5) — corrects heading aggressively at long range
+      k_delta: 2.5             # HIGH (was 1.0) — amplifies curvature at all distances
+      beta: 0.2
+      lambda: 2.0
+      v_linear_min: 0.01
+      v_linear_max: 0.12
+      v_angular_max: 0.4
+      slowdown_radius: 0.70
+      rotate_to_heading_angular_vel: 0.02
+      rotate_to_heading_max_angular_accel: 0.5
+      use_collision_detection: false
+      costmap_topic: "local_costmap/costmap_raw"
+      footprint_topic: "local_costmap/published_footprint"
+      transform_tolerance: 0.1
+      projection_time: 1.0
+      simulation_time_step: 0.1
+      dock_collision_threshold: 0.05

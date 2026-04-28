@@ -30,6 +30,7 @@ setup(
         'console_scripts': [
             'tf_to_pose = smrr_docking.tf_to_pose:main',
             'undock_with_charge_stop = smrr_docking.undock_with_charge_stop:main',
+            'two_stage_dock = smrr_docking.two_stage_dock:main',
         ],
     },
 )
