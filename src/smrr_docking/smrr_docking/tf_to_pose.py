@@ -3,6 +3,7 @@ from rclpy.node import Node
 from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import PoseStamped
 from rclpy.duration import Duration
+from rclpy.time import Time
 import tf2_geometry_msgs  # Essential for transform conversions
 
 class TfToPosePublisher(Node):
@@ -17,6 +18,12 @@ class TfToPosePublisher(Node):
         # The reference frame for navigation (usually 'odom' or 'map')
         self.declare_parameter('reference_frame', 'odom')
         self.ref_frame = self.get_parameter('reference_frame').get_parameter_value().string_value
+
+        # Maximum age (seconds) of a TF before we stop publishing it.
+        # This ensures the docking server's external_detection_timeout can fire
+        # when the tag goes out of view during close approach.
+        self.declare_parameter('max_tf_age', 0.5)
+        self.max_tf_age = self.get_parameter('max_tf_age').get_parameter_value().double_value
 
         # --- TF Listener Setup ---
         self.tf_buffer = Buffer()
@@ -42,9 +49,20 @@ class TfToPosePublisher(Node):
                 rclpy.time.Time()
             )
 
+            # Reject stale transforms: compute age from the transform's own stamp.
+            # Using now() as the stamp (old behaviour) defeats external_detection_timeout
+            # in the docking server because every message appears fresh.
+            tf_stamp = Time.from_msg(transform.header.stamp)
+            age_sec = (self.get_clock().now() - tf_stamp).nanoseconds * 1e-9
+            if age_sec > self.max_tf_age:
+                # Tag not recently visible — let the docking server time out naturally
+                return
+
             # Create the PoseStamped message
             pose_msg = PoseStamped()
-            pose_msg.header.stamp = self.get_clock().now().to_msg()
+            # Use the ACTUAL transform timestamp so the docking server's
+            # external_detection_timeout correctly ages out stale detections.
+            pose_msg.header.stamp = transform.header.stamp
             pose_msg.header.frame_id = self.ref_frame
 
             # Populate position
@@ -57,10 +75,8 @@ class TfToPosePublisher(Node):
 
             # Publish
             self.pose_pub.publish(pose_msg)
-            # Optional: Debug print every few seconds
-            # self.get_logger().info(f"Published dock pose: x={pose_msg.pose.position.x:.2f}")
 
-        except Exception as e:
+        except Exception:
             # It is normal to see errors if the tag is not currently visible
             pass
 

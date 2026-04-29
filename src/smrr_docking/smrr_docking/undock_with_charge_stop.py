@@ -29,10 +29,8 @@ class UndockWithChargeStop(Node):
 
         self.declare_parameter('settle_time', 5.0)
         self.declare_parameter('charge_stop_timeout', 10.0)
-        self.declare_parameter('undock_action', '/stage2/undock_robot')
         self.settle_time = self.get_parameter('settle_time').value
         self.charge_stop_timeout = self.get_parameter('charge_stop_timeout').value
-        undock_action = self.get_parameter('undock_action').value
 
         cb_group = ReentrantCallbackGroup()
 
@@ -47,7 +45,7 @@ class UndockWithChargeStop(Node):
 
         # Action client to forward to real docking server
         self.undock_client = ActionClient(
-            self, UndockRobot, undock_action, callback_group=cb_group)
+            self, UndockRobot, 'undock_robot', callback_group=cb_group)
 
         # Action server — synchronous execute callback (not async)
         self.undock_server = ActionServer(
@@ -58,8 +56,8 @@ class UndockWithChargeStop(Node):
             callback_group=cb_group)
 
         self.get_logger().info(
-            f'UndockWithChargeStop ready — call /undock_robot_safe '
-            f'(forwards to {undock_action}, settle={self.settle_time}s, timeout={self.charge_stop_timeout}s)')
+            'UndockWithChargeStop ready — call /undock_robot_safe '
+            f'(settle={self.settle_time}s, timeout={self.charge_stop_timeout}s)')
 
     def _battery_cb(self, msg: BatteryState):
         self.is_charging = (
