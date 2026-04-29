@@ -39,8 +39,10 @@ from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
+from example_interfaces.msg import Float64MultiArray
 from visualization_msgs.msg import Marker, MarkerArray
 from ultralytics import YOLO
 
@@ -65,7 +67,7 @@ FLOOR_CLASS_MAP = {
 }
 
 INFERENCE_CONF   = 0.15
-APPROACH_DIST_M  = 0.06    # 6 cm outward along button normal
+APPROACH_DIST_M  = 0.1    # 6 cm outward along button normal
 PRESS_INSET_M    = -0.06   # 6 cm into button surface
 LOOP_SLEEP       = 0.05
 
@@ -93,13 +95,13 @@ FLOOR_OFFSETS = {
     'floor0': (0.0, -0.07, 0.0),
     'floor1': (0.0, -0.07, 0.0),
     'floor2': (0.0, -0.07, 0.0),
-    'floor3': (0.0, -0.07, 0.0),
+    'floor3': (0.0, 0.0, 0.04),
 }
 
 # ── Press-and-verify state machine ───────────────────────────────────────────
 PRESS_COMPLETE_TOPIC  = '/press_complete'
 MAX_PRESS_ATTEMPTS    = 3
-ARM_TIMEOUT_SEC       = 180.0
+ARM_TIMEOUT_SEC       = 120.0
 VERIFY_TIMEOUT_SEC    = 10.0
 VERIFY_SETTLE_SEC     = 0.5
 VERIFY_LIT_MIN_FRAMES = 2
@@ -135,16 +137,24 @@ class ElevatorFloorButtonServer(Node):
         self.get_logger().info('YOLO model loaded.')
 
         self._debug_pub = self.create_publisher(
-            Image, '/floor_button_vision/debug_image', 1)
+            Image, '/floor_vision/debug_image', 1)
         self._button_press_goal_pub = self.create_publisher(
-            PoseArray, '/floor_button_press_goal', 10)
+            PoseArray, '/button_press_goal', 10)
+        self._joint_command_pub = self.create_publisher(
+            Float64MultiArray, '/joint_command', 10)
+        self._target_button_pub = self.create_publisher(
+            String, '/target_button', QoSProfile(
+                depth=1,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+                durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            ))
 
         self._full_cloud_pub = self.create_publisher(
-            PointCloud2, '/floor_button_detection/full_cloud', 1)
+            PointCloud2, '/button_detection/full_cloud', 1)
         self._plane_cloud_pub = self.create_publisher(
-            PointCloud2, '/floor_button_detection/plane_cloud', 1)
+            PointCloud2, '/button_detection/plane_cloud', 1)
         self._plane_marker_pub = self.create_publisher(
-            MarkerArray, '/floor_button_detection/markers', 1)
+            MarkerArray, '/button_detection/markers', 1)
 
         # Persistent sensor subscribers
         self._rgb_sub = self.create_subscription(
@@ -228,13 +238,19 @@ class ElevatorFloorButtonServer(Node):
     def _publish_button_press_goal(self,
                                    approach_lf: np.ndarray,
                                    press_lf: np.ndarray,
-                                   target_floor: str) -> None:
+                                   target_floor: str,
+                                   button_center_lf: 'np.ndarray | None' = None) -> None:
+        """
+        Publish approach pose and button center to /floor_button_press_goal,
+        then publish target floor string to /target_floor.
+
+        Mirrors elevator_call_button_server: pa.poses = [approach_pose, button_center_pose].
+        """
         qx, qy, qz, qw = EEF_ORIENTATION
         ox, oy, oz = FLOOR_OFFSETS.get(target_floor, (0.0, 0.0, 0.0))
         offset = np.array([ox, oy, oz], dtype=np.float64)
 
         approach_pub = approach_lf + offset
-        press_pub    = press_lf    + offset
 
         def _make_pose(pt):
             p = Pose()
@@ -247,11 +263,29 @@ class ElevatorFloorButtonServer(Node):
             p.orientation.w = qw
             return p
 
+        button_pose = Pose()
+        if button_center_lf is not None:
+            btn_pt = button_center_lf + offset
+            button_pose.position.x = float(btn_pt[0])
+            button_pose.position.y = float(btn_pt[1])
+            button_pose.position.z = float(btn_pt[2])
+        button_pose.orientation.x = qx
+        button_pose.orientation.y = qy
+        button_pose.orientation.z = qz
+        button_pose.orientation.w = qw
+
         pa = PoseArray()
         pa.header.stamp    = self.get_clock().now().to_msg()
         pa.header.frame_id = PUBLISH_FRAME_ID
-        pa.poses           = [_make_pose(approach_pub), _make_pose(press_pub)]
+        pa.poses           = [_make_pose(approach_pub), button_pose]
         self._button_press_goal_pub.publish(pa)
+
+        # Publish floor number digit (e.g. 'floor2' → '2') to /target_button so the
+        # arm commander's button_tracker substring-matches it against class names
+        # like 'button_1', 'button_2', 'button_3' ("1" ∈ "button_1" etc.)
+        target_msg = String()
+        target_msg.data = target_floor.replace('floor', '')
+        self._target_button_pub.publish(target_msg)
 
     # ── Debug image ───────────────────────────────────────────────────────────
 
@@ -343,7 +377,7 @@ class ElevatorFloorButtonServer(Node):
             m = Marker()
             m.header.stamp    = stamp
             m.header.frame_id = TARGET_FRAME
-            m.ns              = 'floor_button_detection'
+            m.ns              = 'button_detection'
             m.id              = mid
             m.type            = mtype
             m.action          = Marker.ADD
@@ -871,7 +905,7 @@ class ElevatorFloorButtonServer(Node):
                             press_lf[0],         press_lf[1],         press_lf[2],
                         ))
 
-                    self._publish_button_press_goal(approach_lf, press_lf, target_floor)
+                    self._publish_button_press_goal(approach_lf, press_lf, target_floor, button_center_lf)
                     self._publish_debug(annotated, unlit_bbox, '',
                                         (0, 255, 0), approach_lf, press_lf)
                     self._full_cloud_pub.publish(self._latest_cloud)
@@ -977,6 +1011,11 @@ class ElevatorFloorButtonServer(Node):
                 result.press_x    = float(press_lf[0])    if press_lf    is not None else 0.0
                 result.press_y    = float(press_lf[1])    if press_lf    is not None else 0.0
                 result.press_z    = float(press_lf[2])    if press_lf    is not None else 0.0
+                # Move arm down after confirmed press
+                arm_down_msg = Float64MultiArray()
+                arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                self._joint_command_pub.publish(arm_down_msg)
+                self.get_logger().info('[PressFloorButton] Published arm-down command to /joint_command')
             else:
                 if rclpy.ok() and goal_handle.is_active:
                     goal_handle.abort()

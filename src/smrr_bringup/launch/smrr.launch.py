@@ -22,7 +22,7 @@ def generate_launch_description():
             "launch",
             "hardware_interface.launch.py"
         ),
-        launch_arguments={'port': '/dev/ttyACM0'}.items()
+        launch_arguments={'port': '/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_3885336F3235-if00'}.items()
     )
 
     controller = IncludeLaunchDescription(
@@ -179,6 +179,21 @@ def generate_launch_description():
         ]
     )
 
+    # =========================================================
+    # v4l2 USB Camera (finger camera for floor button detection)
+    # =========================================================
+    v4l2_camera = Node(
+        package='v4l2_camera',
+        executable='v4l2_camera_node',
+        name='v4l2_camera_node',
+        output='screen',
+        parameters=[{
+            'video_device': '/dev/v4l/by-id/usb-Generic_USB_Camera_200901010001-video-index0',
+            'image_size': [640, 480],
+            'pixel_format': 'YUYV',
+        }],
+    )
+
     return LaunchDescription([
         # ==================== Launch Arguments ====================
         DeclareLaunchArgument(
@@ -198,4 +213,7 @@ def generate_launch_description():
 
         # ==================== Human Tracker (optional) ====================
         human_tracker_group,
+
+        # ==================== Finger Camera ====================
+        v4l2_camera,
     ])

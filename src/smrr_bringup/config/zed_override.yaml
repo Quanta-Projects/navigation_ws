@@ -17,9 +17,9 @@
             publish_rgb: true
         sensors:
             sensors_image_sync: false  # Keep image/sensor streams independent as requested
-            publish_imu_tf: false      # IMU TF not needed; EKF no longer fuses ZED IMU
-            publish_imu: false         # ZED IMU not consumed by EKF
-            publish_imu_raw: false     # ZED IMU raw not needed
+            publish_imu_tf: true       # Publish IMU→camera TF so EKF can transform IMU data
+            publish_imu: true          # ZED filtered IMU consumed by EKF (/zed2/zed_node/imu/data)
+            publish_imu_raw: false     # Raw IMU not needed
         depth:
             # Keep high depth quality, but cap cloud rate to reduce load.
             depth_mode: 'NEURAL_PLUS'

@@ -97,7 +97,7 @@ docking_server:
     # Docking controller
     controller:
       k_phi: 6.0               # higher value forces robot to start correcting heading immediately from staging pose
-      k_delta: 3.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
+      k_delta: 4.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
       beta: 0.1                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
       lambda: 2.0               # default, set explicitly
       v_linear_min: 0.01

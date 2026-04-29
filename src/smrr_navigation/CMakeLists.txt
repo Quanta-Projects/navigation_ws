@@ -83,6 +83,7 @@ add_library(smrr_bt_nodes SHARED
   src/bt_nodes/stop_robot_action.cpp
   src/bt_nodes/set_controller_params_action.cpp
   src/bt_nodes/set_amcl_params_action.cpp
+  src/bt_nodes/set_goal_checker_params_action.cpp
   src/bt_nodes/set_costmap_inflation_action.cpp
   src/bt_nodes/check_floor_arrival_action.cpp
   src/bt_nodes/toggle_apriltag_action.cpp

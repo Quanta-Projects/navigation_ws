@@ -110,6 +110,20 @@ def generate_launch_description():
     initial_floor_id = LaunchConfiguration('initial_floor_id')
 
     # ---------------------------------------------------------------------------
+    # EKF Localization
+    # Fuses wheel odometry + ZED2 IMU (yaw rate) → /odometry/filtered
+    # ---------------------------------------------------------------------------
+    ekf_localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory('smrr_localization'),
+                'launch',
+                'local_localization.launch.py',
+            )
+        )
+    )
+
+    # ---------------------------------------------------------------------------
     # Nav2 bringup
     # Launches: map_server, amcl, planner_server, controller_server,
     #           recoveries_server, bt_navigator, waypoint_follower, lifecycle_manager
@@ -292,7 +306,7 @@ def generate_launch_description():
                 'smrr_bt_nodes'
             ],
             'bt_tick_rate_hz': 20.0,
-            'bt_timeout_sec': 300.0
+            'bt_timeout_sec': 1500.0
         }]
     )
 
@@ -336,6 +350,9 @@ def generate_launch_description():
 
         # Nav2 stack
         bringup_cmd_group,
+
+        # EKF localization (wheel odom + ZED2 IMU yaw rate)
+        # ekf_localization,
 
         # Startup localizer (hardware AMCL convergence helper)
         startup_localizer,

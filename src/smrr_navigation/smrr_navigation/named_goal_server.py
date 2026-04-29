@@ -303,7 +303,7 @@ class NamedGoalServer(Node):
             # Wait for response with timeout
             import time
             start_time = time.time()
-            timeout = 300.0  # Match BT timeout + overhead
+            timeout = 1500.0  # Match BT timeout + overhead
             
             while not future.done():
                 if time.time() - start_time > timeout:

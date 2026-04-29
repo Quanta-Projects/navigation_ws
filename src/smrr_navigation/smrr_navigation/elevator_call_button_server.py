@@ -26,6 +26,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 from std_msgs.msg import Bool, String
+from example_interfaces.msg import Float64MultiArray
 from visualization_msgs.msg import Marker, MarkerArray
 from ultralytics import YOLO
 
@@ -84,7 +85,7 @@ BUTTON_GOAL_OFFSET_DOWN_Z = 0.0075
 # ── Press-and-verify state machine ───────────────────────────────────────────
 PRESS_COMPLETE_TOPIC    = '/press_complete'
 MAX_PRESS_ATTEMPTS      = 3        # arm press retries before FAILURE
-ARM_TIMEOUT_SEC         = 180.0     # max seconds waiting for /press_complete
+ARM_TIMEOUT_SEC         = 120.0      # max seconds waiting for /press_complete
 VERIFY_TIMEOUT_SEC      = 10.0      # seconds to verify after arm signals done
 VERIFY_SETTLE_SEC       = 0.5      # settle delay before polling starts
 VERIFY_LIT_MIN_FRAMES   = 2        # consecutive YOLO lit-class frames to confirm
@@ -133,6 +134,8 @@ class ElevatorCallButtonServer(Node):
             Image, '/floor_vision/debug_image', 1)
         self._button_press_goal_pub = self.create_publisher(
             PoseArray, '/button_press_goal', 10)
+        self._joint_command_pub = self.create_publisher(
+            Float64MultiArray, '/joint_command', 10)
         self._button_press_direction_pub = self.create_publisher(
             String, '/target_button', QoSProfile(
                 depth=1,
@@ -312,11 +315,17 @@ class ElevatorCallButtonServer(Node):
         pa.header.stamp    = self.get_clock().now().to_msg()
         pa.header.frame_id = PUBLISH_FRAME_ID   # 'link_0'
         pa.poses           = [approach_pose, button_pose]
-        self._button_press_goal_pub.publish(pa)
 
+        # Publish /target_button FIRST so the commander's transient_local cache
+        # is populated before /button_press_goal triggers Phase 0+1 execution.
+        # A small sleep guarantees DDS delivery before the press goal fires.
         dir_msg = String()
         dir_msg.data = direction.strip().upper()
         self._button_press_direction_pub.publish(dir_msg)
+
+        time.sleep(0.1)   # 100 ms — enough for transient_local delivery
+
+        self._button_press_goal_pub.publish(pa)
 
     # ── Debug image publisher ─────────────────────────────────────────────────
 
@@ -1304,6 +1313,11 @@ class ElevatorCallButtonServer(Node):
                 result.press_x    = float(press_lf[0])    if press_lf    is not None else 0.0
                 result.press_y    = float(press_lf[1])    if press_lf    is not None else 0.0
                 result.press_z    = float(press_lf[2])    if press_lf    is not None else 0.0
+                # Move arm down after confirmed press
+                arm_down_msg = Float64MultiArray()
+                arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                self._joint_command_pub.publish(arm_down_msg)
+                self.get_logger().info('[DetectCallButton] Published arm-down command to /joint_command')
             else:
                 if rclpy.ok() and goal_handle.is_active:
                     goal_handle.abort()

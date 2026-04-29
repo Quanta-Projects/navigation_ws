@@ -13,6 +13,7 @@
 #include "smrr_navigation/bt_nodes/stop_robot_action.hpp"
 #include "smrr_navigation/bt_nodes/set_controller_params_action.hpp"
 #include "smrr_navigation/bt_nodes/set_amcl_params_action.hpp"
+#include "smrr_navigation/bt_nodes/set_goal_checker_params_action.hpp"
 #include "smrr_navigation/bt_nodes/set_costmap_inflation_action.hpp"
 #include "smrr_navigation/bt_nodes/check_floor_arrival_action.hpp"
 #include "smrr_navigation/bt_nodes/toggle_apriltag_action.hpp"
@@ -38,6 +39,7 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::StopRobotAction>("StopRobot");
   factory.registerNodeType<smrr_navigation::SetControllerParamsAction>("SetControllerParams");
   factory.registerNodeType<smrr_navigation::SetAMCLParamsAction>("SetAMCLParams");
+  factory.registerNodeType<smrr_navigation::SetGoalCheckerParamsAction>("SetGoalCheckerParams");
   factory.registerNodeType<smrr_navigation::SetCostmapInflationAction>("SetCostmapInflation");
   factory.registerNodeType<smrr_navigation::ToggleAprilTagAction>("ToggleAprilTag");
   factory.registerNodeType<smrr_navigation::BuildPoseVectorAction>("BuildPoseVector");

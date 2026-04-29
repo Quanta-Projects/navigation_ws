@@ -12,8 +12,10 @@
       <Sequence name="CrossFloor_ElevatorEntry">
         <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
 
-        <!-- Navigate to staging pose on current floor -->
+        <!-- Navigate to staging pose on current floor via intermediate waypoint -->
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
+        <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="staging_waypoint" pose="{staging_waypoint_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{staging_waypoint_pose}"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
 
         <!-- Resolve inside pose BEFORE DetectCallButton so it is on the blackboard
@@ -33,11 +35,16 @@
             <!-- <CallElevator floor_id="{current_floor_id}"/> -->
 
             <!-- Keep tighter inflation while crossing elevator gap -->
-            <SetCostmapInflation inflation_radius="0.325"/>
+            <SetCostmapInflation inflation_radius="0.275"/>
 
             <!-- Boost velocity before waiting: robot is already at gap-crossing speed
                  the instant the door opens (zero-delay boost). -->
             <SetControllerParams max_vel_x="0.75"/>
+
+            <!-- Clear costmaps so stale door obstacle cells are removed before polling.
+                 Fresh LiDAR scans will re-mark the door if it is still closed. -->
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <!-- Planning-based door detection: poll global planner every 500 ms.
                  When the physical door opens the LiDAR clears the costmap obstacle
@@ -63,9 +70,16 @@
         <ToggleAprilTag turn_on="true"/>
         <!-- Freeze AMCL particle filter during 180° spin to prevent bad updates -->
         <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
-        <!-- Rotate 180° to face outward, ready for the exit door -->
-        <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
-        
+        <!-- Rotate 180° to face outward — retry once by re-centering inside elevator -->
+        <Fallback name="SpinInElevator">
+          <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+          <Sequence name="RepositionAndSpin">
+            <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+            <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
+            <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+          </Sequence>
+        </Fallback>
+
         <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
         <!-- Restore AMCL normal update thresholds -->
         <SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
@@ -76,15 +90,15 @@
              wait here before starting door-close detection to avoid false positive -->
         <Wait wait_duration="1.0"/>
         <!-- Wait for elevator door to fully close -->
-        <RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
+        <!-- <RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
           <Delay delay_msec="500">
             <Inverter>
               <ComputePathToPose goal="{staging_pose}" path="{dummy_path}" planner_id="GridBased"/>
             </Inverter>
           </Delay>
-        </RetryUntilSuccessful>
+        </RetryUntilSuccessful> -->
         <!-- Extra settle time after door closes before map switch -->
-        <Wait wait_duration="3.0"/>
+        <!-- <Wait wait_duration="3.0"/> -->
 
         <!-- Switch to target floor's open map while inside elevator -->
         <GetNamedMap locations_file="{locations_file}" floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
@@ -147,7 +161,7 @@
             <!-- Navigate to elevator inside pose of target floor to reposition -->
             <GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
-            <Spin spin_dist="-3.5416" time_allowance="10.0" is_recovery="true"/>
+            <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
             <!-- <CallElevator floor_id="{target_floor_id}"/> -->

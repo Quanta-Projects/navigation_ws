@@ -131,8 +131,8 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.20
-      yaw_goal_tolerance: 0.15
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
 
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
@@ -240,7 +240,7 @@ local_costmap:
       plugins: ["obstacle_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.5
+        inflation_radius: 0.4
         cost_scaling_factor: 20.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -298,7 +298,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 20.0
-        inflation_radius: 0.5
+        inflation_radius: 0.4
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
@@ -343,10 +343,10 @@ behavior_server:
     behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
-      simulate_ahead_time: 0.25
-      max_rotational_vel: 0.3
+      simulate_ahead_time: 0.0
+      max_rotational_vel: 0.15
       min_rotational_vel: 0.0
-      rotational_acc_lim: 4.0
+      rotational_acc_lim: 0.5
     backup:
       plugin: "nav2_behaviors/BackUp"
     wait:

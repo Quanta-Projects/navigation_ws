@@ -1,34 +1,35 @@
-from launch import LaunchDescription
-from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
+#!/usr/bin/env python3
+"""
+EKF localization launch for real hardware.
+Fuses wheel odometry (/diff_drive_controller/odom) with ZED2 IMU
+(/zed2/zed_node/imu/data, RELIABLE publisher — compatible with EKF's
+BEST_EFFORT subscriber in DDS).
+"""
+
 import os
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
-from launch.substitutions import Command, LaunchConfiguration
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+
 
 def generate_launch_description():
+    ekf_config = os.path.join(
+        get_package_share_directory('smrr_localization'),
+        'config',
+        'ekf.yaml',
+    )
 
     robot_localization = Node(
-        package="robot_localization",
-        executable="ekf_node",
-        name="ekf_filter_node",
-        output="screen",
-        parameters=[os.path.join(get_package_share_directory("smrr_localization"), "config", "modified_ekf.yaml")],
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        output='screen',
+        parameters=[
+            ekf_config,
+            {'use_sim_time': False},
+        ],
     )
-
-    start_slam_toolbox = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory("slam_toolbox"), "launch", "online_async_launch.py" )
-        ),
-        launch_arguments={
-            'slam_params_file':os.path.join(get_package_share_directory("smrr_multinav"), "config", "mapper_params_online_async.yaml"),
-            'use_sim_time':'true'
-        }.items()
-    )
-
 
     return LaunchDescription([
-        #robot_localization,
-        start_slam_toolbox
- 
+        robot_localization,
     ])
