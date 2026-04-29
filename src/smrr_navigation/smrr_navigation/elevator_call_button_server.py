@@ -23,6 +23,7 @@ from rclpy.action import ActionClient, ActionServer, CancelResponse, GoalRespons
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 from std_msgs.msg import Bool, String
 from visualization_msgs.msg import Marker, MarkerArray
@@ -73,8 +74,8 @@ EEF_ORIENTATION = (-0.5, 0.5, -0.5, 0.5)  # x, y, z, w
 # Applied only to points published on /button_press_goal.
 # Separate tuning for each button direction.
 BUTTON_GOAL_OFFSET_UP_X = 0.0
-BUTTON_GOAL_OFFSET_UP_Y = 0.0
-BUTTON_GOAL_OFFSET_UP_Z = 0.03
+BUTTON_GOAL_OFFSET_UP_Y = 0.00
+BUTTON_GOAL_OFFSET_UP_Z = 0.02
 
 BUTTON_GOAL_OFFSET_DOWN_X = 0.0
 BUTTON_GOAL_OFFSET_DOWN_Y = -0.04
@@ -133,7 +134,11 @@ class ElevatorCallButtonServer(Node):
         self._button_press_goal_pub = self.create_publisher(
             PoseArray, '/button_press_goal', 10)
         self._button_press_direction_pub = self.create_publisher(
-            String, '/target_button', 10)
+            String, '/target_button', QoSProfile(
+                depth=1,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+                durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            ))
 
         # ── Visualization publishers ──────────────────────────────────────────
         # /button_detection/full_cloud   — the complete raw ZED2 point cloud
