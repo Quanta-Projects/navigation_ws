@@ -33,7 +33,7 @@ docking_server:
       plugin: 'opennav_docking::SimpleChargingDock'
 
       # Docking behaviour
-      docking_threshold: 0.3         # stop positional control 4 cm from dock to avoid 1/r singularity
+      docking_threshold: 0.5         # stop positional control 4 cm from dock to avoid 1/r singularity
       dock_direction: "backward"      # your intent is to back into the dock
       rotate_to_dock: false           # ignored on Humble, but OK to leave
 
@@ -53,7 +53,7 @@ docking_server:
       # Offset from detected pose to actual docking pose.
       # x: negative pushes target 1 cm deeper into dock (toward wall)
       # y: negative shifts target to robot's right; flip sign if alignment gets worse
-      external_detection_translation_x: -0.20
+      external_detection_translation_x: -0.25
       external_detection_translation_y: 0.0
       external_detection_translation_z: 0.0
 
@@ -96,8 +96,8 @@ docking_server:
 
     # Docking controller
     controller:
-      k_phi: 6.0               # higher value forces robot to start correcting heading immediately from staging pose
-      k_delta: 3.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
+      k_phi: 4.5               # higher value forces robot to start correcting heading immediately from staging pose
+      k_delta: 2.0              # increased from 1.5: amplifies curvature at ALL distances; +33% at r=1.6m, +41% at r=0.6m
       beta: 0.1                 # added explicitly (default was 0.4): less speed drop during arcs → higher v_angular for same κ
       lambda: 2.0               # default, set explicitly
       v_linear_min: 0.01
