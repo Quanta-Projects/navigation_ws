@@ -1,844 +1,322 @@
-[INFO] [launch]: All log files can be found below /home/quanta/.ros/log/2026-04-29-23-34-21-147815-quanta-desktop-109310
+[INFO] [launch]: All log files can be found below /home/quanta/.ros/log/2026-05-01-12-04-42-970727-quanta-desktop-89559
 [INFO] [launch]: Default logging verbosity is set to INFO
-[INFO] [component_container_isolated-1]: process started with pid [109342]
-[INFO] [named_goal_server.py-2]: process started with pid [109344]
-[INFO] [location_subscriber.py-3]: process started with pid [109346]
-[INFO] [floor_arrival_server.py-4]: process started with pid [109348]
-[INFO] [elevator_call_button_server.py-5]: process started with pid [109351]
-[INFO] [elevator_floor_button_server.py-6]: process started with pid [109353]
-[INFO] [smrr_bt_mission_executor-7]: process started with pid [109357]
-[INFO] [apriltag_manager_server.py-8]: process started with pid [109367]
-[smrr_bt_mission_executor-7] [INFO] [1777485862.434123254] [smrr_bt_mission_executor]: BT Mission Executor initialized
-[smrr_bt_mission_executor-7] [INFO] [1777485862.434294521] [smrr_bt_mission_executor]: BT XML: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/behavior_trees/smrr_multifloor.xml
-[smrr_bt_mission_executor-7] [INFO] [1777485862.434317337] [smrr_bt_mission_executor]: Tick rate: 20.0 Hz, Timeout: 1500.0 sec
-[component_container_isolated-1] [INFO] [1777485862.555941140] [nav2_container]: Load Library: /opt/ros/humble/lib/libcontroller_server_core.so
-[component_container_isolated-1] [INFO] [1777485862.570961549] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
-[component_container_isolated-1] [INFO] [1777485862.574930854] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
-[component_container_isolated-1] [INFO] [1777485862.642770361] [controller_server]: 
+[INFO] [component_container_isolated-1]: process started with pid [89586]
+[INFO] [named_goal_server.py-2]: process started with pid [89588]
+[INFO] [location_subscriber.py-3]: process started with pid [89590]
+[INFO] [floor_arrival_server.py-4]: process started with pid [89592]
+[INFO] [elevator_call_button_server.py-5]: process started with pid [89594]
+[INFO] [elevator_floor_button_server.py-6]: process started with pid [89597]
+[INFO] [smrr_bt_mission_executor-7]: process started with pid [89609]
+[INFO] [apriltag_manager_server.py-8]: process started with pid [89614]
+[smrr_bt_mission_executor-7] [INFO] [1777617284.258858687] [smrr_bt_mission_executor]: BT Mission Executor initialized
+[smrr_bt_mission_executor-7] [INFO] [1777617284.259020589] [smrr_bt_mission_executor]: BT XML: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/behavior_trees/smrr_multifloor.xml
+[smrr_bt_mission_executor-7] [INFO] [1777617284.259044842] [smrr_bt_mission_executor]: Tick rate: 20.0 Hz, Timeout: 1500.0 sec
+[component_container_isolated-1] [INFO] [1777617284.373882749] [nav2_container]: Load Library: /opt/ros/humble/lib/libcontroller_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.432874727] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-1] [INFO] [1777617284.454300701] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_controller::ControllerServer>
+[component_container_isolated-1] [INFO] [1777617284.516005434] [controller_server]: 
 [component_container_isolated-1] 	controller_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.672193762] [controller_server]: Creating controller server
-[component_container_isolated-1] [INFO] [1777485862.728387628] [local_costmap.local_costmap]: 
+[component_container_isolated-1] [INFO] [1777617284.544624752] [controller_server]: Creating controller server
+[component_container_isolated-1] [INFO] [1777617284.607848869] [local_costmap.local_costmap]: 
 [component_container_isolated-1] 	local_costmap lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.736181981] [local_costmap.local_costmap]: Creating Costmap
-[component_container_isolated-1] [INFO] [1777485862.763716778] [nav2_container]: Load Library: /opt/ros/humble/lib/libmap_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.616420366] [local_costmap.local_costmap]: Creating Costmap
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/controller_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485862.792941712] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::CostmapFilterInfoServer>
-[component_container_isolated-1] [INFO] [1777485862.795217745] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapSaver>
-[component_container_isolated-1] [INFO] [1777485862.802779038] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
-[component_container_isolated-1] [INFO] [1777485862.804351381] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
-[component_container_isolated-1] [INFO] [1777485862.850647793] [map_server]: 
+[component_container_isolated-1] [INFO] [1777617284.624172657] [nav2_container]: Load Library: /opt/ros/humble/lib/libmap_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.655571827] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::CostmapFilterInfoServer>
+[component_container_isolated-1] [INFO] [1777617284.656969624] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapSaver>
+[component_container_isolated-1] [INFO] [1777617284.656994197] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-1] [INFO] [1777617284.657006452] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_map_server::MapServer>
+[component_container_isolated-1] [INFO] [1777617284.700442845] [map_server]: 
 [component_container_isolated-1] 	map_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.851636735] [map_server]: Creating
-[component_container_isolated-1] [INFO] [1777485862.858034811] [nav2_container]: Load Library: /opt/ros/humble/lib/libsmoother_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.703206186] [map_server]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/map_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485862.862854945] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
-[component_container_isolated-1] [INFO] [1777485862.862962882] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
-[component_container_isolated-1] [INFO] [1777485862.886658392] [smoother_server]: 
+[component_container_isolated-1] [INFO] [1777617284.712871833] [nav2_container]: Load Library: /opt/ros/humble/lib/libsmoother_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.721659530] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-1] [INFO] [1777617284.723616240] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_smoother::SmootherServer>
+[component_container_isolated-1] [INFO] [1777617284.792078207] [smoother_server]: 
 [component_container_isolated-1] 	smoother_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.891910596] [smoother_server]: Creating smoother server
+[component_container_isolated-1] [INFO] [1777617284.796840975] [smoother_server]: Creating smoother server
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/smoother_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485862.895041361] [nav2_container]: Load Library: /opt/ros/humble/lib/libamcl_core.so
-[component_container_isolated-1] [INFO] [1777485862.904154165] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
-[component_container_isolated-1] [INFO] [1777485862.904257558] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
-[component_container_isolated-1] [INFO] [1777485862.924230423] [amcl]: 
+[component_container_isolated-1] [INFO] [1777617284.802833717] [nav2_container]: Load Library: /opt/ros/humble/lib/libamcl_core.so
+[component_container_isolated-1] [INFO] [1777617284.811242928] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-1] [INFO] [1777617284.811382272] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_amcl::AmclNode>
+[component_container_isolated-1] [INFO] [1777617284.883887566] [amcl]: 
 [component_container_isolated-1] 	amcl lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.925437992] [amcl]: Creating
+[component_container_isolated-1] [INFO] [1777617284.887623760] [amcl]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/amcl' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485862.944003700] [nav2_container]: Load Library: /opt/ros/humble/lib/libplanner_server_core.so
-[component_container_isolated-1] [INFO] [1777485862.945496905] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
-[component_container_isolated-1] [INFO] [1777485862.945552138] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
-[component_container_isolated-1] [INFO] [1777485862.972118666] [planner_server]: 
+[component_container_isolated-1] [INFO] [1777617284.917970342] [nav2_container]: Load Library: /opt/ros/humble/lib/libplanner_server_core.so
+[component_container_isolated-1] [INFO] [1777617284.924211922] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-1] [INFO] [1777617284.925573754] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_planner::PlannerServer>
+[component_container_isolated-1] [INFO] [1777617284.949971142] [planner_server]: 
 [component_container_isolated-1] 	planner_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485862.979210800] [planner_server]: Creating
-[component_container_isolated-1] [INFO] [1777485863.004590974] [global_costmap.global_costmap]: 
+[component_container_isolated-1] [INFO] [1777617284.959186822] [planner_server]: Creating
+[component_container_isolated-1] [INFO] [1777617285.034858464] [global_costmap.global_costmap]: 
 [component_container_isolated-1] 	global_costmap lifecycle node launched. 
-[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/planner_server' in container '/nav2_container'
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485863.006974625] [global_costmap.global_costmap]: Creating Costmap
-[component_container_isolated-1] [INFO] [1777485863.022382303] [nav2_container]: Load Library: /opt/ros/humble/lib/libnav2_lifecycle_manager_core.so
+[component_container_isolated-1] [INFO] [1777617285.036001606] [global_costmap.global_costmap]: Creating Costmap
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/planner_server' in container '/nav2_container'
+[component_container_isolated-1] [INFO] [1777617285.094261931] [nav2_container]: Load Library: /opt/ros/humble/lib/libnav2_lifecycle_manager_core.so
+[component_container_isolated-1] [INFO] [1777617285.113368601] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1777617285.113518441] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1777617285.130487834] [lifecycle_manager_localization]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_localization' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.024938404] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1777485863.025009829] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1777485863.038421734] [lifecycle_manager_localization]: Creating
-[component_container_isolated-1] [INFO] [1777485863.047573418] [nav2_container]: Load Library: /opt/ros/humble/lib/libbehavior_server_core.so
-[component_container_isolated-1] [INFO] [1777485863.054015431] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
-[component_container_isolated-1] [INFO] [1777485863.054097769] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
-[component_container_isolated-1] [INFO] [1777485863.113343935] [behavior_server]: 
+[component_container_isolated-1] [INFO] [1777617285.149557931] [nav2_container]: Load Library: /opt/ros/humble/lib/libbehavior_server_core.so
+[component_container_isolated-1] [INFO] [1777617285.154417478] [lifecycle_manager_localization]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.169722632] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[component_container_isolated-1] [INFO] [1777617285.169850747] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<behavior_server::BehaviorServer>
+[location_subscriber.py-3] [INFO] [1777617285.182751965] [location_subscriber]: Location Subscriber started
+[location_subscriber.py-3] [INFO] [1777617285.184005719] [location_subscriber]:   Subscribing to: location
+[location_subscriber.py-3] [INFO] [1777617285.185630474] [location_subscriber]:   Service client: /go_to_pose
+[apriltag_manager_server.py-8] [INFO] [1777617285.185860690] [apriltag_manager_server]: AprilTagManagerServer ready — service /toggle_apriltag active.
+[location_subscriber.py-3] [INFO] [1777617285.187532192] [location_subscriber]: Waiting for /go_to_pose service...
+[component_container_isolated-1] [INFO] [1777617285.191323724] [lifecycle_manager_localization]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.192164947] [lifecycle_manager_localization]: [34m[1mConfiguring map_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.192624802] [map_server]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.192765683] [map_io]: Loading yaml file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/first_floor_with_lift.yaml
+[component_container_isolated-1] [INFO] [1777617285.201941474] [map_io]: resolution: 0.05
+[component_container_isolated-1] [INFO] [1777617285.202000027] [map_io]: origin[0]: -35.9
+[component_container_isolated-1] [INFO] [1777617285.202017658] [map_io]: origin[1]: -7.5
+[component_container_isolated-1] [INFO] [1777617285.202023801] [map_io]: origin[2]: 0
+[component_container_isolated-1] [INFO] [1777617285.202029240] [map_io]: free_thresh: 0.25
+[component_container_isolated-1] [INFO] [1777617285.202034296] [map_io]: occupied_thresh: 0.65
+[component_container_isolated-1] [INFO] [1777617285.202043191] [map_io]: mode: trinary
+[component_container_isolated-1] [INFO] [1777617285.202051414] [map_io]: negate: 0
+[component_container_isolated-1] [INFO] [1777617285.220011390] [behavior_server]: 
 [component_container_isolated-1] 	behavior_server lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485863.121590262] [lifecycle_manager_localization]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.221705929] [map_io]: Loading image_file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/first_floor_with_lift.pgm
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/behavior_server' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.140594377] [nav2_container]: Load Library: /opt/ros/humble/lib/libbt_navigator_core.so
-[component_container_isolated-1] [INFO] [1777485863.146346652] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
-[component_container_isolated-1] [INFO] [1777485863.146468669] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
-[component_container_isolated-1] [INFO] [1777485863.169161477] [lifecycle_manager_localization]: [34m[1mStarting managed nodes bringup...[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.169267462] [lifecycle_manager_localization]: [34m[1mConfiguring map_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.171922285] [map_server]: Configuring
-[component_container_isolated-1] [INFO] [1777485863.172065423] [map_io]: Loading yaml file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.yaml
-[component_container_isolated-1] [INFO] [1777485863.172455700] [map_io]: resolution: 0.05
-[component_container_isolated-1] [INFO] [1777485863.172480981] [map_io]: origin[0]: -19.7
-[component_container_isolated-1] [INFO] [1777485863.172488501] [map_io]: origin[1]: -3.28
-[component_container_isolated-1] [INFO] [1777485863.172493941] [map_io]: origin[2]: 0
-[component_container_isolated-1] [INFO] [1777485863.172499317] [map_io]: free_thresh: 0.25
-[component_container_isolated-1] [INFO] [1777485863.172504405] [map_io]: occupied_thresh: 0.65
-[component_container_isolated-1] [INFO] [1777485863.172511061] [map_io]: mode: trinary
-[component_container_isolated-1] [INFO] [1777485863.172518229] [map_io]: negate: 0
-[component_container_isolated-1] [INFO] [1777485863.172795513] [map_io]: Loading image_file: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm
-[component_container_isolated-1] [INFO] [1777485863.222246083] [bt_navigator]: 
+[component_container_isolated-1] [INFO] [1777617285.233696141] [nav2_container]: Load Library: /opt/ros/humble/lib/libbt_navigator_core.so
+[component_container_isolated-1] [INFO] [1777617285.240406050] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[component_container_isolated-1] [INFO] [1777617285.240526677] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_bt_navigator::BtNavigator>
+[named_goal_server.py-2] [INFO] [1777617285.271128379] [named_goal_server]: Loaded 41 named locations across 4 floor(s):
+[named_goal_server.py-2] [INFO] [1777617285.281626493] [named_goal_server]:   Floor: floor0
+[component_container_isolated-1] [INFO] [1777617285.289702753] [bt_navigator]: 
 [component_container_isolated-1] 	bt_navigator lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485863.222403077] [bt_navigator]: Creating
+[component_container_isolated-1] [INFO] [1777617285.289873967] [bt_navigator]: Creating
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/bt_navigator' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.228873027] [nav2_container]: Load Library: /opt/ros/humble/lib/libwaypoint_follower_core.so
-[component_container_isolated-1] [INFO] [1777485863.232208531] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
-[component_container_isolated-1] [INFO] [1777485863.232295508] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
-[component_container_isolated-1] [INFO] [1777485863.268982533] [waypoint_follower]: 
+[named_goal_server.py-2] [INFO] [1777617285.289685571] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.295340073] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
+[component_container_isolated-1] [INFO] [1777617285.296251400] [nav2_container]: Load Library: /opt/ros/humble/lib/libwaypoint_follower_core.so
+[named_goal_server.py-2] [INFO] [1777617285.297983312] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.300923606] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
+[component_container_isolated-1] [INFO] [1777617285.301124577] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[component_container_isolated-1] [INFO] [1777617285.301229398] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_waypoint_follower::WaypointFollower>
+[named_goal_server.py-2] [INFO] [1777617285.312711311] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.315802470] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.320103196] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.329855086] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
+[component_container_isolated-1] [INFO] [1777617285.336667737] [waypoint_follower]: 
 [component_container_isolated-1] 	waypoint_follower lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[component_container_isolated-1] [INFO] [1777485863.271315399] [waypoint_follower]: Creating
+[component_container_isolated-1] [INFO] [1777617285.338834930] [waypoint_follower]: Creating
+[named_goal_server.py-2] [INFO] [1777617285.340326771] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/waypoint_follower' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.280282888] [nav2_container]: Load Library: /opt/ros/humble/lib/libvelocity_smoother_core.so
-[component_container_isolated-1] [INFO] [1777485863.282532105] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
-[component_container_isolated-1] [INFO] [1777485863.283516567] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
-[component_container_isolated-1] [INFO] [1777485863.338703251] [velocity_smoother]: 
+[named_goal_server.py-2] [INFO] [1777617285.342944828] [named_goal_server]:   Floor: floor1
+[named_goal_server.py-2] [INFO] [1777617285.344373924] [named_goal_server]:     - amcl_initial_pose_closed: (-6.26, 0.38, 34.7°)
+[named_goal_server.py-2] [INFO] [1777617285.345202124] [named_goal_server]:     - amcl_initial_pose_open: (-6.26, 0.38, 34.7°)
+[named_goal_server.py-2] [INFO] [1777617285.346079854] [named_goal_server]:     - staging_waypoint: (-6.07, 2.32, -121.2°)
+[named_goal_server.py-2] [INFO] [1777617285.346984590] [named_goal_server]:     - elevator_staging: (-6.32, 1.90, -121.2°)
+[named_goal_server.py-2] [INFO] [1777617285.347747037] [named_goal_server]:     - elevator_entry: (-5.98, 1.45, -112.1°)
+[named_goal_server.py-2] [INFO] [1777617285.350264753] [named_goal_server]:     - elevator_inside: (-6.44, 0.33, -145.3°)
+[component_container_isolated-1] [INFO] [1777617285.351188878] [nav2_container]: Load Library: /opt/ros/humble/lib/libvelocity_smoother_core.so
+[named_goal_server.py-2] [INFO] [1777617285.354172017] [named_goal_server]:     - elevator_exit: (-5.70, 1.91, 62.7°)
+[component_container_isolated-1] [INFO] [1777617285.354726550] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[component_container_isolated-1] [INFO] [1777617285.354825163] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_velocity_smoother::VelocitySmoother>
+[named_goal_server.py-2] [INFO] [1777617285.363770099] [named_goal_server]:     - hod_office: (6.61, 6.66, 159.9°)
+[named_goal_server.py-2] [INFO] [1777617285.373481801] [named_goal_server]:     - computer_lab: (6.40, -1.59, 90.0°)
+[named_goal_server.py-2] [INFO] [1777617285.377319120] [named_goal_server]:     - conference_room: (-10.20, 22.60, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.379973557] [named_goal_server]:     - prof_jayasinghe_office: (10.92, 9.46, 179.9°)
+[named_goal_server.py-2] [INFO] [1777617285.388926844] [named_goal_server]:     - prof_kyew_office: (11.28, 7.39, 179.9°)
+[component_container_isolated-1] [INFO] [1777617285.396882125] [velocity_smoother]: 
+[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/velocity_smoother' in container '/nav2_container'
 [component_container_isolated-1] 	velocity_smoother lifecycle node launched. 
 [component_container_isolated-1] 	Waiting on external lifecycle transitions to activate
 [component_container_isolated-1] 	See https://design.ros2.org/articles/node_lifecycle.html for more information.
-[INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/velocity_smoother' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.345921532] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1777485863.345989917] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
-[component_container_isolated-1] [INFO] [1777485863.354836348] [lifecycle_manager_navigation]: Creating
+[component_container_isolated-1] [INFO] [1777617285.401486019] [nav2_container]: Found class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[component_container_isolated-1] [INFO] [1777617285.401563675] [nav2_container]: Instantiate class: rclcpp_components::NodeFactoryTemplate<nav2_lifecycle_manager::LifecycleManager>
+[named_goal_server.py-2] [INFO] [1777617285.411662759] [named_goal_server]:     - prof_dileeka_office: (11.76, 5.02, 179.9°)
+[named_goal_server.py-2] [INFO] [1777617285.416227713] [named_goal_server]:     - prof_rohan_office: (12.29, 2.47, 179.9°)
+[named_goal_server.py-2] [INFO] [1777617285.416893786] [named_goal_server]:   Floor: floor2
+[named_goal_server.py-2] [INFO] [1777617285.421252042] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.422002906] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.425673971] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.430049826] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.430733465] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.434711057] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.436726427] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
+[component_container_isolated-1] [INFO] [1777617285.436768310] [lifecycle_manager_navigation]: Creating
+[named_goal_server.py-2] [INFO] [1777617285.437404914] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.439300457] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
+[named_goal_server.py-2] [INFO] [1777617285.440786890] [named_goal_server]:   Floor: floor3
+[named_goal_server.py-2] [INFO] [1777617285.444382443] [named_goal_server]:     - amcl_initial_pose_closed: (-11.42, -0.02, -35.0°)
 [INFO] [launch_ros.actions.load_composable_nodes]: Loaded node '/lifecycle_manager_navigation' in container '/nav2_container'
-[component_container_isolated-1] [INFO] [1777485863.368166973] [map_io]: Read map /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/third_floor_with_lift.pgm: 463 X 552 map @ 0.05 m/cell
-[component_container_isolated-1] [INFO] [1777485863.392147383] [lifecycle_manager_navigation]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.395668201] [lifecycle_manager_localization]: [34m[1mConfiguring amcl[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.395954030] [amcl]: Configuring
-[component_container_isolated-1] [INFO] [1777485863.396111760] [amcl]: initTransforms
-[component_container_isolated-1] [INFO] [1777485863.423817504] [amcl]: initPubSub
-[component_container_isolated-1] [INFO] [1777485863.432620415] [amcl]: Subscribed to map topic.
-[component_container_isolated-1] [INFO] [1777485863.456652953] [lifecycle_manager_localization]: [34m[1mActivating map_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.458962715] [map_server]: Activating
-[component_container_isolated-1] [INFO] [1777485863.465512249] [map_server]: Creating bond (map_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485863.466615753] [amcl]: Received a 463 X 552 map @ 0.050 m/pix
-[named_goal_server.py-2] [INFO] [1777485863.469440914] [named_goal_server]: Loaded 41 named locations across 4 floor(s):
-[named_goal_server.py-2] [INFO] [1777485863.472645120] [named_goal_server]:   Floor: floor0
-[named_goal_server.py-2] [INFO] [1777485863.473767024] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.475086979] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.476128882] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.477199202] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.478280945] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.480456305] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.481247516] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.483471324] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.486074786] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[named_goal_server.py-2] [INFO] [1777485863.487356372] [named_goal_server]:   Floor: floor1
-[named_goal_server.py-2] [INFO] [1777485863.489797976] [named_goal_server]:     - amcl_initial_pose_closed: (-6.26, 0.38, 34.7°)
-[named_goal_server.py-2] [INFO] [1777485863.493222057] [named_goal_server]:     - amcl_initial_pose_open: (-6.26, 0.38, 34.7°)
-[named_goal_server.py-2] [INFO] [1777485863.495759598] [named_goal_server]:     - staging_waypoint: (-6.07, 2.32, -121.2°)
-[named_goal_server.py-2] [INFO] [1777485863.497173442] [named_goal_server]:     - elevator_staging: (-6.32, 1.90, -121.2°)
-[named_goal_server.py-2] [INFO] [1777485863.498070639] [named_goal_server]:     - elevator_entry: (-6.01, 1.35, -112.1°)
-[named_goal_server.py-2] [INFO] [1777485863.499176063] [named_goal_server]:     - elevator_inside: (-6.44, 0.33, -145.3°)
-[named_goal_server.py-2] [INFO] [1777485863.500096780] [named_goal_server]:     - elevator_exit: (-5.70, 1.91, 62.7°)
-[named_goal_server.py-2] [INFO] [1777485863.500938584] [named_goal_server]:     - hod_office: (6.61, 6.66, 159.9°)
-[named_goal_server.py-2] [INFO] [1777485863.501789253] [named_goal_server]:     - computer_lab: (6.40, -1.59, 90.0°)
-[named_goal_server.py-2] [INFO] [1777485863.503386460] [named_goal_server]:     - conference_room: (-10.20, 22.60, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.505213110] [named_goal_server]:     - prof_jayasinghe_office: (10.92, 9.46, 179.9°)
-[named_goal_server.py-2] [INFO] [1777485863.507967902] [named_goal_server]:     - prof_kyew_office: (11.28, 7.39, 179.9°)
-[named_goal_server.py-2] [INFO] [1777485863.509189680] [named_goal_server]:     - prof_dileeka_office: (11.76, 5.02, 179.9°)
-[named_goal_server.py-2] [INFO] [1777485863.512030073] [named_goal_server]:     - prof_rohan_office: (12.29, 2.47, 179.9°)
-[named_goal_server.py-2] [INFO] [1777485863.512970214] [named_goal_server]:   Floor: floor2
-[named_goal_server.py-2] [INFO] [1777485863.514845121] [named_goal_server]:     - amcl_initial_pose_closed: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.515918513] [named_goal_server]:     - amcl_initial_pose_open: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.517311045] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.518159121] [named_goal_server]:     - elevator_staging: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.519336354] [named_goal_server]:     - elevator_entry: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.520760982] [named_goal_server]:     - elevator_inside: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.522689714] [named_goal_server]:     - elevator_exit: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.524703983] [named_goal_server]:     - dummy_location_a: (1.00, 1.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.526114660] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[named_goal_server.py-2] [INFO] [1777485863.527594521] [named_goal_server]:   Floor: floor3
-[named_goal_server.py-2] [INFO] [1777485863.528838123] [named_goal_server]:     - amcl_initial_pose_closed: (-11.42, -0.02, -35.0°)
-[named_goal_server.py-2] [INFO] [1777485863.529728344] [named_goal_server]:     - amcl_initial_pose_open: (-11.42, -0.02, -35.0°)
-[named_goal_server.py-2] [INFO] [1777485863.530578628] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
-[named_goal_server.py-2] [INFO] [1777485863.531659188] [named_goal_server]:     - elevator_staging: (-9.95, 0.04, 150.0°)
-[named_goal_server.py-2] [INFO] [1777485863.533393933] [named_goal_server]:     - elevator_entry: (-10.39, -0.13, 158.1°)
-[named_goal_server.py-2] [INFO] [1777485863.534554398] [named_goal_server]:     - elevator_inside: (-11.42, -0.02, -215.0°)
-[named_goal_server.py-2] [INFO] [1777485863.535717998] [named_goal_server]:     - elevator_exit: (-9.45, -0.34, -20.8°)
-[named_goal_server.py-2] [INFO] [1777485863.537208516] [named_goal_server]:     - vision_lab: (-12.62, 7.07, -111.6°)
-[named_goal_server.py-2] [INFO] [1777485863.538258547] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
-[named_goal_server.py-2] [INFO] [1777485863.554692960] [named_goal_server]: BT Mission Executor mode enabled. Service: /start_mission
-[named_goal_server.py-2] [INFO] [1777485863.555836881] [named_goal_server]: Initial floor: floor1
-[named_goal_server.py-2] [INFO] [1777485863.556961793] [named_goal_server]: Named Goal Server ready. Service: /go_to_pose
-[component_container_isolated-1] [INFO] [1777485863.531588435] [lifecycle_manager_navigation]: [34m[1mStarting managed nodes bringup...[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.532435519] [lifecycle_manager_navigation]: [34m[1mConfiguring controller_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.533364556] [controller_server]: Configuring controller interface
-[component_container_isolated-1] [INFO] [1777485863.533782578] [controller_server]: getting goal checker plugins..
-[component_container_isolated-1] [INFO] [1777485863.533998518] [controller_server]: Controller frequency set to 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485863.534070071] [local_costmap.local_costmap]: Configuring
-[component_container_isolated-1] [INFO] [1777485863.537742572] [local_costmap.local_costmap]: Using plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1777485863.560588693] [local_costmap.local_costmap]: Subscribed to Topics: scan
-[component_container_isolated-1] [INFO] [1777485863.582064683] [lifecycle_manager_localization]: Server map_server connected with bond.
-[component_container_isolated-1] [INFO] [1777485863.582164397] [lifecycle_manager_localization]: [34m[1mActivating amcl[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.582881623] [amcl]: Activating
-[component_container_isolated-1] [INFO] [1777485863.582961080] [amcl]: initialPoseReceived
-[component_container_isolated-1] [INFO] [1777485863.583188955] [amcl]: Setting pose (1777485863.583187): -0.246 0.013 2.598
-[component_container_isolated-1] [INFO] [1777485863.584545455] [amcl]: Creating bond (amcl) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485863.592907688] [local_costmap.local_costmap]: Initialized plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1777485863.592998281] [local_costmap.local_costmap]: Using plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1777485863.605474109] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1777485863.643027099] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
-[component_container_isolated-1] [INFO] [1777485863.648055523] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
-[component_container_isolated-1] [INFO] [1777485863.651412116] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
-[component_container_isolated-1] [INFO] [1777485863.653531122] [controller_server]: Created controller : FollowPath of type nav2_mppi_controller::MPPIController
-[component_container_isolated-1] [WARN] [1777485863.675349997] [controller_server]: Controller period is less then model dt, consider setting it equal
-[component_container_isolated-1] [INFO] [1777485863.681829835] [amcl]: createLaserObject
-[component_container_isolated-1] [INFO] [1777485863.690010465] [lifecycle_manager_localization]: Server amcl connected with bond.
-[component_container_isolated-1] [INFO] [1777485863.690131139] [lifecycle_manager_localization]: [34m[1mManaged nodes are active[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.690163587] [lifecycle_manager_localization]: [34m[1mCreating bond timer...[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.701944461] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
-[component_container_isolated-1] [INFO] [1777485863.702076207] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
-[component_container_isolated-1] [INFO] [1777485863.729272343] [controller_server]: ObstaclesCritic instantiated with 1 power and 30.000000 / 1.000000 weights. Critic will collision check based on circular cost.
-[component_container_isolated-1] [INFO] [1777485863.729372281] [controller_server]: Critic loaded : mppi::critics::ObstaclesCritic
-[component_container_isolated-1] [INFO] [1777485863.738325818] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
-[component_container_isolated-1] [INFO] [1777485863.738420635] [controller_server]: Critic loaded : mppi::critics::GoalCritic
-[component_container_isolated-1] [INFO] [1777485863.746216428] [controller_server]: GoalAngleCritic instantiated with 1 power, 6.000000 weight, and 0.250000 angular threshold.
-[component_container_isolated-1] [INFO] [1777485863.746345678] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
-[component_container_isolated-1] [INFO] [1777485863.761488424] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
-[component_container_isolated-1] [INFO] [1777485863.761639146] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
-[component_container_isolated-1] [INFO] [1777485863.772865708] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
-[component_container_isolated-1] [INFO] [1777485863.786598579] [controller_server]: PathAngleCritic instantiated with 1 power and 2.000000 weight. Reversing not allowed.
-[component_container_isolated-1] [INFO] [1777485863.786697108] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
-[component_container_isolated-1] [INFO] [1777485863.822864126] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485863.840048118] [MPPIController]: Configured MPPI Controller: FollowPath
-[component_container_isolated-1] [INFO] [1777485863.840104215] [controller_server]: Controller Server has FollowPath  controllers available.
-[component_container_isolated-1] [INFO] [1777485863.883065667] [lifecycle_manager_navigation]: [34m[1mConfiguring smoother_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.883587978] [smoother_server]: Configuring smoother server
-[component_container_isolated-1] [INFO] [1777485863.900530399] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
-[component_container_isolated-1] [INFO] [1777485863.910986517] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
-[component_container_isolated-1] [INFO] [1777485863.927913450] [lifecycle_manager_navigation]: [34m[1mConfiguring planner_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485863.928188366] [planner_server]: Configuring
-[component_container_isolated-1] [INFO] [1777485863.928265935] [global_costmap.global_costmap]: Configuring
-[component_container_isolated-1] [INFO] [1777485863.936323971] [global_costmap.global_costmap]: Using plugin "static_layer"
-[component_container_isolated-1] [INFO] [1777485863.947539077] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
-[component_container_isolated-1] [INFO] [1777485863.951317435] [global_costmap.global_costmap]: Initialized plugin "static_layer"
-[component_container_isolated-1] [INFO] [1777485863.951400349] [global_costmap.global_costmap]: Using plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1777485863.957226193] [global_costmap.global_costmap]: Subscribed to Topics: scan
-[component_container_isolated-1] [INFO] [1777485863.981050921] [global_costmap.global_costmap]: Initialized plugin "obstacle_layer"
-[component_container_isolated-1] [INFO] [1777485863.981202603] [global_costmap.global_costmap]: Using plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1777485863.989495490] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
-[component_container_isolated-1] [INFO] [1777485864.019685078] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner/NavfnPlanner
-[component_container_isolated-1] [INFO] [1777485864.019789400] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
-[apriltag_manager_server.py-8] [INFO] [1777485864.026237653] [apriltag_manager_server]: AprilTagManagerServer ready — service /toggle_apriltag active.
-[component_container_isolated-1] [INFO] [1777485864.027660841] [planner_server]: Planner Server has GridBased  planners available.
-[component_container_isolated-1] [INFO] [1777485864.037601625] [global_costmap.global_costmap]: StaticLayer: Resizing costmap to 463 X 552 at 0.050000 m/pix
-[component_container_isolated-1] [INFO] [1777485864.100429091] [lifecycle_manager_navigation]: [34m[1mConfiguring behavior_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.100739688] [behavior_server]: Configuring
-[component_container_isolated-1] [INFO] [1777485864.113244252] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors/Spin
-[component_container_isolated-1] [INFO] [1777485864.116309960] [behavior_server]: Configuring spin
-[component_container_isolated-1] [INFO] [1777485864.142508578] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors/BackUp
-[component_container_isolated-1] [INFO] [1777485864.146111638] [behavior_server]: Configuring backup
-[component_container_isolated-1] [INFO] [1777485864.170018767] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors/Wait
-[component_container_isolated-1] [INFO] [1777485864.171474660] [behavior_server]: Configuring wait
-[location_subscriber.py-3] [INFO] [1777485864.174526576] [location_subscriber]: Location Subscriber started
-[location_subscriber.py-3] [INFO] [1777485864.175254779] [location_subscriber]:   Subscribing to: location
-[location_subscriber.py-3] [INFO] [1777485864.175964997] [location_subscriber]:   Service client: /go_to_pose
-[location_subscriber.py-3] [INFO] [1777485864.176566030] [location_subscriber]: Waiting for /go_to_pose service...
-[location_subscriber.py-3] [INFO] [1777485864.177533564] [location_subscriber]: /go_to_pose service connected
-[component_container_isolated-1] [INFO] [1777485864.188778846] [lifecycle_manager_navigation]: [34m[1mConfiguring bt_navigator[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.189060738] [bt_navigator]: Configuring
-[component_container_isolated-1] [INFO] [1777485864.431970771] [lifecycle_manager_navigation]: [34m[1mConfiguring waypoint_follower[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.432251223] [waypoint_follower]: Configuring
-[component_container_isolated-1] [INFO] [1777485864.447504595] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
-[component_container_isolated-1] [INFO] [1777485864.452008020] [lifecycle_manager_navigation]: [34m[1mConfiguring velocity_smoother[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.452447803] [velocity_smoother]: Configuring velocity smoother
-[component_container_isolated-1] [INFO] [1777485864.462266920] [lifecycle_manager_navigation]: [34m[1mActivating controller_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.462716559] [controller_server]: Activating
-[component_container_isolated-1] [INFO] [1777485864.462797776] [local_costmap.local_costmap]: Activating
-[component_container_isolated-1] [INFO] [1777485864.462834065] [local_costmap.local_costmap]: Checking transform
-[component_container_isolated-1] [INFO] [1777485864.463018035] [local_costmap.local_costmap]: start
-[component_container_isolated-1] [INFO] [1777485864.487879546] [amcl]: Message Filter dropping message: frame 'rplidar_link' at time 1777485863.394 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
-[component_container_isolated-1] [WARN] [1777485864.514296439] [controller_server]: Parameter controller_server.verbose not found
-[component_container_isolated-1] [INFO] [1777485864.520311982] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485864.522610575] [MPPIController]: Activated MPPI Controller: FollowPath
-[component_container_isolated-1] [INFO] [1777485864.522733361] [controller_server]: Creating bond (controller_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485864.633725683] [lifecycle_manager_navigation]: Server controller_server connected with bond.
-[component_container_isolated-1] [INFO] [1777485864.633832692] [lifecycle_manager_navigation]: [34m[1mActivating smoother_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.634243258] [smoother_server]: Activating
-[component_container_isolated-1] [INFO] [1777485864.634308283] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485864.741798858] [lifecycle_manager_navigation]: Server smoother_server connected with bond.
-[component_container_isolated-1] [INFO] [1777485864.741881387] [lifecycle_manager_navigation]: [34m[1mActivating planner_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.742362834] [planner_server]: Activating
-[component_container_isolated-1] [INFO] [1777485864.742454004] [global_costmap.global_costmap]: Activating
-[component_container_isolated-1] [INFO] [1777485864.742479892] [global_costmap.global_costmap]: Checking transform
-[component_container_isolated-1] [INFO] [1777485864.742686551] [global_costmap.global_costmap]: start
-[component_container_isolated-1] [INFO] [1777485864.795564178] [planner_server]: Activating plugin GridBased of type NavfnPlanner
-[component_container_isolated-1] [INFO] [1777485864.797863347] [planner_server]: Creating bond (planner_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485864.905979659] [lifecycle_manager_navigation]: Server planner_server connected with bond.
-[component_container_isolated-1] [INFO] [1777485864.906094701] [lifecycle_manager_navigation]: [34m[1mActivating behavior_server[0m[0m
-[component_container_isolated-1] [INFO] [1777485864.907058811] [behavior_server]: Activating
-[component_container_isolated-1] [INFO] [1777485864.907115452] [behavior_server]: Activating spin
-[component_container_isolated-1] [INFO] [1777485864.907158876] [behavior_server]: Activating backup
-[component_container_isolated-1] [INFO] [1777485864.907189181] [behavior_server]: Activating wait
-[component_container_isolated-1] [INFO] [1777485864.907215805] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485865.013466842] [lifecycle_manager_navigation]: Server behavior_server connected with bond.
-[component_container_isolated-1] [INFO] [1777485865.013882688] [lifecycle_manager_navigation]: [34m[1mActivating bt_navigator[0m[0m
-[component_container_isolated-1] [INFO] [1777485865.014550378] [bt_navigator]: Activating
-[component_container_isolated-1] [INFO] [1777485865.263304944] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485865.378757010] [lifecycle_manager_navigation]: Server bt_navigator connected with bond.
-[component_container_isolated-1] [INFO] [1777485865.378862963] [lifecycle_manager_navigation]: [34m[1mActivating waypoint_follower[0m[0m
-[component_container_isolated-1] [INFO] [1777485865.379331226] [waypoint_follower]: Activating
-[component_container_isolated-1] [INFO] [1777485865.379409979] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485865.488500161] [lifecycle_manager_navigation]: Server waypoint_follower connected with bond.
-[component_container_isolated-1] [INFO] [1777485865.488825862] [lifecycle_manager_navigation]: [34m[1mActivating velocity_smoother[0m[0m
-[component_container_isolated-1] [INFO] [1777485865.489262380] [velocity_smoother]: Activating
-[component_container_isolated-1] [INFO] [1777485865.489546000] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
-[component_container_isolated-1] [INFO] [1777485865.598720472] [lifecycle_manager_navigation]: Server velocity_smoother connected with bond.
-[component_container_isolated-1] [INFO] [1777485865.598810713] [lifecycle_manager_navigation]: [34m[1mManaged nodes are active[0m[0m
-[component_container_isolated-1] [INFO] [1777485865.598830841] [lifecycle_manager_navigation]: [34m[1mCreating bond timer...[0m[0m
-[elevator_call_button_server.py-5] [INFO] [1777485868.610919426] [elevator_call_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
-[floor_arrival_server.py-4] [INFO] [1777485868.809757463] [floor_arrival_server]: Loading YOLO model from: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
-[floor_arrival_server.py-4] [INFO] [1777485868.949132946] [floor_arrival_server]: YOLO model loaded successfully.
-[elevator_call_button_server.py-5] [INFO] [1777485868.990558312] [elevator_call_button_server]: YOLO model loaded.
-[floor_arrival_server.py-4] [INFO] [1777485869.114274977] [floor_arrival_server]: FloorArrivalServer is ready.
-[elevator_call_button_server.py-5] [INFO] [1777485869.206711863] [elevator_call_button_server]: ElevatorCallButtonServer ready — action: detect_call_button
-[elevator_floor_button_server.py-6] [INFO] [1777485869.232582925] [elevator_floor_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
-[elevator_floor_button_server.py-6] [INFO] [1777485869.346833821] [elevator_floor_button_server]: YOLO model loaded.
-[elevator_floor_button_server.py-6] [INFO] [1777485869.380648645] [elevator_floor_button_server]: ElevatorFloorButtonServer ready — action: press_floor_button
-[component_container_isolated-1] [INFO] [1777485883.481251926] [amcl]: initialPoseReceived
-[component_container_isolated-1] [WARN] [1777485883.481456825] [amcl]: Failed to transform initial pose in time (Lookup would require extrapolation into the future.  Requested time 1777485883.481357 but the latest data is at time 1777485883.478363, when looking up transform from frame [base_footprint] to frame [odom])
-[component_container_isolated-1] [INFO] [1777485883.481500890] [amcl]: Setting pose (1777485883.481499): -8.628 0.867 -1.870
-[component_container_isolated-1] [INFO] [1777485917.029722722] [local_costmap.local_costmap]: Message Filter dropping message: frame 'rplidar_link' at time 1777485916.640 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
-[component_container_isolated-1] [INFO] [1777485927.019253848] [bt_navigator]: Begin navigating from current location (-9.39, 1.34) to (-8.80, -0.09)
-[component_container_isolated-1] [WARN] [1777485927.049036198] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485927.049899955] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485927.093495848] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [INFO] [1777485927.099530815] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [WARN] [1777485927.099680001] [controller_server]: No goal checker was specified in parameter 'current_goal_checker'. Server will use only plugin loaded general_goal_checker . This warning will appear once.
-[component_container_isolated-1] [INFO] [1777485927.113682667] [controller_server]: Optimizer reset
-[component_container_isolated-1] [WARN] [1777485927.151895570] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.181656128] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.223575229] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.246679370] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.281647139] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.311864599] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.409242228] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.668548754] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.739259438] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.841914583] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485927.885283305] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.913729380] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485927.948972128] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.006789219] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.111758765] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.181674238] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485928.181776640] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485928.257753640] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.310374943] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.406968049] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.548899185] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.741019494] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.872656657] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485928.962327967] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.129349513] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485929.207785237] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485929.566936020] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.655828343] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.693920636] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.718300860] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.744209618] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.781017701] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.816693160] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485929.961930360] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.080916045] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.096409452] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485930.195811175] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485930.262985488] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.490469859] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.516751486] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.576940866] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.701108674] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.740839679] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485930.756734373] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.008773338] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.070024238] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.276175404] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485931.276264046] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485931.451184874] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.451328652] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485931.509207407] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.527630745] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.544411083] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485931.772894156] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485931.890858514] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485931.911093622] [controller_server]: Optimizer reset
-[component_container_isolated-1] [ERROR] [1777485931.911314041] [controller_server]: Optimizer fail to compute path
-[component_container_isolated-1] [WARN] [1777485931.911441371] [controller_server]: [follow_path] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485931.930019751] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
-[component_container_isolated-1] [INFO] [1777485931.930872660] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [WARN] [1777485931.975780316] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485932.019373073] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485932.057198835] [controller_server]: Optimizer reset
-[component_container_isolated-1] [ERROR] [1777485932.060104157] [controller_server]: Optimizer fail to compute path
-[component_container_isolated-1] [WARN] [1777485932.060280511] [controller_server]: [follow_path] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485932.080310912] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
-[component_container_isolated-1] [INFO] [1777485932.080842536] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
-[component_container_isolated-1] [WARN] [1777485932.758853952] [planner_server]: Planner loop missed its desired rate of 20.0000 Hz. Current loop rate is 1.5114 Hz
-[component_container_isolated-1] [INFO] [1777485932.773610293] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [WARN] [1777485932.908514735] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.186743646] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.241192880] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.269540809] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.313932009] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.554162516] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.658620983] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485933.917081609] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485933.922286516] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485934.130227565] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.155594267] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.192169675] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.218875340] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.284020920] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.507288270] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.570359356] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.677766186] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.725452762] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.754187513] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.791711670] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.816397946] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485934.875818388] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485934.936818756] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485935.016659556] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.129144219] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.154374055] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.233461341] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.273804195] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.323777108] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.498564366] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.527880853] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.596528052] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.652088181] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.700550257] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.805794463] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.884147242] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.918639388] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485935.950412998] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485935.950779116] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485935.974307359] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.264412697] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.326573914] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.427657389] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.476579055] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.501286355] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.673111139] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.734132051] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.883182330] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.917143428] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485936.943412383] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485936.967644477] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485937.075393264] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.157334062] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.289345727] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.317842298] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.364773120] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.547626222] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.673363333] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.748325406] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.868776712] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485937.952699267] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485938.009907069] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485938.092523429] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.153048303] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.334073155] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.364030291] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.393601854] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.421608914] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.469168608] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.517519770] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.551234464] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.576022054] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.607844817] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.639945025] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.692374805] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.805374900] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.848853063] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485938.939585956] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.056435675] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485939.056846817] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485939.119642891] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.249912514] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.336843337] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.491266461] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.676760210] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.736744500] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.942660399] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485939.970788261] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.020072524] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.054180536] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.077444328] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485940.138423672] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485940.215137099] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.244177422] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.331902784] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.357678036] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.405495558] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.494833775] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.568126544] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.682230911] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.757371867] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485940.927350640] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.031731410] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.083240090] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.136303255] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485941.204723219] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485941.244284334] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.327944197] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.525783948] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.611760708] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.729535816] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.804718661] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485941.810284085] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485941.915878921] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.174051318] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485942.230034270] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485942.419094534] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.719324275] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.746056916] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [ERROR] [1777485942.776626925] [controller_server]: Failed to make progress
-[component_container_isolated-1] [WARN] [1777485942.778485800] [controller_server]: [follow_path] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485942.790193457] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
-[component_container_isolated-1] [INFO] [1777485942.794132810] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [WARN] [1777485942.858765199] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.884644388] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.909537483] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485942.942015776] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.000945618] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.165519513] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.273339213] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.302738133] [planner_server]: GridBased: failed to create plan with tolerance 0.10.
-[component_container_isolated-1] [WARN] [1777485943.303000089] [planner_server]: Planning algorithm GridBased failed to generate a valid path to (-8.80, -0.09)
-[component_container_isolated-1] [WARN] [1777485943.303330910] [planner_server]: [compute_path_to_pose] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485943.321033725] [global_costmap.global_costmap]: Received request to clear entirely the global_costmap
-[component_container_isolated-1] [WARN] [1777485943.350599368] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.500101269] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.567146781] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.771013883] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485943.921725241] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.199080412] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.209639124] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485944.224755502] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.259734599] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.285721438] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.325039317] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.355525901] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.546981976] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.717140783] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.764474298] [planner_server]: Planner loop missed its desired rate of 20.0000 Hz. Current loop rate is 0.6932 Hz
-[component_container_isolated-1] [WARN] [1777485944.823315723] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485944.823417421] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485944.840490147] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.913458848] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485944.940135233] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.001933021] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.025842230] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.045939512] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.082987631] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.113875596] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.137759493] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.215357413] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.298297106] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.542197297] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.657735892] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.699686418] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485945.721455916] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485945.810636435] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485946.011189345] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.125993145] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.146998088] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.214312884] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.365372216] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.557053638] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.712650443] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.736461794] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.767916328] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485946.802218071] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485946.920579587] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485946.980572709] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.052302192] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.155975336] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.357907818] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.610820076] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.753517815] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485947.914123076] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485947.914235142] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485947.997961022] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.038546344] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.079482006] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.168590684] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.353553065] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.387553940] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.415018752] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.444675148] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.475995792] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.515825551] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.553660561] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.586469002] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.618520473] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.658926976] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.697481900] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.733627542] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.767617216] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.796158140] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.840093974] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485948.991128410] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485948.991212507] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485949.142618372] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.353609576] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.553953267] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.711673815] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.832272035] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.873138737] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.903941422] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485949.961050118] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485950.061225003] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485950.112848724] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.139329362] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.171707334] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.198812013] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.237277016] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.271670248] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.364219360] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.531628111] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.812891338] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485950.913584535] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.046374195] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.124019540] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485951.124106581] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485951.280432485] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.414222671] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.540212649] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.746869647] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.852397122] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485951.926213611] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.106621207] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.167896555] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485952.168119086] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485952.274329835] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.312930040] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.355521086] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.387904434] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.417525917] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.445103531] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.473200896] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.546914408] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.681788130] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.757608040] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.820010637] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.946567951] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485952.977254250] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.020854751] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.133836414] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.173395448] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485953.175063408] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485953.200447551] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.300407585] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.327554665] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.537079864] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.600478155] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.731101896] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.764392713] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485953.802230987] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.046142602] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.129689504] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.227900841] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485954.227992714] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485954.348951516] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.456728879] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.500741546] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.709387213] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.789104747] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.840953207] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485954.911584691] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485955.033229294] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485955.193674681] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485955.359546931] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485955.360105467] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485955.620976719] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485955.831261322] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485955.846694472] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485955.940050316] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485956.050083775] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485956.155967543] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485956.255480211] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485956.348765205] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485956.349099386] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485956.450775157] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485956.497353942] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485956.528053457] [controller_server]: Optimizer reset
-[component_container_isolated-1] [ERROR] [1777485956.529837834] [controller_server]: Optimizer fail to compute path
-[component_container_isolated-1] [WARN] [1777485956.537116947] [controller_server]: [follow_path] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485956.552729749] [behavior_server]: Running spin
-[component_container_isolated-1] [INFO] [1777485956.552947576] [behavior_server]: Turning 1.57 for spin behavior.
-[component_container_isolated-1] [WARN] [1777485956.703323474] [behavior_server]: Collision Ahead - Exiting Spin
-[component_container_isolated-1] [WARN] [1777485956.703403123] [behavior_server]: spin failed
-[component_container_isolated-1] [WARN] [1777485956.703433523] [behavior_server]: [spin] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485956.742816204] [behavior_server]: Running wait
-[component_container_isolated-1] [WARN] [1777485961.080674128] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [INFO] [1777485961.743123271] [behavior_server]: wait completed successfully
-[component_container_isolated-1] [INFO] [1777485961.831502146] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [INFO] [1777485961.848740603] [controller_server]: Optimizer reset
-[component_container_isolated-1] [WARN] [1777485961.938227206] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.010225045] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.074270897] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.135688392] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.160479757] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.187393874] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.235961455] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.298682744] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.434071225] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.500216052] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.546167659] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.593858843] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.648751859] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.816921422] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485962.848838970] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485962.888176242] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485962.957517819] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.067745297] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.113780202] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.135360833] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.165442675] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.257552804] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.298075661] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.342059048] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.416087316] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.556535871] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.634248608] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.670389450] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.698981766] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.839052491] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.869342497] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.897149778] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485963.897242035] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485963.945257160] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485963.968891069] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.031616774] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.144503619] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.208366205] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.325057969] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.363893601] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.425265015] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.576852802] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.697273164] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485964.854806733] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485964.921567120] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485964.957359733] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.018905709] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.071370658] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.157434108] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.273675017] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.342920656] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.378134957] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.624332173] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.668489418] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.708862225] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.826353520] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.852423881] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.875557014] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.931738881] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485965.982661888] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485965.983981395] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485966.227664879] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.325343665] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.429076618] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.541648450] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.642123244] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.781578729] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.871381656] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485966.917966521] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.059096141] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485967.059206255] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485967.169886028] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.247467915] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.363279187] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.448360958] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.451097510] [BehaviorTreeEngine]: Behavior Tree tick rate 100.00 was exceeded!
-[component_container_isolated-1] [WARN] [1777485967.503044723] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.643328732] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.843256865] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485967.914094783] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.018834086] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.061964917] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485968.062218456] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485968.166793981] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.304482720] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.407318828] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.435224703] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.470834177] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.503825725] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.534312725] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.595050977] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.655944336] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.821387619] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.925573347] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485968.969858402] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.021834704] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485969.088588115] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485969.158343746] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.282110908] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.462471238] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.603575418] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.644321126] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.714037908] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485969.886557934] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.044103855] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.098029305] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485970.165950158] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485970.245102884] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.283002631] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.317401335] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.348477431] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.380987565] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.430687642] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.474337072] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.617993737] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.703602076] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485970.876765535] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485971.024152622] [controller_server]: Optimizer reset
-[component_container_isolated-1] [INFO] [1777485971.039066693] [controller_server]: Optimizer reset
-[component_container_isolated-1] [ERROR] [1777485971.039218535] [controller_server]: Optimizer fail to compute path
-[component_container_isolated-1] [WARN] [1777485971.039329001] [controller_server]: [follow_path] [ActionServer] Aborting handle.
-[component_container_isolated-1] [INFO] [1777485971.060016435] [local_costmap.local_costmap]: Received request to clear entirely the local_costmap
-[component_container_isolated-1] [INFO] [1777485971.063002782] [controller_server]: Received a goal, begin computing control effort.
-[component_container_isolated-1] [WARN] [1777485971.112910766] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.135537589] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485971.165526790] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [WARN] [1777485971.226983836] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.255833053] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.284191734] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.309975658] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.341500561] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.368459574] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.650810560] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.836579257] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.876330359] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485971.920178959] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [WARN] [1777485972.055773140] [controller_server]: Control loop missed its desired rate of 30.0000Hz
-[component_container_isolated-1] [INFO] [1777485972.203621161] [controller_server]: Passing new path to controller.
-[component_container_isolated-1] [INFO] [1777485972.255398261] [controller_server]: Reached the goal!
-[component_container_isolated-1] [INFO] [1777485972.290205259] [bt_navigator]: Goal succeeded
+[named_goal_server.py-2] [INFO] [1777617285.452155824] [named_goal_server]:     - amcl_initial_pose_open: (-11.42, -0.02, -35.0°)
+[named_goal_server.py-2] [INFO] [1777617285.452920446] [named_goal_server]:     - staging_waypoint: (0.00, 0.00, 0.0°)
+[named_goal_server.py-2] [INFO] [1777617285.454917962] [named_goal_server]:     - elevator_staging: (-9.95, 0.04, 150.0°)
+[named_goal_server.py-2] [INFO] [1777617285.457698690] [named_goal_server]:     - elevator_entry: (-10.39, -0.13, 158.1°)
+[named_goal_server.py-2] [INFO] [1777617285.458350396] [named_goal_server]:     - elevator_inside: (-11.42, -0.02, -215.0°)
+[component_container_isolated-1] [INFO] [1777617285.459292120] [lifecycle_manager_navigation]: [34m[1mCreating and initializing lifecycle service clients[0m[0m
+[named_goal_server.py-2] [INFO] [1777617285.464727349] [named_goal_server]:     - elevator_exit: (-9.45, -0.34, -20.8°)
+[named_goal_server.py-2] [INFO] [1777617285.465530560] [named_goal_server]:     - vision_lab: (-12.62, 7.07, -111.6°)
+[named_goal_server.py-2] [INFO] [1777617285.471941621] [named_goal_server]:     - dummy_location_b: (-1.00, 2.00, 90.0°)
+[component_container_isolated-1] [INFO] [1777617285.493520827] [map_io]: Read map /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/maps/physical_maps/first_floor_with_lift.pgm: 963 X 498 map @ 0.05 m/cell
+[named_goal_server.py-2] [INFO] [1777617285.518236340] [named_goal_server]: BT Mission Executor mode enabled. Service: /start_mission
+[component_container_isolated-1] [INFO] [1777617285.519600067] [lifecycle_manager_localization]: [34m[1mConfiguring amcl[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.519959388] [amcl]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.520235551] [amcl]: initTransforms
+[named_goal_server.py-2] [INFO] [1777617285.520229760] [named_goal_server]: Initial floor: floor1
+[named_goal_server.py-2] [INFO] [1777617285.522442420] [named_goal_server]: Named Goal Server ready. Service: /go_to_pose
+[component_container_isolated-1] [INFO] [1777617285.547967510] [amcl]: initPubSub
+[component_container_isolated-1] [INFO] [1777617285.557566456] [amcl]: Subscribed to map topic.
+[component_container_isolated-1] [INFO] [1777617285.560238364] [lifecycle_manager_navigation]: [34m[1mStarting managed nodes bringup...[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.560353647] [lifecycle_manager_navigation]: [34m[1mConfiguring controller_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.560746693] [controller_server]: Configuring controller interface
+[component_container_isolated-1] [INFO] [1777617285.561146075] [controller_server]: getting goal checker plugins..
+[component_container_isolated-1] [INFO] [1777617285.561328359] [controller_server]: Controller frequency set to 30.0000Hz
+[component_container_isolated-1] [INFO] [1777617285.561397696] [local_costmap.local_costmap]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.579708130] [local_costmap.local_costmap]: Using plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1777617285.601724314] [local_costmap.local_costmap]: Subscribed to Topics: scan
+[component_container_isolated-1] [INFO] [1777617285.605148462] [lifecycle_manager_localization]: [34m[1mActivating map_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.605655000] [map_server]: Activating
+[component_container_isolated-1] [INFO] [1777617285.606112135] [map_server]: Creating bond (map_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617285.610790933] [amcl]: Received a 963 X 498 map @ 0.050 m/pix
+[component_container_isolated-1] [INFO] [1777617285.642143179] [local_costmap.local_costmap]: Initialized plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1777617285.642241504] [local_costmap.local_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1777617285.652892370] [local_costmap.local_costmap]: Initialized plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1777617285.690116951] [controller_server]: Created progress_checker : progress_checker of type nav2_controller::SimpleProgressChecker
+[location_subscriber.py-3] [INFO] [1777617285.690507661] [location_subscriber]: /go_to_pose service connected
+[component_container_isolated-1] [INFO] [1777617285.703170697] [controller_server]: Created goal checker : general_goal_checker of type nav2_controller::SimpleGoalChecker
+[component_container_isolated-1] [INFO] [1777617285.705026243] [controller_server]: Controller Server has general_goal_checker  goal checkers available.
+[component_container_isolated-1] [INFO] [1777617285.709467178] [controller_server]: Created controller : FollowPath of type nav2_mppi_controller::MPPIController
+[component_container_isolated-1] [INFO] [1777617285.719197886] [lifecycle_manager_localization]: Server map_server connected with bond.
+[component_container_isolated-1] [INFO] [1777617285.719284565] [lifecycle_manager_localization]: [34m[1mActivating amcl[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.719663917] [amcl]: Activating
+[component_container_isolated-1] [INFO] [1777617285.719734405] [amcl]: initialPoseReceived
+[component_container_isolated-1] [INFO] [1777617285.720043588] [amcl]: Setting pose (1777617285.720042): -0.246 0.013 2.598
+[component_container_isolated-1] [INFO] [1777617285.721757966] [amcl]: Creating bond (amcl) to lifecycle manager.
+[component_container_isolated-1] [WARN] [1777617285.728380748] [controller_server]: Controller period is less then model dt, consider setting it equal
+[component_container_isolated-1] [INFO] [1777617285.736083768] [amcl]: createLaserObject
+[component_container_isolated-1] [INFO] [1777617285.738718656] [controller_server]: ConstraintCritic instantiated with 1 power and 4.000000 weight.
+[component_container_isolated-1] [INFO] [1777617285.738814485] [controller_server]: Critic loaded : mppi::critics::ConstraintCritic
+[component_container_isolated-1] [INFO] [1777617285.746087919] [controller_server]: ObstaclesCritic instantiated with 1 power and 30.000000 / 1.000000 weights. Critic will collision check based on circular cost.
+[component_container_isolated-1] [INFO] [1777617285.746256061] [controller_server]: Critic loaded : mppi::critics::ObstaclesCritic
+[component_container_isolated-1] [INFO] [1777617285.750015629] [controller_server]: GoalCritic instantiated with 1 power and 5.000000 weight.
+[component_container_isolated-1] [INFO] [1777617285.750124353] [controller_server]: Critic loaded : mppi::critics::GoalCritic
+[component_container_isolated-1] [INFO] [1777617285.752895066] [controller_server]: GoalAngleCritic instantiated with 1 power, 6.000000 weight, and 0.250000 angular threshold.
+[component_container_isolated-1] [INFO] [1777617285.752978545] [controller_server]: Critic loaded : mppi::critics::GoalAngleCritic
+[component_container_isolated-1] [INFO] [1777617285.757475282] [controller_server]: ReferenceTrajectoryCritic instantiated with 1 power and 14.000000 weight
+[component_container_isolated-1] [INFO] [1777617285.757592038] [controller_server]: Critic loaded : mppi::critics::PathAlignCritic
+[component_container_isolated-1] [INFO] [1777617285.761026648] [controller_server]: Critic loaded : mppi::critics::PathFollowCritic
+[component_container_isolated-1] [INFO] [1777617285.765801340] [controller_server]: PathAngleCritic instantiated with 1 power and 2.000000 weight. Reversing not allowed.
+[component_container_isolated-1] [INFO] [1777617285.765881523] [controller_server]: Critic loaded : mppi::critics::PathAngleCritic
+[component_container_isolated-1] [INFO] [1777617285.776194537] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1777617285.787134205] [MPPIController]: Configured MPPI Controller: FollowPath
+[component_container_isolated-1] [INFO] [1777617285.787203381] [controller_server]: Controller Server has FollowPath  controllers available.
+[component_container_isolated-1] [INFO] [1777617285.810287739] [lifecycle_manager_navigation]: [34m[1mConfiguring smoother_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.810579100] [smoother_server]: Configuring smoother server
+[component_container_isolated-1] [INFO] [1777617285.827398141] [smoother_server]: Created smoother : simple_smoother of type nav2_smoother::SimpleSmoother
+[component_container_isolated-1] [INFO] [1777617285.829477472] [lifecycle_manager_localization]: Server amcl connected with bond.
+[component_container_isolated-1] [INFO] [1777617285.829566742] [lifecycle_manager_localization]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.829593044] [lifecycle_manager_localization]: [34m[1mCreating bond timer...[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.831719345] [smoother_server]: Smoother Server has simple_smoother  smoothers available.
+[component_container_isolated-1] [INFO] [1777617285.850110891] [lifecycle_manager_navigation]: [34m[1mConfiguring planner_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.850344146] [planner_server]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.850418026] [global_costmap.global_costmap]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.854468251] [global_costmap.global_costmap]: Using plugin "static_layer"
+[component_container_isolated-1] [INFO] [1777617285.855887588] [global_costmap.global_costmap]: Subscribing to the map topic (/map) with transient local durability
+[component_container_isolated-1] [INFO] [1777617285.863268274] [global_costmap.global_costmap]: Initialized plugin "static_layer"
+[component_container_isolated-1] [INFO] [1777617285.863385382] [global_costmap.global_costmap]: Using plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1777617285.869089766] [global_costmap.global_costmap]: Subscribed to Topics: scan
+[component_container_isolated-1] [INFO] [1777617285.884006450] [global_costmap.global_costmap]: Initialized plugin "obstacle_layer"
+[component_container_isolated-1] [INFO] [1777617285.884099944] [global_costmap.global_costmap]: Using plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1777617285.888971873] [global_costmap.global_costmap]: Initialized plugin "inflation_layer"
+[component_container_isolated-1] [INFO] [1777617285.910510604] [global_costmap.global_costmap]: StaticLayer: Resizing costmap to 963 X 498 at 0.050000 m/pix
+[component_container_isolated-1] [INFO] [1777617285.912406626] [planner_server]: Created global planner plugin GridBased of type nav2_navfn_planner/NavfnPlanner
+[component_container_isolated-1] [INFO] [1777617285.912508119] [planner_server]: Configuring plugin GridBased of type NavfnPlanner
+[component_container_isolated-1] [INFO] [1777617285.918876369] [planner_server]: Planner Server has GridBased  planners available.
+[component_container_isolated-1] [INFO] [1777617285.949792565] [lifecycle_manager_navigation]: [34m[1mConfiguring behavior_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617285.950100660] [behavior_server]: Configuring
+[component_container_isolated-1] [INFO] [1777617285.967358183] [behavior_server]: Creating behavior plugin spin of type nav2_behaviors/Spin
+[component_container_isolated-1] [INFO] [1777617285.970302253] [behavior_server]: Configuring spin
+[component_container_isolated-1] [INFO] [1777617285.990935896] [behavior_server]: Creating behavior plugin backup of type nav2_behaviors/BackUp
+[component_container_isolated-1] [INFO] [1777617285.995066753] [behavior_server]: Configuring backup
+[component_container_isolated-1] [INFO] [1777617286.015653731] [behavior_server]: Creating behavior plugin wait of type nav2_behaviors/Wait
+[component_container_isolated-1] [INFO] [1777617286.019919024] [behavior_server]: Configuring wait
+[component_container_isolated-1] [INFO] [1777617286.036900684] [lifecycle_manager_navigation]: [34m[1mConfiguring bt_navigator[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.037151411] [bt_navigator]: Configuring
+[component_container_isolated-1] [INFO] [1777617286.289532260] [lifecycle_manager_navigation]: [34m[1mConfiguring waypoint_follower[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.290684750] [waypoint_follower]: Configuring
+[component_container_isolated-1] [INFO] [1777617286.307421315] [waypoint_follower]: Created waypoint_task_executor : wait_at_waypoint of type nav2_waypoint_follower::WaitAtWaypoint
+[component_container_isolated-1] [INFO] [1777617286.310512584] [lifecycle_manager_navigation]: [34m[1mConfiguring velocity_smoother[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.310838982] [velocity_smoother]: Configuring velocity smoother
+[component_container_isolated-1] [INFO] [1777617286.319888171] [lifecycle_manager_navigation]: [34m[1mActivating controller_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.320204619] [controller_server]: Activating
+[component_container_isolated-1] [INFO] [1777617286.320370650] [local_costmap.local_costmap]: Activating
+[component_container_isolated-1] [INFO] [1777617286.320415062] [local_costmap.local_costmap]: Checking transform
+[component_container_isolated-1] [INFO] [1777617286.320645534] [local_costmap.local_costmap]: start
+[component_container_isolated-1] [WARN] [1777617286.375494339] [controller_server]: Parameter controller_server.verbose not found
+[component_container_isolated-1] [INFO] [1777617286.381581846] [controller_server]: Optimizer reset
+[component_container_isolated-1] [INFO] [1777617286.383070495] [MPPIController]: Activated MPPI Controller: FollowPath
+[component_container_isolated-1] [INFO] [1777617286.383147159] [controller_server]: Creating bond (controller_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617286.494011915] [lifecycle_manager_navigation]: Server controller_server connected with bond.
+[component_container_isolated-1] [INFO] [1777617286.494133310] [lifecycle_manager_navigation]: [34m[1mActivating smoother_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.494565618] [smoother_server]: Activating
+[component_container_isolated-1] [INFO] [1777617286.494646954] [smoother_server]: Creating bond (smoother_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617286.603291264] [lifecycle_manager_navigation]: Server smoother_server connected with bond.
+[component_container_isolated-1] [INFO] [1777617286.603402517] [lifecycle_manager_navigation]: [34m[1mActivating planner_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617286.603802060] [planner_server]: Activating
+[component_container_isolated-1] [INFO] [1777617286.603881796] [global_costmap.global_costmap]: Activating
+[component_container_isolated-1] [INFO] [1777617286.603904481] [global_costmap.global_costmap]: Checking transform
+[component_container_isolated-1] [INFO] [1777617286.603949533] [global_costmap.global_costmap]: Timed out waiting for transform from base_footprint to map to become available, tf error: Lookup would require extrapolation into the past.  Requested time 1777617286.591214 but the earliest data is at time 1777617286.646953, when looking up transform from frame [base_footprint] to frame [map]
+[component_container_isolated-1] [INFO] [1777617287.104367763] [global_costmap.global_costmap]: start
+[component_container_isolated-1] [INFO] [1777617289.155438763] [planner_server]: Activating plugin GridBased of type NavfnPlanner
+[component_container_isolated-1] [INFO] [1777617289.157055963] [planner_server]: Creating bond (planner_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617289.262461111] [lifecycle_manager_navigation]: Server planner_server connected with bond.
+[component_container_isolated-1] [INFO] [1777617289.262584172] [lifecycle_manager_navigation]: [34m[1mActivating behavior_server[0m[0m
+[component_container_isolated-1] [INFO] [1777617289.264303923] [behavior_server]: Activating
+[component_container_isolated-1] [INFO] [1777617289.264388523] [behavior_server]: Activating spin
+[component_container_isolated-1] [INFO] [1777617289.264428040] [behavior_server]: Activating backup
+[component_container_isolated-1] [INFO] [1777617289.264453381] [behavior_server]: Activating wait
+[component_container_isolated-1] [INFO] [1777617289.264479203] [behavior_server]: Creating bond (behavior_server) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617289.370757746] [lifecycle_manager_navigation]: Server behavior_server connected with bond.
+[component_container_isolated-1] [INFO] [1777617289.370847178] [lifecycle_manager_navigation]: [34m[1mActivating bt_navigator[0m[0m
+[component_container_isolated-1] [INFO] [1777617289.371238311] [bt_navigator]: Activating
+[component_container_isolated-1] [INFO] [1777617289.470428332] [bt_navigator]: Creating bond (bt_navigator) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617289.579978327] [lifecycle_manager_navigation]: Server bt_navigator connected with bond.
+[component_container_isolated-1] [INFO] [1777617289.580080110] [lifecycle_manager_navigation]: [34m[1mActivating waypoint_follower[0m[0m
+[component_container_isolated-1] [INFO] [1777617289.580513672] [waypoint_follower]: Activating
+[component_container_isolated-1] [INFO] [1777617289.580628349] [waypoint_follower]: Creating bond (waypoint_follower) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617289.687041056] [lifecycle_manager_navigation]: Server waypoint_follower connected with bond.
+[component_container_isolated-1] [INFO] [1777617289.687198450] [lifecycle_manager_navigation]: [34m[1mActivating velocity_smoother[0m[0m
+[component_container_isolated-1] [INFO] [1777617289.687743617] [velocity_smoother]: Activating
+[component_container_isolated-1] [INFO] [1777617289.687872310] [velocity_smoother]: Creating bond (velocity_smoother) to lifecycle manager.
+[component_container_isolated-1] [INFO] [1777617289.798210267] [lifecycle_manager_navigation]: Server velocity_smoother connected with bond.
+[component_container_isolated-1] [INFO] [1777617289.798509760] [lifecycle_manager_navigation]: [34m[1mManaged nodes are active[0m[0m
+[component_container_isolated-1] [INFO] [1777617289.798539038] [lifecycle_manager_navigation]: [34m[1mCreating bond timer...[0m[0m
+[elevator_call_button_server.py-5] [INFO] [1777617289.943482460] [elevator_call_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
+[elevator_floor_button_server.py-6] [INFO] [1777617290.027812750] [elevator_floor_button_server]: Loading YOLO model: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
+[floor_arrival_server.py-4] [INFO] [1777617290.162957547] [floor_arrival_server]: Loading YOLO model from: /home/quanta/Desktop/navigation_ws/install/smrr_navigation/share/smrr_navigation/models/button_detection.pt
+[elevator_floor_button_server.py-6] [INFO] [1777617290.212207452] [elevator_floor_button_server]: YOLO model loaded.
+[elevator_floor_button_server.py-6] [INFO] [1777617290.266966329] [elevator_floor_button_server]: ElevatorFloorButtonServer ready — action: press_floor_button
+[floor_arrival_server.py-4] [INFO] [1777617290.280208534] [floor_arrival_server]: YOLO model loaded successfully.
+[elevator_call_button_server.py-5] [INFO] [1777617290.332147682] [elevator_call_button_server]: YOLO model loaded.
+[floor_arrival_server.py-4] [INFO] [1777617290.347807987] [floor_arrival_server]: FloorArrivalServer is ready.
+[elevator_call_button_server.py-5] [INFO] [1777617290.428929269] [elevator_call_button_server]: ElevatorCallButtonServer ready — action: detect_call_button

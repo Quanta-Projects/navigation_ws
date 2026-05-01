@@ -1145,6 +1145,11 @@ class ElevatorCallButtonServer(Node):
                         press_lf       = np.zeros(3)
                         result.message = (
                             f'{direction} button already lit; call already active.')
+                        arm_down_msg = Float64MultiArray()
+                        arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                        self._joint_command_pub.publish(arm_down_msg)
+                        self.get_logger().info(
+                            '[DetectCallButton] Arm-down on lit detection (already lit)')
                         state = _PressState.CONFIRMED
                         break
 
@@ -1290,6 +1295,11 @@ class ElevatorCallButtonServer(Node):
                     return result
 
                 if reason in ('BUTTON_LIT', 'DOOR_OPEN'):
+                    arm_down_msg = Float64MultiArray()
+                    arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                    self._joint_command_pub.publish(arm_down_msg)
+                    self.get_logger().info(
+                        f'[DetectCallButton] Arm-down on lit detection ({reason})')
                     state = _PressState.CONFIRMED
                     result.message = (
                         f'{direction} press confirmed via {reason}. '

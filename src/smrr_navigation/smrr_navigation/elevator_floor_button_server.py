@@ -95,7 +95,7 @@ FLOOR_OFFSETS = {
     'floor0': (0.0, -0.07, 0.0),
     'floor1': (0.0, -0.07, 0.0),
     'floor2': (0.0, -0.07, 0.0),
-    'floor3': (0.0, 0.0, 0.04),
+    'floor3': (0.0, 0.03, 0.04),
 }
 
 # ── Press-and-verify state machine ───────────────────────────────────────────
@@ -278,14 +278,14 @@ class ElevatorFloorButtonServer(Node):
         pa.header.stamp    = self.get_clock().now().to_msg()
         pa.header.frame_id = PUBLISH_FRAME_ID
         pa.poses           = [_make_pose(approach_pub), button_pose]
-        self._button_press_goal_pub.publish(pa)
-
-        # Publish floor number digit (e.g. 'floor2' → '2') to /target_button so the
-        # arm commander's button_tracker substring-matches it against class names
-        # like 'button_1', 'button_2', 'button_3' ("1" ∈ "button_1" etc.)
+        # Publish floor number digit (e.g. 'floor2' → '2') to /target_button FIRST
+        # so the arm commander has it before acting on the press goal.
         target_msg = String()
         target_msg.data = target_floor.replace('floor', '')
         self._target_button_pub.publish(target_msg)
+        time.sleep(0.1)  # 100 ms gap ensures transient_local delivery before press goal
+
+        self._button_press_goal_pub.publish(pa)
 
     # ── Debug image ───────────────────────────────────────────────────────────
 
@@ -851,6 +851,11 @@ class ElevatorFloorButtonServer(Node):
                         press_lf    = np.zeros(3)
                         result.message = (
                             f'{target_floor} button already lit; already pressed.')
+                        arm_down_msg = Float64MultiArray()
+                        arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                        self._joint_command_pub.publish(arm_down_msg)
+                        self.get_logger().info(
+                            '[PressFloorButton] Arm-down on lit detection (already lit)')
                         state = _PressState.CONFIRMED
                         break
 
@@ -988,6 +993,11 @@ class ElevatorFloorButtonServer(Node):
                     return result
 
                 if reason == 'BUTTON_LIT':
+                    arm_down_msg = Float64MultiArray()
+                    arm_down_msg.data = [0.0, 0.0, 0.0, 0.0, 0.0]
+                    self._joint_command_pub.publish(arm_down_msg)
+                    self.get_logger().info(
+                        '[PressFloorButton] Arm-down on lit detection (BUTTON_LIT verified)')
                     state = _PressState.CONFIRMED
                     result.message = (
                         f'{target_floor} press confirmed via BUTTON_LIT. '

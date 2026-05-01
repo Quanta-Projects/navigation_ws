@@ -63,8 +63,8 @@ floors:
         y: 1.9011
         yaw: -2.116
       elevator_entry:
-        x: -6.0064
-        y: 1.3549
+        x: -5.9757
+        y: 1.4461
         yaw: -1.957
       elevator_inside:
         x: -6.4419

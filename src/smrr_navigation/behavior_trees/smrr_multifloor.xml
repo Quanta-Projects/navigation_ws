@@ -12,15 +12,31 @@
       <Sequence name="CrossFloor_ElevatorEntry">
         <IsDifferentFloor current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
 
+        <SetGoalCheckerParams xy_goal_tolerance="0.20" yaw_goal_tolerance="0.20"/>
+        <SetCostmapInflation inflation_radius="0.325"/>
         <!-- Navigate to staging pose on current floor via intermediate waypoint -->
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_staging" pose="{staging_pose}"/>
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="staging_waypoint" pose="{staging_waypoint_pose}"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_waypoint_pose}"/>
+        <SetGoalCheckerParams xy_goal_tolerance="0.15" yaw_goal_tolerance="0.20"/>
         <NavigateToPose server_name="/navigate_to_pose" goal="{staging_pose}"/>
 
         <!-- Resolve inside pose BEFORE DetectCallButton so it is on the blackboard
              for the door-open verification check inside the action server. -->
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
+
+        <!-- Minimum inflation for entry: inside_pose is close to elevator walls,
+             higher values put it in lethal/inscribed space and break planner. -->
+        <SetCostmapInflation inflation_radius="0.275"/>
+
+        <!-- Boost velocity before waiting: robot is already at gap-crossing speed
+             the instant the door opens (zero-delay boost). -->
+        <SetControllerParams max_vel_x="0.75"/>
+
+        <!-- Clear costmaps so stale door obstacle cells are removed before polling.
+             Fresh LiDAR scans will re-mark the door if it is still closed. -->
+        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
         <!-- Detect the direction call button (UP/DOWN) and publish arm waypoints.
              Uses button_detection.pt YOLO class-based detection (no HSV).
@@ -34,26 +50,19 @@
           <Sequence name="CallWaitAndEnter">
             <!-- <CallElevator floor_id="{current_floor_id}"/> -->
 
-            <!-- Keep tighter inflation while crossing elevator gap -->
-            <SetCostmapInflation inflation_radius="0.275"/>
-
-            <!-- Boost velocity before waiting: robot is already at gap-crossing speed
-                 the instant the door opens (zero-delay boost). -->
-            <SetControllerParams max_vel_x="0.75"/>
-
-            <!-- Clear costmaps so stale door obstacle cells are removed before polling.
-                 Fresh LiDAR scans will re-mark the door if it is still closed. -->
-            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
-            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
-
             <!-- Planning-based door detection: poll global planner every 500 ms.
-                 When the physical door opens the LiDAR clears the costmap obstacle
-                 cells and ComputePathToPose succeeds, breaking out of the loop. -->
+                 goal_tolerance=0.5 lets the planner succeed even if inside_pose cell
+                 is in the inflation zone — succeeds once the door is open. -->
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Entry">
               <Delay delay_msec="500">
                 <ComputePathToPose goal="{inside_pose}" path="{dummy_path}" planner_id="GridBased"/>
               </Delay>
             </RetryUntilSuccessful>
+
+            <!-- Clear costmaps AGAIN right before entry: LiDAR repopulates during WaitForPath poll.
+                 Fresh clear ensures NavigateThroughPoses starts on a clean costmap. -->
+            <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <!-- Navigate inside elevator through entry waypoint, then to inside pose -->
             <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_entry" pose="{entry_pose}"/>
@@ -72,11 +81,11 @@
         <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
         <!-- Rotate 180° to face outward — retry once by re-centering inside elevator -->
         <Fallback name="SpinInElevator">
-          <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+          <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
           <Sequence name="RepositionAndSpin">
             <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
-            <Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+            <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
           </Sequence>
         </Fallback>
 
@@ -85,7 +94,7 @@
         <SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
 
         <PressFloorButton target_floor="{target_floor_id}"/>
-        
+
         <!-- Mandatory minimum wait: robot is inside elevator so staging always unreachable;
              wait here before starting door-close detection to avoid false positive -->
         <Wait wait_duration="1.0"/>
@@ -107,11 +116,11 @@
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
         <SwitchMap map_yaml="{map_open_target}"/>
         <!-- Publish initial pose with AprilTag TF correction for parking error -->
-        <PublishInitialPose initial_pose="{amcl_open_target}" 
-                            use_apriltag="true" 
+        <PublishInitialPose initial_pose="{amcl_open_target}"
+                            use_apriltag="true"
                             tag_frame="tag36h11:0"
-                            expected_tag_x="1.313" 
-                            expected_tag_y="0.071" 
+                            expected_tag_x="1.313"
+                            expected_tag_y="0.071"
                             expected_tag_z="1.412"
                             expected_tag_roll="1.581"
                             expected_tag_pitch="0.000"
@@ -147,9 +156,11 @@
               </Delay>
             </RetryUntilSuccessful>
 
+            <SetGoalCheckerParams xy_goal_tolerance="0.25" yaw_goal_tolerance="0.25"/>
+
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap -->
-            <SetControllerParams max_vel_x="0.5"/>
+            <SetControllerParams max_vel_x="0.25"/>
             <!-- Restore conservative inflation after exiting elevator -->
             <SetCostmapInflation inflation_radius="0.5"/>
           </Sequence>
@@ -161,7 +172,7 @@
             <!-- Navigate to elevator inside pose of target floor to reposition -->
             <GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}" location_key="elevator_inside" pose="{inside_pose}"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{inside_pose}"/>
-            <Spin spin_dist="-3.1416" time_allowance="10.0" is_recovery="true"/>
+            <Spin spin_dist="-2.61799" time_allowance="10.0" is_recovery="true"/>
             <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 
             <!-- <CallElevator floor_id="{target_floor_id}"/> -->
@@ -181,9 +192,10 @@
               </Delay>
             </RetryUntilSuccessful>
 
+            <SetGoalCheckerParams xy_goal_tolerance="0.25" yaw_goal_tolerance="0.25"/>
             <NavigateToPose server_name="/navigate_to_pose" goal="{exit_pose}"/>
             <!-- Reset velocity to normal after crossing the exit gap (retry) -->
-            <SetControllerParams max_vel_x="0.5"/>
+            <SetControllerParams max_vel_x="0.25"/>
             <!-- Restore conservative inflation after exiting elevator -->
             <SetCostmapInflation inflation_radius="0.5"/>
           </Sequence>
