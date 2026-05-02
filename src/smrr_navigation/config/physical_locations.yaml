@@ -28,6 +28,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_center:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_exit:
         x: 0.0
         y: 0.0
@@ -63,13 +67,17 @@ floors:
         y: 1.9011
         yaw: -2.116
       elevator_entry:
-        x: -5.9757
-        y: 1.4461
-        yaw: -1.957
+        x: -6.2124
+        y: 0.9552
+        yaw: -2.0786
       elevator_inside:
         x: -6.4419
         y: 0.32887
         yaw: -2.536
+      elevator_center:
+        x: -6.5433
+        y: 0.3450
+        yaw: -2.052
       elevator_exit:
         x: -5.7048
         y: 1.9070
@@ -132,6 +140,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_center:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_exit:
         x: 0.0
         y: 0.0
@@ -174,6 +186,10 @@ floors:
         x: -11.422
         y: -0.024
         yaw: -3.752
+      elevator_center:
+        x: -11.422
+        y: -0.024
+        yaw: -3.752
       elevator_exit:
         x: -9.4523
         y: -0.34338
@@ -182,7 +198,7 @@ floors:
         x: -12.6221
         y: 7.07402
         yaw: -1.9480
-      dummy_location_b:
-        x: -1.0
-        y: 2.0
-        yaw: 1.57
+      telecom_lab:
+        x: -10.4300
+        y: -1.9140
+        yaw: 1.2858

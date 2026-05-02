@@ -69,7 +69,7 @@ POINTCLOUD_TOPIC = '/zed2/zed_node/point_cloud/cloud_registered'
 
 # EEF orientation published with button_press_goal.
 # Measured from arm at pressing configuration.
-EEF_ORIENTATION = (-0.5, 0.5, -0.5, 0.5)  # x, y, z, w
+EEF_ORIENTATION = (0.7071, 0, 0.7071, 0)  # x, y, z, w
 
 # Manual offsets (meters) in TARGET_FRAME (link_0_fake).
 # Applied only to points published on /button_press_goal.
@@ -136,6 +136,8 @@ class ElevatorCallButtonServer(Node):
             PoseArray, '/button_press_goal', 10)
         self._joint_command_pub = self.create_publisher(
             Float64MultiArray, '/joint_command', 10)
+        self._outside_button_press_pub = self.create_publisher(
+            Bool, '/outside_button_press', 10)
         self._button_press_direction_pub = self.create_publisher(
             String, '/target_button', QoSProfile(
                 depth=1,
@@ -286,19 +288,19 @@ class ElevatorCallButtonServer(Node):
         approach_pose.position.x = float(approach_pub_lf[0])
         approach_pose.position.y = float(approach_pub_lf[1])
         approach_pose.position.z = float(approach_pub_lf[2])
-        approach_pose.orientation.x = qx
-        approach_pose.orientation.y = qy
-        approach_pose.orientation.z = qz
-        approach_pose.orientation.w = qw
+        approach_pose.orientation.x = float(qx)
+        approach_pose.orientation.y = float(qy)
+        approach_pose.orientation.z = float(qz)
+        approach_pose.orientation.w = float(qw)
 
         press_pose = Pose()
         press_pose.position.x = float(press_pub_lf[0])
         press_pose.position.y = float(press_pub_lf[1])
         press_pose.position.z = float(press_pub_lf[2])
-        press_pose.orientation.x = qx
-        press_pose.orientation.y = qy
-        press_pose.orientation.z = qz
-        press_pose.orientation.w = qw
+        press_pose.orientation.x = float(qx)
+        press_pose.orientation.y = float(qy)
+        press_pose.orientation.z = float(qz)
+        press_pose.orientation.w = float(qw)
 
         button_pose = Pose()
         if button_center_lf is not None:
@@ -306,10 +308,10 @@ class ElevatorCallButtonServer(Node):
             button_pose.position.x = float(btn_pt[0])
             button_pose.position.y = float(btn_pt[1])
             button_pose.position.z = float(btn_pt[2])
-        button_pose.orientation.x = qx
-        button_pose.orientation.y = qy
-        button_pose.orientation.z = qz
-        button_pose.orientation.w = qw
+        button_pose.orientation.x = float(qx)
+        button_pose.orientation.y = float(qy)
+        button_pose.orientation.z = float(qz)
+        button_pose.orientation.w = float(qw)
 
         pa = PoseArray()
         pa.header.stamp    = self.get_clock().now().to_msg()
@@ -1247,6 +1249,11 @@ class ElevatorCallButtonServer(Node):
                 feedback.status    = 'AWAITING_PRESS'
                 feedback.direction = direction
                 goal_handle.publish_feedback(feedback)
+
+                outside_btn_msg = Bool()
+                outside_btn_msg.data = True
+                self._outside_button_press_pub.publish(outside_btn_msg)
+                self.get_logger().info('[DetectCallButton] Published /outside_button_press = True')
 
                 self.get_logger().info(
                     f'[DetectCallButton] Awaiting /press_complete '

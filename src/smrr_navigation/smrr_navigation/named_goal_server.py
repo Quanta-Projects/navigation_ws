@@ -12,6 +12,8 @@ from rclpy.action import ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
 from smrr_interfaces.srv import GoToNamedPose, StartMission
 from smrr_interfaces.action import NavigateToNamedLocation
+from std_msgs.msg import String, Bool
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 import yaml
 import os
 from ament_index_python.packages import get_package_share_directory
@@ -90,8 +92,43 @@ class NamedGoalServer(Node):
             self.get_logger().info(f'Initial floor: {self.initial_floor_id}')
         else:
             self.get_logger().info(f'Legacy action mode enabled. Action: {self.multifloor_action_name}')
+
+        # Publish initial_floor_id on startup with transient-local QoS so any
+        # late-joining subscriber (e.g. after restart) receives the current value.
+        floor_qos = QoSProfile(
+            depth=1,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        self._floor_pub = self.create_publisher(String, '/current_floor_id', floor_qos)
+        self._floor_sub = self.create_subscription(
+            String,
+            '/current_floor_id',
+            self._current_floor_cb,
+            floor_qos,
+            callback_group=self.callback_group,
+        )
+        # Publish once at startup so stale data is cleared immediately
+        self._publish_floor(self.initial_floor_id)
+
+        # Publisher for /arrived — signals successful arrival at destination
+        # Default QoS: RELIABLE, VOLATILE, KEEP_LAST depth=10
+        self._arrived_pub = self.create_publisher(Bool, '/arrived', 10)
         
         self.get_logger().info('Named Goal Server ready. Service: /go_to_pose')
+
+    def _publish_floor(self, floor_id: str):
+        msg = String()
+        msg.data = floor_id
+        self._floor_pub.publish(msg)
+
+    def _current_floor_cb(self, msg: String):
+        """Update tracked floor whenever the BT publishes a new current floor."""
+        new_floor = msg.data.strip()
+        if new_floor and new_floor != self.initial_floor_id:
+            self.get_logger().info(
+                f'[current_floor_id] Floor updated: {self.initial_floor_id} -> {new_floor}')
+            self.initial_floor_id = new_floor
     
     def load_locations(self, filename):
         """
@@ -329,6 +366,10 @@ class NamedGoalServer(Node):
                     self.initial_floor_id = floor_id
                     response.message = f'Navigation to {location_name} completed: {mission_response.message}'
                     self.get_logger().info(response.message)
+                    arrived_msg = Bool()
+                    arrived_msg.data = True
+                    self._arrived_pub.publish(arrived_msg)
+                    self.get_logger().info(f'Published /arrived = True (reached: {location_name})')
                 else:
                     # BT ran but failed (e.g., cross-floor not implemented, navigation failed)
                     response.message = f'Navigation to {location_name} failed: {mission_response.message}'

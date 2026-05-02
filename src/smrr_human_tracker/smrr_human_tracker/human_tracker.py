@@ -359,11 +359,24 @@ class HumanInstanceTracker(Node):
         # --- 1. ADAPTIVE 2-STEP TF LOOKUP ---
         try:
             if self.target_frame == 'map':
-                # Step A: Exact physical time for local Odometry (Zero Ego-Motion)
-                t_odom_cam = self.tf_buffer.lookup_transform(
-                    'odom', header.frame_id, rclpy.time.Time.from_msg(header.stamp),
-                    timeout=rclpy.duration.Duration(seconds=0.05)
-                )
+                # Step A: Exact physical time for local Odometry (Zero Ego-Motion).
+                # Fallback to latest-available when the ZED TF lags behind image timestamps
+                # (causes "extrapolation into the future" because the ZED SDK publishes
+                # odom TF at a slightly lower rate than image stamps).
+                try:
+                    t_odom_cam = self.tf_buffer.lookup_transform(
+                        'odom', header.frame_id, rclpy.time.Time.from_msg(header.stamp),
+                        timeout=rclpy.duration.Duration(seconds=0.05)
+                    )
+                except Exception as tf_err:
+                    if 'future' in str(tf_err).lower():
+                        # Camera is rigidly mounted; latest transform is accurate enough.
+                        t_odom_cam = self.tf_buffer.lookup_transform(
+                            'odom', header.frame_id, rclpy.time.Time(nanoseconds=0),
+                            timeout=rclpy.duration.Duration(seconds=0.0)
+                        )
+                    else:
+                        raise
                 # Step B: Latest available time for SLAM Map (Zero Blocking)
                 t_map_odom = self.tf_buffer.lookup_transform(
                     self.target_frame, 'odom', rclpy.time.Time(nanoseconds=0),

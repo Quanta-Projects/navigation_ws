@@ -87,7 +87,7 @@ INFO_TOPIC       = '/zed2_left_camera/camera_info'
 POINTCLOUD_TOPIC = '/zed2/zed_node/point_cloud/cloud_registered'
 
 # EEF orientation (same as call button server)
-EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301)  # x, y, z, w
+EEF_ORIENTATION = (0.7010, -0.0923, 0.7010, 0.0923)  # x, y, z, w
 
 # Per-floor manual offsets in TARGET_FRAME (link_0_fake).
 # Tune independently for each floor button position on the panel.
@@ -95,7 +95,7 @@ FLOOR_OFFSETS = {
     'floor0': (0.0, -0.07, 0.0),
     'floor1': (0.0, -0.07, 0.0),
     'floor2': (0.0, -0.07, 0.0),
-    'floor3': (0.0, 0.03, 0.04),
+    'floor3': (0.0, 0.04, 0.04),
 }
 
 # ── Press-and-verify state machine ───────────────────────────────────────────
@@ -142,6 +142,8 @@ class ElevatorFloorButtonServer(Node):
             PoseArray, '/button_press_goal', 10)
         self._joint_command_pub = self.create_publisher(
             Float64MultiArray, '/joint_command', 10)
+        self._elevator_button_press_pub = self.create_publisher(
+            Bool, '/elevator_button_press', 10)
         self._target_button_pub = self.create_publisher(
             String, '/target_button', QoSProfile(
                 depth=1,
@@ -257,10 +259,10 @@ class ElevatorFloorButtonServer(Node):
             p.position.x = float(pt[0])
             p.position.y = float(pt[1])
             p.position.z = float(pt[2])
-            p.orientation.x = qx
-            p.orientation.y = qy
-            p.orientation.z = qz
-            p.orientation.w = qw
+            p.orientation.x = float(qx)
+            p.orientation.y = float(qy)
+            p.orientation.z = float(qz)
+            p.orientation.w = float(qw)
             return p
 
         button_pose = Pose()
@@ -269,10 +271,10 @@ class ElevatorFloorButtonServer(Node):
             button_pose.position.x = float(btn_pt[0])
             button_pose.position.y = float(btn_pt[1])
             button_pose.position.z = float(btn_pt[2])
-        button_pose.orientation.x = qx
-        button_pose.orientation.y = qy
-        button_pose.orientation.z = qz
-        button_pose.orientation.w = qw
+        button_pose.orientation.x = float(qx)
+        button_pose.orientation.y = float(qy)
+        button_pose.orientation.z = float(qz)
+        button_pose.orientation.w = float(qw)
 
         pa = PoseArray()
         pa.header.stamp    = self.get_clock().now().to_msg()
@@ -947,6 +949,11 @@ class ElevatorFloorButtonServer(Node):
                 feedback.status = 'AWAITING_PRESS'
                 feedback.floor  = target_floor
                 goal_handle.publish_feedback(feedback)
+
+                elev_btn_msg = Bool()
+                elev_btn_msg.data = True
+                self._elevator_button_press_pub.publish(elev_btn_msg)
+                self.get_logger().info('[PressFloorButton] Published /elevator_button_press = True')
 
                 self.get_logger().info(
                     f'[PressFloorButton] Awaiting /press_complete '

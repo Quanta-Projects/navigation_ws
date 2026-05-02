@@ -27,16 +27,11 @@
 
         <!-- Minimum inflation for entry: inside_pose is close to elevator walls,
              higher values put it in lethal/inscribed space and break planner. -->
-        <SetCostmapInflation inflation_radius="0.275"/>
+        <SetCostmapInflation inflation_radius="0.265"/>
 
         <!-- Boost velocity before waiting: robot is already at gap-crossing speed
              the instant the door opens (zero-delay boost). -->
         <SetControllerParams max_vel_x="0.75"/>
-
-        <!-- Clear costmaps so stale door obstacle cells are removed before polling.
-             Fresh LiDAR scans will re-mark the door if it is still closed. -->
-        <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
-        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
         <!-- Detect the direction call button (UP/DOWN) and publish arm waypoints.
              Uses button_detection.pt YOLO class-based detection (no HSV).
@@ -45,18 +40,34 @@
              Also waits for /press_complete then verifies via BUTTON_LIT or DOOR_OPEN. -->
         <DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}" inside_pose="{inside_pose}"/>
 
+        <!-- Resolve center pose used for door-open polling (same coords as inside_pose
+             but a distinct YAML key so it can be tuned independently later). -->
+        <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_center" pose="{center_pose}"/>
+
         <!-- Elevator entry: call elevator, poll planner until door is open, then enter -->
         <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
           <Sequence name="CallWaitAndEnter">
             <!-- <CallElevator floor_id="{current_floor_id}"/> -->
 
-            <!-- Planning-based door detection: poll global planner every 500 ms.
-                 goal_tolerance=0.5 lets the planner succeed even if inside_pose cell
-                 is in the inflation zone — succeeds once the door is open. -->
-            <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Entry">
-              <Delay delay_msec="500">
-                <ComputePathToPose goal="{inside_pose}" path="{dummy_path}" planner_id="GridBased"/>
-              </Delay>
+            <!-- Planning-based door detection: clear costmap, wait 2000 ms for the
+                 global costmap to process fresh LiDAR data, then poll planner.
+                 Global costmap update_frequency=0.5 Hz (period=2000 ms): after
+                 ClearEntireCostmap the obstacle layer re-marks the door on the
+                 NEXT update cycle (up to 2000 ms later). With 500 ms the global
+                 grid may still be empty → false positive (robot drives at closed door).
+                 1 LiDAR scan is sufficient to mark a solid door; 2000 ms guarantees
+                 at least one full global costmap cycle has occurred.
+                 150 attempts × ~2 s each = ~5 min max wait. -->
+            <RetryUntilSuccessful num_attempts="150" name="WaitForPath_Entry">
+              <Sequence>
+                <!-- Only global costmap clear needed: ComputePathToPose (NavFn/GridBased)
+                     plans on the global costmap. Local costmap is used by MPPI during
+                     navigation — cleared once after the loop, not per-iteration. -->
+                <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+                <Delay delay_msec="2000">
+                  <ComputePathToPose goal="{center_pose}" path="{dummy_path}" planner_id="GridBased"/>
+                </Delay>
+              </Sequence>
             </RetryUntilSuccessful>
 
             <!-- Clear costmaps AGAIN right before entry: LiDAR repopulates during WaitForPath poll.
@@ -88,6 +99,7 @@
             <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
           </Sequence>
         </Fallback>
+        <PublishBoolTopic topic="/going_in" value="true"/>
 
         <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
         <!-- Restore AMCL normal update thresholds -->
@@ -115,6 +127,9 @@
         <GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
         <SwitchMap map_yaml="{map_open_target}"/>
+        <!-- Publish updated floor immediately after map switch so named_goal_server
+             tracks the correct current floor even if exit navigation fails. -->
+        <PublishCurrentFloor/>
         <!-- Publish initial pose with AprilTag TF correction for parking error -->
         <PublishInitialPose initial_pose="{amcl_open_target}"
                             use_apriltag="true"
@@ -131,6 +146,7 @@
         <ToggleAprilTag turn_on="false"/>
 
         <!-- Exit elevator with retry mechanism -->
+        <PublishBoolTopic topic="/going_out" value="true"/>
         <Fallback name="ExitElevator_WithRepositionRetry">
 
           <!-- Attempt 1: call elevator, poll planner until door open, exit -->
@@ -151,7 +167,7 @@
             <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit1">
-              <Delay delay_msec="500">
+              <Delay delay_msec="100">
                 <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
               </Delay>
             </RetryUntilSuccessful>
@@ -163,6 +179,8 @@
             <SetControllerParams max_vel_x="0.25"/>
             <!-- Restore conservative inflation after exiting elevator -->
             <SetCostmapInflation inflation_radius="0.5"/>
+            <!-- Confirm floor update to all subscribers after successful exit -->
+            <PublishCurrentFloor/>
           </Sequence>
 
           <!-- Attempt 2: reposition inside elevator, then retry -->
@@ -187,7 +205,7 @@
             <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
             <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit2">
-              <Delay delay_msec="500">
+              <Delay delay_msec="100">
                 <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
               </Delay>
             </RetryUntilSuccessful>
@@ -198,6 +216,8 @@
             <SetControllerParams max_vel_x="0.25"/>
             <!-- Restore conservative inflation after exiting elevator -->
             <SetCostmapInflation inflation_radius="0.5"/>
+            <!-- Confirm floor update to all subscribers after successful exit -->
+            <PublishCurrentFloor/>
           </Sequence>
 
         </Fallback>

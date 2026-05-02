@@ -21,6 +21,8 @@
 #include "smrr_navigation/bt_nodes/check_elevator_direction_action.hpp"
 #include "smrr_navigation/bt_nodes/detect_call_button_action.hpp"
 #include "smrr_navigation/bt_nodes/press_floor_button_action.hpp"
+#include "smrr_navigation/bt_nodes/publish_current_floor_action.hpp"
+#include "smrr_navigation/bt_nodes/publish_bool_topic_action.hpp"
 
 // Register all custom BT nodes for BehaviorTree.CPP
 extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
@@ -43,6 +45,8 @@ extern "C" void BT_RegisterNodesFromPlugin(BT::BehaviorTreeFactory& factory)
   factory.registerNodeType<smrr_navigation::SetCostmapInflationAction>("SetCostmapInflation");
   factory.registerNodeType<smrr_navigation::ToggleAprilTagAction>("ToggleAprilTag");
   factory.registerNodeType<smrr_navigation::BuildPoseVectorAction>("BuildPoseVector");
+  factory.registerNodeType<smrr_navigation::PublishCurrentFloorAction>("PublishCurrentFloor");
+  factory.registerNodeType<smrr_navigation::PublishBoolTopicAction>("PublishBoolTopic");
 
   // BtActionNode-derived nodes need a builder (3-arg constructor)
   BT::NodeBuilder check_floor_builder =
