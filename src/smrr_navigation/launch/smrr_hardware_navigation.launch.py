@@ -25,7 +25,7 @@ def generate_launch_description():
     # Paths to configuration files
     config_dir = os.path.join(smrr_navigation_dir, 'config')
     maps_dir = os.path.join(smrr_navigation_dir, 'maps', 'physical_maps')
-    default_map_file = os.path.join(maps_dir, 'first_floor_with_lift.yaml')
+    default_map_file = os.path.join(maps_dir, 'third_floor_with_lift.yaml')
     bt_xml_path = os.path.join(smrr_navigation_dir, 'behavior_trees', 'smrr_multifloor.xml')
 
     # Nav2 parameters file (hardware-tuned; fallback to sim params if absent)

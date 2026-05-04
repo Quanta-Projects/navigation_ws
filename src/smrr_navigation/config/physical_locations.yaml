@@ -32,6 +32,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_waiting:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_exit:
         x: 0.0
         y: 0.0
@@ -78,6 +82,10 @@ floors:
         x: -6.5433
         y: 0.3450
         yaw: -2.052
+      elevator_waiting:
+        x: -5.7735
+        y: 1.7253
+        yaw: -2.079
       elevator_exit:
         x: -5.7048
         y: 1.9070
@@ -144,6 +152,10 @@ floors:
         x: 0.0
         y: 0.0
         yaw: 0.0
+      elevator_waiting:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_exit:
         x: 0.0
         y: 0.0
@@ -190,6 +202,10 @@ floors:
         x: -11.422
         y: -0.024
         yaw: -3.752
+      elevator_waiting:
+        x: 0.0
+        y: 0.0
+        yaw: 0.0
       elevator_exit:
         x: -9.4523
         y: -0.34338

@@ -40,6 +40,10 @@
              Also waits for /press_complete then verifies via BUTTON_LIT or DOOR_OPEN. -->
         <DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}" inside_pose="{inside_pose}"/>
 
+        <!-- Navigate to elevator waiting area after call button press -->
+        <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_waiting" pose="{waiting_pose}"/>
+        <NavigateToPose server_name="/navigate_to_pose" goal="{waiting_pose}"/>
+
         <!-- Resolve center pose used for door-open polling (same coords as inside_pose
              but a distinct YAML key so it can be tuned independently later). -->
         <GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}" location_key="elevator_center" pose="{center_pose}"/>
@@ -58,13 +62,13 @@
                  1 LiDAR scan is sufficient to mark a solid door; 2000 ms guarantees
                  at least one full global costmap cycle has occurred.
                  150 attempts × ~2 s each = ~5 min max wait. -->
-            <RetryUntilSuccessful num_attempts="150" name="WaitForPath_Entry">
+            <RetryUntilSuccessful num_attempts="1500" name="WaitForPath_Entry">
               <Sequence>
                 <!-- Only global costmap clear needed: ComputePathToPose (NavFn/GridBased)
                      plans on the global costmap. Local costmap is used by MPPI during
                      navigation — cleared once after the loop, not per-iteration. -->
-                <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
-                <Delay delay_msec="2000">
+                <!-- <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/> -->
+                <Delay delay_msec="100">
                   <ComputePathToPose goal="{center_pose}" path="{dummy_path}" planner_id="GridBased"/>
                 </Delay>
               </Sequence>
