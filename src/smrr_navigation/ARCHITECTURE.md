@@ -327,16 +327,17 @@ External / UI ──→ /location (std_msgs/String) "office_101"
        IsSameFloor?                    IsDifferentFloor?
             │                                │
     NavigateToPose                  [Cross-floor sequence]
-    (Nav2 → MPPI)                   → Navigate to elevator_staging
+    (Nav2 → MPPI)                   → Navigate via staging_waypoint → elevator_staging
                                     → DetectCallButton (YOLO + ZED2 RANSAC → /button_press_goal)
-                                    → CallElevator
-                                    → Wait for door open (ComputePathToPose polling)
+                                    → WaitForPath_Entry (global clear + 2s poll loop)
                                     → NavigateThroughPoses (entry → inside)
-                                    → 180° Spin (AMCL frozen)
-                                    → Wait for door close (inverse polling)
+                                    → SpinInElevator ≈−150° (AMCL frozen)
+                                    → PublishBoolTopic(/going_in)
+                                    → PressFloorButton (MoveIt IBVS)
                                     → SwitchMap + PublishInitialPose (AprilTag corrected)
+                                    → PublishBoolTopic(/going_out)
                                     → CheckFloorArrival (YOLO button detection)
-                                    → Wait for door open on target floor
+                                    → WaitForPath_Exit (100ms poll loop)
                                     → NavigateToPose (exit)
                                     → NavigateToPose (final destination)
 ```
@@ -713,66 +714,97 @@ Root (BehaviorTree id="MissionTree")
    │  ├─ IsSameFloor
    │  └─ NavigateToPose
    │
-   └─ Sequence [CrossFloor]
+   └─ Sequence [CrossFloor_ElevatorEntry]
       ├─ IsDifferentFloor
+      ├─ SetGoalCheckerParams (xy=0.20, yaw=0.20)
+      ├─ SetCostmapInflation (0.325)
       ├─ GetNamedPose (elevator_staging, current_floor)
+      ├─ GetNamedPose (staging_waypoint, current_floor)
+      ├─ NavigateToPose (→ staging_waypoint_pose)
+      ├─ SetGoalCheckerParams (xy=0.15, yaw=0.20)
       ├─ NavigateToPose (→ elevator_staging)
-      ├─ DetectCallButton (current_floor → target_floor)          ← YOLO + ZED2 RANSAC → /button_press_goal
-      ├─ GetNamedPose (elevator_inside, current_floor)            ← pre-fetched for ComputePathToPose
+      ├─ GetNamedPose (elevator_inside, current_floor)         ← pre-fetched for DetectCallButton blackboard
+      ├─ SetCostmapInflation (0.265)                          ← tight: inside_pose near walls
+      ├─ SetControllerParams (max_vel_x=0.75)                 ← speed set before waiting, ready for gap
+      ├─ DetectCallButton (current_floor → target_floor)      ← YOLO + ZED2 RANSAC → /button_press_goal
+      │    Also verifies press via BUTTON_LIT or DOOR_OPEN
+      ├─ GetNamedPose (elevator_center, current_floor)        ← separate key from inside_pose, tunable
       │
-      ├─ RetryUntilSuccessful(2) [CallElevatorAndEnter]
-      │  └─ Sequence
-      │     ├─ CallElevator (current_floor)
-      │     ├─ SetCostmapInflation (0.325)
-      │     ├─ SetControllerParams (max_vel_x=0.75)
-      │     ├─ RetryUntilSuccessful(3000) [WaitForPath_Entry]
-      │     │  └─ Delay(500ms) → ComputePathToPose(inside_pose)
+      ├─ RetryUntilSuccessful(2) [CallElevatorAndEnter_Twice]
+      │  └─ Sequence [CallWaitAndEnter]
+      │     ├─ (CallElevator — commented out)
+      │     ├─ RetryUntilSuccessful(150) [WaitForPath_Entry]
+      │     │  └─ Sequence
+      │     │     ├─ ClearEntireCostmap (global only)         ← NavFn uses global costmap
+      │     │     └─ Delay(2000ms) → ComputePathToPose(center_pose)
+      │     │        global_costmap update_frequency=0.5 Hz → 2000ms guarantees ≥1 full cycle
+      │     ├─ ClearEntireCostmap (local + global)            ← pre-navigation flush
       │     ├─ GetNamedPose (elevator_entry, current_floor)
-      │     ├─ GetNamedPose (elevator_inside, current_floor)     ← re-fetched inside retry
+      │     ├─ GetNamedPose (elevator_inside, current_floor)
       │     ├─ BuildPoseVector (entry_pose + inside_pose)
       │     └─ NavigateThroughPoses
       │
       ├─ StopRobot (800 ms)
       ├─ Wait (1.0 s)
       ├─ ToggleAprilTag (true)
-      ├─ SetAMCLParams (update_min_d=10.0, update_min_a=10.0)  ← freeze
-      ├─ Spin (-π rad, 20 s)
+      ├─ SetAMCLParams (update_min_d=10.0, update_min_a=10.0)  ← freeze during spin
+      ├─ Fallback [SpinInElevator]
+      │  ├─ Spin (-2.61799 rad, 40 s)                          ← 150° ≈ face outward
+      │  └─ Sequence [RepositionAndSpin]
+      │     ├─ GetNamedPose (elevator_inside, current_floor)
+      │     ├─ NavigateToPose (→ inside_pose)
+      │     └─ Spin (-2.61799 rad, 40 s)
+      ├─ PublishBoolTopic (/going_in = true)
       ├─ StopRobot (800 ms)
-      ├─ SetAMCLParams (update_min_d=0.15, update_min_a=0.1)   ← restore
-      ├─ Wait (1.0 s)
-      │
-      ├─ RetryUntilSuccessful(3000) [WaitForDoorClose]
-      │  └─ Delay(500ms) → Inverter → ComputePathToPose(staging_pose)
-      ├─ Wait (3.0 s)
+      ├─ SetAMCLParams (update_min_d=0.15, update_min_a=0.1)   ← restore AMCL
+      ├─ PressFloorButton (target_floor_id)
+      ├─ Wait (1.0 s)                                           ← min wait before map switch
+      │  (WaitForDoorClose — commented out)
+      │  (Wait 3.0 s — commented out)
       │
       ├─ GetNamedMap (target_floor, "open")
       ├─ GetNamedPose (amcl_initial_pose_open, target_floor)
+      ├─ GetNamedPose (amcl_initial_pose_open, current_floor)
       ├─ SwitchMap (map_open_target)
+      ├─ PublishCurrentFloor
       ├─ PublishInitialPose (use_apriltag=true, tag_frame=tag36h11:0)
       ├─ ClearEntireCostmap (local)
       ├─ ClearEntireCostmap (global)
       ├─ ToggleAprilTag (false)
       │
-      ├─ Fallback [ExitElevator]
+      ├─ PublishBoolTopic (/going_out = true)
+      ├─ Fallback [ExitElevator_WithRepositionRetry]
       │  ├─ Sequence [ExitAttempt_1]
       │  │  ├─ GetNamedPose (elevator_exit, target_floor)
-      │  │  ├─ CallElevator (target_floor)
+      │  │  ├─ (CallElevator — commented out)
       │  │  ├─ CheckFloorArrival (target_floor)
       │  │  ├─ SetControllerParams (max_vel_x=0.75)
       │  │  ├─ ClearEntireCostmap (local + global)
-      │  │  ├─ RetryUntilSuccessful(3000) [WaitForPath_Exit]
-      │  │  │  └─ Delay(500ms) → ComputePathToPose(exit_pose)
+      │  │  ├─ RetryUntilSuccessful(3000) [WaitForPath_Exit1]
+      │  │  │  └─ Delay(100ms) → ComputePathToPose(exit_pose)
+      │  │  ├─ SetGoalCheckerParams (xy=0.25, yaw=0.25)
       │  │  ├─ NavigateToPose (→ exit_pose)
-      │  │  ├─ SetControllerParams (max_vel_x=0.5)
-      │  │  └─ SetCostmapInflation (0.5)
+      │  │  ├─ SetControllerParams (max_vel_x=0.25)
+      │  │  ├─ SetCostmapInflation (0.5)
+      │  │  └─ PublishCurrentFloor
       │  │
-      │  └─ Sequence [RepositionAndExit_Attempt_2]
+      │  └─ Sequence [RepositionThenExitAttempt_2]
+      │     ├─ GetNamedPose (elevator_exit, target_floor)
       │     ├─ GetNamedPose (elevator_inside, target_floor)
       │     ├─ NavigateToPose (→ inside_pose)
-      │     ├─ Spin (-3.5416 rad, 10 s)
-      │     ├─ StopRobot
-      │     └─ [Repeat exit sequence: CallElevator → CheckFloorArrival →
-      │          WaitForPath → NavigateToPose → RestoreParams]
+      │     ├─ Spin (-2.61799 rad, 10 s)
+      │     ├─ StopRobot (800 ms)
+      │     ├─ (CallElevator — commented out)
+      │     ├─ CheckFloorArrival (target_floor)
+      │     ├─ SetControllerParams (max_vel_x=0.75)
+      │     ├─ ClearEntireCostmap (local + global)
+      │     ├─ RetryUntilSuccessful(3000) [WaitForPath_Exit2]
+      │     │  └─ Delay(100ms) → ComputePathToPose(exit_pose)
+      │     ├─ SetGoalCheckerParams (xy=0.25, yaw=0.25)
+      │     ├─ NavigateToPose (→ exit_pose)
+      │     ├─ SetControllerParams (max_vel_x=0.25)
+      │     ├─ SetCostmapInflation (0.5)
+      │     └─ PublishCurrentFloor
       │
       └─ NavigateToPose (→ final_pose)  ← destination on target floor
 ```
@@ -794,34 +826,59 @@ If `current_floor_id == target_floor_id`, dispatch directly to Nav2. No elevator
 
 ### 5.4 Cross-Floor Branch — Elevator Entry
 
-Before the entry retry loop, the BT runs two steps that are outside the retry so they execute only once regardless of how many retries occur:
+The pre-entry setup runs **once** regardless of retries:
 
 ```xml
-<!-- Detect UP/DOWN call button and publish arm waypoints -->
-<DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}"/>
-
-<!-- Pre-fetch inside_pose so it is on the blackboard for ComputePathToPose polling -->
-<GetNamedPose locations_file="{locations_file}" floor_id="{current_floor_id}"
-              location_key="elevator_inside" pose="{inside_pose}"/>
+<SetGoalCheckerParams xy_goal_tolerance="0.20" yaw_goal_tolerance="0.20"/>
+<SetCostmapInflation inflation_radius="0.325"/>
+<!-- Navigate to staging via intermediate waypoint -->
+<GetNamedPose ... location_key="staging_waypoint" pose="{staging_waypoint_pose}"/>
+<NavigateToPose ... goal="{staging_waypoint_pose}"/>
+<SetGoalCheckerParams xy_goal_tolerance="0.15" yaw_goal_tolerance="0.20"/>
+<NavigateToPose ... goal="{staging_pose}"/>
+<!-- Pre-fetch inside_pose BEFORE DetectCallButton (blackboard needed by action server) -->
+<GetNamedPose ... location_key="elevator_inside" pose="{inside_pose}"/>
+<!-- Reduce inflation: inside_pose is near elevator walls -->
+<SetCostmapInflation inflation_radius="0.265"/>
+<!-- Boost velocity before waiting: robot crosses gap at full speed the instant door opens -->
+<SetControllerParams max_vel_x="0.75"/>
+<!-- Detect call button and arm waypoints -->
+<DetectCallButton current_floor="{current_floor_id}" target_floor="{target_floor_id}" inside_pose="{inside_pose}"/>
+<!-- Separate center pose key — tunable independently from inside_pose -->
+<GetNamedPose ... location_key="elevator_center" pose="{center_pose}"/>
 ```
 
-`DetectCallButton` triggers `elevator_call_button_server` which uses YOLO to locate the correct call button (class 10/11 for UP, 0/1 for DOWN) and then fits a RANSAC plane to the ZED2 point cloud crop to compute 3D approach and press waypoints. These are published to `/button_press_goal` for the arm controller and the BT action returns SUCCESS once localised.
+`DetectCallButton` triggers `elevator_call_button_server`: YOLO locates the UP (class 10/11) or DOWN (class 0/1) button, RANSAC fits the ZED2 point cloud, ray-plane intersection computes the button center, and approach/press waypoints are published to `/button_press_goal`. The action also verifies button press via `BUTTON_LIT` or `DOOR_OPEN` detection before returning SUCCESS.
 
-Then the entry retry loop:
+**Why `inside_pose` is pre-fetched before `DetectCallButton`:** The call button server receives `inside_pose` as an action goal field and uses it internally for door-open verification after pressing the button. It must be on the blackboard before the action is called.
+
+**Why `elevator_center` is a separate YAML key from `elevator_inside`:** `ComputePathToPose` for door polling uses `center_pose` (tunable for optimal planner sensitivity) while `NavigateThroughPoses` uses `inside_pose` (robot parking position). Decoupling the two keys allows each to be calibrated independently.
+
+The entry retry loop (wraps only the wait-and-enter sequence, not `DetectCallButton`):
 
 ```xml
 <RetryUntilSuccessful num_attempts="2" name="CallElevatorAndEnter_Twice">
   <Sequence name="CallWaitAndEnter">
-    <CallElevator floor_id="{current_floor_id}"/>
-    <SetCostmapInflation inflation_radius="0.325"/>
-    <SetControllerParams max_vel_x="0.75"/>
+    <!-- CallElevator commented out — physical button press handled by DetectCallButton / arm -->
 
-    <!-- Planning-based door open detection (see §6.1) -->
-    <RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Entry">
-      <Delay delay_msec="500">
-        <ComputePathToPose goal="{inside_pose}" path="{dummy_path}" planner_id="GridBased"/>
-      </Delay>
+    <!-- Door-open detection: clear global costmap, wait 2000 ms, then poll planner -->
+    <RetryUntilSuccessful num_attempts="150" name="WaitForPath_Entry">
+      <Sequence>
+        <!-- Global costmap only: NavFn (GridBased) plans on global costmap.
+             Local costmap (MPPI) is cleared once after the loop, not per-iteration. -->
+        <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+        <!-- 2000 ms = 1 full global costmap update cycle (update_frequency=0.5 Hz).
+             Ensures door re-marks before NavFn checks; prevents false positives. -->
+        <Delay delay_msec="2000">
+          <ComputePathToPose goal="{center_pose}" path="{dummy_path}" planner_id="GridBased"/>
+        </Delay>
+      </Sequence>
     </RetryUntilSuccessful>
+    <!-- Max wait: 150 × 2 s = 5 min -->
+
+    <!-- Flush both costmaps before entry: LiDAR repopulates during polling loop -->
+    <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
+    <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 
     <GetNamedPose location_key="elevator_entry" .../>
     <GetNamedPose location_key="elevator_inside" .../>
@@ -831,11 +888,13 @@ Then the entry retry loop:
 </RetryUntilSuccessful>
 ```
 
-**Why inflation is reduced:** The elevator gap is tight; 0.5 m inflation causes path planning to fail through the narrow door. Reduced to 0.325 m to allow a feasible path.
+**Why global-only clear inside the loop:** `ComputePathToPose` (NavFn / `GridBased` planner ID) reads only the **global costmap**. The local costmap is consumed by the MPPI controller during actual navigation, not path planning. Clearing the local costmap per iteration wastes ~50 ms with no benefit.
 
-**Why velocity is increased:** 0.75 m/s carries the robot through the door with momentum, reducing the chance of stopping partway through.
+**Why 2000 ms delay:** `global_costmap.update_frequency = 0.5 Hz` means the obstacle layer processes new LiDAR scans only every 2000 ms. After `ClearEntireCostmap` empties the global grid, a closed door will only be re-marked on the **next** global costmap update cycle. With a shorter delay (e.g., 500 ms), the global grid may still be empty when NavFn runs — a closed door would appear navigable, sending the robot into the door.
 
-**Why `elevator_inside` is fetched twice:** The pre-fetch before the retry loop puts `inside_pose` on the blackboard so the `ComputePathToPose` door-poll can use it immediately. The re-fetch inside the retry loop refreshes it before `NavigateThroughPoses` to ensure correctness on retries.
+**Why inflation 0.265 m:** `robot_radius = 0.275 m`. At `inflation_radius = 0.265 m`, the planner can still route through the elevator doorway. Higher values (0.325+) cause the goal cell at `elevator_center` / `elevator_inside` to fall inside the inflation zone of nearby walls, making NavFn fail even with the door open.
+
+**Why velocity 0.75 m/s:** Carries the robot through the narrow door gap with momentum; prevents MPPI from stopping mid-gap due to micro-obstacle avoidance.
 
 ---
 
@@ -845,81 +904,111 @@ Then the entry retry loop:
 <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
 <Wait wait_duration="1.0"/>
 <ToggleAprilTag turn_on="true"/>
-<SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
-<Spin spin_dist="-3.1416" time_allowance="20.0" is_recovery="true"/>
+<SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>  <!-- freeze -->
+<Fallback name="SpinInElevator">
+  <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
+  <Sequence name="RepositionAndSpin">
+    <GetNamedPose ... location_key="elevator_inside" pose="{inside_pose}"/>
+    <NavigateToPose ... goal="{inside_pose}"/>
+    <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
+  </Sequence>
+</Fallback>
+<PublishBoolTopic topic="/going_in" value="true"/>
 <StopRobot topic="/cmd_vel" repeat_ms="200" duration_ms="800"/>
-<SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
+<SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>    <!-- restore -->
+<PressFloorButton target_floor="{target_floor_id}"/>
 <Wait wait_duration="1.0"/>
 ```
 
-The robot spins 180° (−π rad) so it faces the elevator exit ready to drive out. AMCL is frozen during the spin to prevent particle filter corruption from poor in-elevator LiDAR geometry. The subsequent 1 s wait is mandatory: the robot is now facing the door, and the staging pose is unreachable through the closed door — without the wait, door-close detection could trigger immediately on stale costmap data.
+The robot spins **−2.61799 rad** (≈ −150°) so it faces the elevator exit. The `SpinInElevator` fallback retries by re-navigating to `elevator_inside` and spinning again if the first spin fails. AMCL is frozen during the spin to prevent particle filter corruption from poor in-elevator LiDAR geometry.
+
+`PublishBoolTopic /going_in = true` signals external nodes (e.g., human tracker, base controller) that the robot is entering the elevator.
+
+`PressFloorButton` triggers the MoveIt arm to press the target floor button on the elevator panel using endoscopic camera IBVS. The BT blocks here until `/press_complete` is received and the button is confirmed lit.
+
+After `PressFloorButton`, `Wait 1.0 s` provides a mandatory minimum settle time.
 
 ---
 
 ### 5.6 Cross-Floor Branch — Door Close & Map Switch
 
+`WaitForDoorClose` and the 3 s post-close `Wait` are currently **commented out** in the BT. The map switch happens immediately after the 1 s settle wait following `PressFloorButton`:
+
 ```xml
-<!-- Wait until door is physically closed -->
-<RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
-  <Delay delay_msec="500">
-    <Inverter>
-      <ComputePathToPose goal="{staging_pose}" path="{dummy_path}" planner_id="GridBased"/>
-    </Inverter>
-  </Delay>
-</RetryUntilSuccessful>
-<Wait wait_duration="3.0"/>
+<!-- WaitForDoorClose commented out — map switch fires immediately after press -->
 
-<!-- Switch to target floor's open map -->
+<!-- Fetch both floors' open-map poses (target + current) onto blackboard -->
 <GetNamedMap locations_file="{locations_file}" floor_id="{target_floor_id}" map_key="open" map_yaml="{map_open_target}"/>
+<GetNamedPose ... floor_id="{target_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+<GetNamedPose ... floor_id="{current_floor_id}" location_key="amcl_initial_pose_open" pose="{amcl_open_current}"/>
 <SwitchMap map_yaml="{map_open_target}"/>
-
-<!-- Re-localize with AprilTag correction -->
-<GetNamedPose locations_file="{locations_file}" floor_id="{target_floor_id}"
-              location_key="amcl_initial_pose_open" pose="{amcl_open_target}"/>
+<!-- Publish floor update immediately so named_goal_server tracks correct floor
+     even if exit navigation subsequently fails -->
+<PublishCurrentFloor/>
 <PublishInitialPose initial_pose="{amcl_open_target}"
                     use_apriltag="true"
                     tag_frame="tag36h11:0"
                     expected_tag_x="1.313"  expected_tag_y="0.071"  expected_tag_z="1.412"
                     expected_tag_roll="1.581" expected_tag_pitch="0.000" expected_tag_yaw="-1.633"/>
-
 <ClearEntireCostmap service_name="local_costmap/clear_entirely_local_costmap"/>
 <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
 <ToggleAprilTag turn_on="false"/>
 ```
 
-**Door close detection logic:** After the 180° spin, the staging pose (outside the elevator) is physically behind the closed door. `ComputePathToPose` to that pose returns FAILURE (no path through wall). `Inverter` flips FAILURE → SUCCESS, breaking the retry loop. This is the inverse of the door-open detection used for entry.
+**Why `WaitForDoorClose` is commented out:** After the map is switched and `PublishInitialPose` runs, the exit door detection (`WaitForPath_Exit`) handles waiting for the correct floor's door to open. An explicit door-close wait is not required for correctness because `CheckFloorArrival` (YOLO) already confirms the elevator has arrived before the exit door poll begins.
+
+**`PublishCurrentFloor`:** Published immediately after `SwitchMap` — before exit navigation — so the `named_goal_server` floor tracker is consistent even if the robot subsequently fails to exit.
 
 **AprilTag re-localization:** The `PublishInitialPose` node queries `/tf` for the detected AprilTag transform and computes a parking-error correction:
 ```
-corrected_pose = nominal_pose + (expected_tag_pose - actual_tag_pose)
+corrected_pose = nominal_pose + (expected_tag_pose − actual_tag_pose)
 ```
-This corrects for the elevator not stopping at the exact same position each time. Costmaps are then cleared to remove LiDAR contamination accumulated during the map switch.
+This corrects for the elevator not stopping at the exact same position each time. Both costmaps are cleared afterwards to remove LiDAR contamination accumulated during the map switch transition.
 
 ---
 
 ### 5.7 Cross-Floor Branch — Elevator Exit
 
-The exit uses a `Fallback` with two attempts. If the first attempt fails (e.g., robot ends up at wrong angle inside the elevator), attempt 2 navigates back to the inside pose, spins −3.54 rad to reorient, and retries the full exit sequence.
+`PublishBoolTopic /going_out = true` is published before the exit fallback, signalling external nodes.
 
-**Attempt 1:**
+The exit uses a `Fallback` (`ExitElevator_WithRepositionRetry`) with two attempts. If the first attempt fails, attempt 2 re-navigates to `elevator_inside`, re-spins to reorient, and repeats the full exit sequence.
+
+**Attempt 1 (`ExitAttempt_1`):**
 ```
 GetNamedPose(elevator_exit, target_floor)
-CallElevator(target_floor)           ← press button on target floor
-CheckFloorArrival(target_floor)      ← YOLO: wait until button extinguishes
-SetControllerParams(max_vel_x=0.75)  ← speed through door
-ClearEntireCostmap (local + global)  ← clear LiDAR noise from elevator
-WaitForPath_Exit (3000 × 500ms)      ← wait until door open (planning-based)
+(CallElevator — commented out)
+CheckFloorArrival(target_floor)        ← YOLO: wait until floor button extinguishes
+SetControllerParams(max_vel_x=0.75)    ← speed through door
+ClearEntireCostmap (local + global)    ← clear LiDAR noise accumulated inside elevator
+WaitForPath_Exit1 (3000 × 100ms)       ← poll at 10 Hz until door open
+  └─ Delay(100ms) → ComputePathToPose(exit_pose)
+SetGoalCheckerParams(xy=0.25, yaw=0.25)
 NavigateToPose(exit_pose)
-SetControllerParams(max_vel_x=0.5)   ← restore normal speed
-SetCostmapInflation(0.5)             ← restore normal inflation
+SetControllerParams(max_vel_x=0.25)    ← restore normal speed
+SetCostmapInflation(0.5)               ← restore normal inflation
+PublishCurrentFloor                    ← confirm floor update after successful exit
 ```
 
-**Attempt 2 (fallback):**
+**Attempt 2 (`RepositionThenExitAttempt_2`):**
 ```
-NavigateToPose(elevator_inside)      ← reposition inside elevator
-Spin(-3.5416 rad, 10s)               ← reorient
-[Full exit sequence repeated]
+GetNamedPose(elevator_exit, target_floor)
+GetNamedPose(elevator_inside, target_floor)
+NavigateToPose(elevator_inside)        ← reposition
+Spin(-2.61799 rad, 10s)                ← reorient
+StopRobot (800 ms)
+(CallElevator — commented out)
+CheckFloorArrival(target_floor)
+SetControllerParams(max_vel_x=0.75)
+ClearEntireCostmap (local + global)
+WaitForPath_Exit2 (3000 × 100ms)
+SetGoalCheckerParams(xy=0.25, yaw=0.25)
+NavigateToPose(exit_pose)
+SetControllerParams(max_vel_x=0.25)
+SetCostmapInflation(0.5)
+PublishCurrentFloor
 ```
+
+**Why exit polls at 100ms (10 Hz) vs. entry at 2000ms:** At exit the robot is inside the elevator, AMCL is already re-localised on the target floor map, and there is no risk of false-positive from a stale empty global costmap (the global costmap was cleared and freshly populated during `CheckFloorArrival`). The 100ms poll gives faster response when the door opens.
 
 ---
 
@@ -945,15 +1034,19 @@ After successful exit, the robot navigates to the original target destination us
 | `CallElevator` | AsyncAction | Sends elevator call command (Gazebo CLI service or physical) |
 | `SwitchMap` | AsyncAction | Calls `/map_server/load_map` with the given YAML path |
 | `PublishInitialPose` | AsyncAction | Publishes `/initialpose`; optionally corrects pose using AprilTag TF lookup |
+| `PublishCurrentFloor` | AsyncAction | Publishes the current floor ID to the named_goal_server tracker topic |
+| `PressFloorButton` | AsyncAction | Action client wrapping the floor button press action server; triggers MoveIt IBVS arm to press target floor button; blocks until `/press_complete` received and button confirmed lit |
 | `CheckFloorArrival` | AsyncAction | Action client wrapping `/check_floor_arrival`; blocks until arrived |
 | `CheckElevatorDirection` | AsyncAction | Action client wrapping `check_elevator_direction`; blocks until direction confirmed |
-| `DetectCallButton` | AsyncAction | Action client wrapping `detect_call_button`; YOLO + ZED2 RANSAC localises call button; blocks until waypoints published to `/button_press_goal` |
+| `DetectCallButton` | AsyncAction | Action client wrapping `detect_call_button`; YOLO + ZED2 RANSAC localises call button; blocks until arm presses button and BUTTON_LIT or DOOR_OPEN confirmed; publishes waypoints to `/button_press_goal` |
 | `SetAMCLParams` | AsyncAction | Updates `update_min_d` + `update_min_a` on the AMCL node via parameter service |
+| `SetGoalCheckerParams` | AsyncAction | Updates `xy_goal_tolerance` + `yaw_goal_tolerance` on the controller server via parameter service |
 | `SetControllerParams` | AsyncAction | Updates `max_vel_x` on the controller server via parameter service |
-| `SetCostmapInflation` | AsyncAction | Updates `inflation_radius` on both local + global costmaps |
-| `ClearEntireCostmap` | AsyncAction | Calls Nav2 costmap clear service (local or global) |
+| `SetCostmapInflation` | AsyncAction | Updates `inflation_radius` on both local + global costmaps via parameter service |
+| `ClearEntireCostmap` | AsyncAction | Calls Nav2 costmap clear service (`local_costmap` or `global_costmap`) |
 | `StopRobot` | AsyncAction | Publishes zero `Twist` repeatedly for `duration_ms` at `repeat_ms` interval |
 | `ToggleAprilTag` | AsyncAction | Calls `/toggle_apriltag` to start (true) or stop (false) `apriltag_ros` subprocess |
+| `PublishBoolTopic` | SyncAction | Publishes `std_msgs/Bool` to a named topic with configurable `value` (default `true`). Used for `/going_in` and `/going_out` signals. Lazily creates publisher on first tick per unique topic. |
 | `NavigateToPose` | Nav2 BtActionNode | Sends single-goal nav action to bt_navigator |
 | `NavigateThroughPoses` | Nav2 BtActionNode | Sends multi-waypoint nav action to bt_navigator |
 | `ComputePathToPose` | Nav2 BtActionNode | Requests path plan without executing (used for door detection) |
@@ -971,37 +1064,65 @@ After successful exit, the robot navigates to the original target destination us
 
 ### 6.1 Planning-Based Door Detection
 
-**Concept:** The elevator door physically blocks the path. When the door opens, the LiDAR sees through and the costmap clears. NavfnPlanner then finds a feasible path where it previously could not.
+**Concept:** The elevator door physically blocks the path. When the door opens, the LiDAR sees through it and the global costmap obstacle layer clears those cells. NavfnPlanner then finds a feasible path where it previously could not.
 
-**Door open (entry / exit):**
+**Door open — entry (`WaitForPath_Entry`):**
 ```xml
-<RetryUntilSuccessful num_attempts="3000">
-  <Delay delay_msec="500">
-    <ComputePathToPose goal="{inside_pose}" path="{dummy_path}" planner_id="GridBased"/>
+<RetryUntilSuccessful num_attempts="150" name="WaitForPath_Entry">
+  <Sequence>
+    <!-- Global costmap only: NavFn reads global costmap; local is for MPPI -->
+    <ClearEntireCostmap service_name="global_costmap/clear_entirely_global_costmap"/>
+    <!-- 2000 ms = full global costmap update cycle (update_frequency=0.5 Hz) -->
+    <Delay delay_msec="2000">
+      <ComputePathToPose goal="{center_pose}" path="{dummy_path}" planner_id="GridBased"/>
+    </Delay>
+  </Sequence>
+</RetryUntilSuccessful>
+```
+- Clears global costmap, waits 2000 ms for one full obstacle-layer update cycle, then checks if NavFn can find a path to `elevator_center`
+- SUCCESS → door open → break loop
+- FAILURE → door still closed → retry with fresh clear
+- Max timeout: 150 × ~2 s = **~5 minutes**
+- Uses `elevator_center` (separate YAML key from `elevator_inside`) so the door-poll goal can be tuned independently from the robot's parking position
+
+**Why per-iteration global clear is required:**
+After `ClearEntireCostmap`, the global costmap obstacle layer is empty. If the door is still closed, fresh LiDAR scans re-mark the door cells on the next `update_frequency` cycle (up to 2000 ms). Without the clear, old obstacle cells from the closed door persist indefinitely — the planner would never find a path even after the door opens. The clear-then-wait-then-check pattern ensures: (a) stale cells never block detection, and (b) the planner only sees a genuinely re-populated map.
+
+**Why `global_costmap` only (not local):**
+`ComputePathToPose` with `planner_id="GridBased"` (NavfnPlanner) plans on the **global costmap**. The local costmap feeds the MPPI controller during active navigation. Clearing the local costmap per iteration wastes ~50 ms and provides no benefit for path planning.
+
+**Why 2000 ms delay:**
+`global_costmap.update_frequency = 0.5 Hz` → period = 2000 ms. After the clear, the obstacle layer processes new LiDAR observations only on the next update tick. With a shorter delay (e.g., 500 ms), the global grid may still be empty when NavFn runs — a closed door appears navigable, causing a false positive that sends the robot into the door.
+
+**Door open — exit (`WaitForPath_Exit1` / `WaitForPath_Exit2`):**
+```xml
+<RetryUntilSuccessful num_attempts="3000" name="WaitForPath_Exit1">
+  <Delay delay_msec="100">
+    <ComputePathToPose goal="{exit_pose}" path="{dummy_path}" planner_id="GridBased"/>
   </Delay>
 </RetryUntilSuccessful>
 ```
-- Poll every 500 ms (2 Hz)
-- Planner SUCCESS → door open → break loop
-- Planner FAILURE → door still closed → retry
-- Max timeout: 3000 × 500 ms = 25 minutes
+- Poll every 100 ms (10 Hz); no per-iteration clear
+- Pre-loop `ClearEntireCostmap` (both local + global) happens once before the retry loop
+- Max timeout: 3000 × 100 ms = 5 minutes
+- 100 ms is safe at exit because the costmaps were freshly cleared and populated during `CheckFloorArrival` — no stale occupancy risk
 
-**Door close (after entering elevator):**
+**Door close (commented out — not active):**
 ```xml
-<RetryUntilSuccessful num_attempts="3000">
+<!-- <RetryUntilSuccessful num_attempts="3000" name="WaitForDoorClose">
   <Delay delay_msec="500">
     <Inverter>
       <ComputePathToPose goal="{staging_pose}" path="{dummy_path}" planner_id="GridBased"/>
     </Inverter>
   </Delay>
-</RetryUntilSuccessful>
+</RetryUntilSuccessful> -->
 ```
-- `Inverter` flips the logic: SUCCESS when plan FAILS (door closed = no path to outside)
+Currently bypassed — map switch fires immediately after `PressFloorButton` + 1 s wait.
 
 **Advantages over depth/vision-based door detection:**
-- Uses the existing LiDAR + costmap pipeline — no additional sensor processing
+- Uses existing LiDAR + costmap pipeline — no additional sensor processing
 - Robust to lighting changes, occlusion, and model accuracy
-- Directly validates navigability rather than proxy signals
+- Directly validates navigability rather than a proxy signal
 
 ---
 
@@ -1053,11 +1174,18 @@ direction = "UP" if int(target_floor[-1]) > int(current_floor[-1]) else "DOWN"
 
 ```xml
 <SetAMCLParams update_min_d="10.0" update_min_a="10.0"/>
-<Spin spin_dist="-3.1416" time_allowance="20.0"/>
+<Fallback name="SpinInElevator">
+  <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
+  <Sequence name="RepositionAndSpin">
+    <GetNamedPose ... location_key="elevator_inside" pose="{inside_pose}"/>
+    <NavigateToPose ... goal="{inside_pose}"/>
+    <Spin spin_dist="-2.61799" time_allowance="40.0" is_recovery="true"/>
+  </Sequence>
+</Fallback>
 <SetAMCLParams update_min_d="0.15" update_min_a="0.1"/>
 ```
 
-`update_min_d=10.0 m` and `update_min_a=10.0 rad` mean AMCL will not update its particle filter until the robot moves 10 m or rotates 10 rad — effectively never during a 180° spin. Normal values are restored immediately after.
+`update_min_d=10.0 m` and `update_min_a=10.0 rad` mean AMCL will not update its particle filter until the robot moves 10 m or rotates 10 rad — effectively never during a −2.61799 rad (≈ −150°) spin. Normal values are restored immediately after. The `SpinInElevator` fallback retries by navigating back to `elevator_inside` before spinning again if the first spin action fails.
 
 ---
 
@@ -1104,47 +1232,58 @@ Odometry is tracked directly from `/diff_drive_controller/odom` — distance via
 
 ## 7. Configuration Files
 
-### 7.1 locations.yaml
+### 7.1 physical_locations.yaml (Hardware) / locations.yaml (Simulation)
 
 Floor-aware location database. Maps each floor to its map variants and named poses.
 
+**Hardware (`physical_locations.yaml`) — floor1 (primary tested floor):**
+
 ```yaml
-floors:
-  floor0:
-    maps:
-      closed: first_floor_with_docking_station.yaml
-      open:   floor0_open.yaml
-    locations:
-      amcl_initial_pose_closed:   {x: -1.50, y:  0.80, yaw:  1.571}
-      amcl_initial_pose_open:     {x: -1.50, y:  0.80, yaw:  1.571}
-      elevator_staging:           {x: -2.50, y:  0.80, yaw:  1.571}
-      elevator_inside:            {x: -1.96, y:  3.00, yaw: -1.571}
-      elevator_entry:             {x: -6.01, y:  1.35, yaw: -1.956}
-      elevator_exit:              {x: -1.50, y:  0.80, yaw:  1.571}
-      exec_office:                {x:  8.00, y:  3.00, yaw:  0.0}
-      board_room:                 {x: -7.00, y:  2.50, yaw:  1.571}
-      rooftop_access:             {x:  0.00, y:  8.00, yaw:  0.0}
-      storage:                    {x: -3.00, y: -5.00, yaw:  3.14}
-  floor1:
-    maps:
-      closed: second_floor.yaml
-      open:   floor1_open.yaml
-    locations:
-      amcl_initial_pose_open:     {x: -1.425, y: 2.974, yaw: -1.571}
-      elevator_inside:            {x: ...,    y: ...,   yaw: ...}
-      elevator_exit:              {x: ...,    y: ...,   yaw: ...}
-      office_101:                 {x:  5.90,  y: -2.29, yaw:  0.0}
-      ...
-  floor2: { ... }
-  floor3: { ... }
+floor1:
+  maps:
+    closed: physical_maps/first_floor_with_lift.yaml
+    open:   physical_maps/first_floor_with_lift.yaml
+  locations:
+    amcl_initial_pose_open:   {x: -6.262,    y:  0.381,   yaw:  0.606}
+    staging_waypoint:         {x: -6.070722, y:  2.321492, yaw: -2.116}
+    elevator_staging:         {x: -6.3201,   y:  1.9011,  yaw: -2.116}
+    elevator_entry:           {x: -6.2124,   y:  0.9552,  yaw: -2.0786}
+    elevator_inside:          {x: -6.4419,   y:  0.32887, yaw: -2.536}
+    elevator_center:          {x: -6.5433,   y:  0.3450,  yaw: -2.052}  ← door-poll goal
+    elevator_exit:            {x: -5.7048,   y:  1.9070,  yaw:  1.0947}
+    hod_office:               {x:  6.6063,   y:  6.6618,  yaw:  2.7912}
+    computer_lab:             {x:  6.40,     y: -1.59,    yaw:  1.57}
+    conference_room:          {x: -10.2,     y: 22.60,    yaw:  0.0}
+    prof_jayasinghe_office:   {x: 10.92,     y:  9.46,    yaw:  3.14}
+    prof_kyew_office:         {x: 11.28,     y:  7.39,    yaw:  3.14}
+    prof_dileeka_office:      {x: 11.76,     y:  5.02,    yaw:  3.14}
+    prof_rohan_office:        {x: 12.29,     y:  2.47,    yaw:  3.14}
+
+floor3:
+  maps:
+    closed: physical_maps/third_floor_with_lift.yaml
+    open:   physical_maps/third_floor_with_lift.yaml
+  locations:
+    amcl_initial_pose_open:   {x: -11.422, y: -0.024, yaw: -0.611}
+    elevator_staging:         {x:  -9.950, y:  0.035, yaw:  2.618}
+    elevator_entry:           {x: -10.387, y: -0.128, yaw:  2.759}
+    elevator_inside:          {x: -11.422, y: -0.024, yaw: -3.752}
+    elevator_center:          {x: -11.422, y: -0.024, yaw: -3.752}  ← placeholder (=inside)
+    elevator_exit:            {x:  -9.4523,y: -0.34338,yaw: -0.3623}
+    vision_lab:               {x: -12.6221,y:  7.07402,yaw: -1.9480}
+    telecom_lab:              {x: -10.4300,y: -1.9140, yaw:  1.2858}
+
+# floor0, floor2: elevator_center = {0.0, 0.0, 0.0} (placeholder — not yet calibrated)
 ```
 
 **Location key conventions:**
 - `amcl_initial_pose_closed/open` — published to `/initialpose` during floor transition
-- `elevator_staging` — approach pose before calling elevator
-- `elevator_inside` — pose inside elevator after entry
-- `elevator_entry` — intermediate waypoint used in `NavigateThroughPoses` to thread through the door
-- `elevator_exit` — first goal after exiting elevator on target floor
+- `staging_waypoint` — intermediate approach waypoint before staging (avoids narrow approach from far)
+- `elevator_staging` — final approach pose facing elevator, button-press position
+- `elevator_center` — goal pose for `WaitForPath_Entry` door-poll; decoupled from `elevator_inside` so each can be tuned independently
+- `elevator_inside` — robot parking position inside elevator after entry; goal for `NavigateThroughPoses` final waypoint
+- `elevator_entry` — threshold waypoint at elevator doorway; first waypoint in `NavigateThroughPoses`
+- `elevator_exit` — first navigation goal after exiting elevator on target floor
 
 ---
 
@@ -1177,7 +1316,9 @@ floors:
 
 **Planner (NavfnPlanner / Dijkstra):**
 - Uses global_costmap with static_layer + obstacle_layer + inflation_layer
-- Inflation radius: 0.5 m (normal) — reduced to 0.325 m during elevator transit via BT
+- `update_frequency: 0.5 Hz` — determines minimum delay between costmap clear and valid door-open poll (must be ≥ 2000 ms)
+- NavFn `tolerance: 0.15 m` — maximum distance from goal cell that constitutes a valid plan
+- Inflation radius: 0.5 m (normal) → 0.325 m (staging approach) → 0.265 m (elevator entry) → 0.5 m (after exit)
 
 ---
 
@@ -1301,48 +1442,61 @@ Nodes launched (hardware):
       - call /start_mission: current=floor0, target=floor1
  4. smrr_bt_mission_executor ticks BT
  5. IsSameFloor → FAILURE; IsDifferentFloor → SUCCESS
- 6. GetNamedPose(elevator_staging, floor0) → (-2.50, 0.80, 90°)
- 7. NavigateToPose(-2.50, 0.80) — robot drives to elevator staging position
+ 6. Pre-entry setup (runs once, outside the retry loop):
+      SetGoalCheckerParams(xy=0.20, yaw=0.20)
+      SetCostmapInflation(0.325)
+      Navigate via staging_waypoint → elevator_staging
+      SetGoalCheckerParams(xy=0.15, yaw=0.20)
+      GetNamedPose(elevator_inside, floor0) → blackboard for DetectCallButton
+      SetCostmapInflation(0.265)            — tight: inside_pose near walls
+      SetControllerParams(vx=0.75)          — speed preset before door poll
 
- 7.5 DetectCallButton(floor0 → floor1):
+ 7. DetectCallButton(floor0 → floor1):
        - Determines direction = UP (floor1 > floor0)
        - YOLO identifies unlit UP button (class 10) bounding box in camera frame
        - ZED2 registered point cloud: RANSAC fits button surface plane
        - Ray-plane intersection computes button center from bbox center pixel
        - Computes approach_lf (6 cm from plane, in link_0_fake) + press_lf (6 cm into surface)
        - Publishes PoseArray to /button_press_goal for arm controller
-       - Pre-fetches elevator_inside pose onto blackboard
+       - Arm controller presses button; action verifies via BUTTON_LIT or DOOR_OPEN
        - BT DetectCallButton action returns SUCCESS
 
- 8. [RetryUntilSuccessful x2] CallElevatorAndEnter:
-      a. CallElevator(floor0)             — press call button
-      b. SetCostmapInflation(0.325)       — tighten for door gap
-      c. SetControllerParams(vx=0.75)     — increase speed for gap crossing
-      d. WaitForPath_Entry loop:          — poll every 500 ms
-           ComputePathToPose(inside_pose) → FAIL (door closed) × N
-           door opens → LiDAR clears → ComputePathToPose → SUCCESS → break
-      e. BuildPoseVector(entry + inside)
-      f. NavigateThroughPoses → robot enters elevator
+ 8. GetNamedPose(elevator_center, floor0) → center_pose onto blackboard
 
- 9. In-elevator repositioning:
+ 9. [RetryUntilSuccessful x2] CallElevatorAndEnter_Twice:
+      a. (CallElevator commented out)
+      b. WaitForPath_Entry loop (150 × ~2 s = ~5 min max):
+           Clear global costmap
+           Wait 2000 ms (one full global costmap update cycle)
+           ComputePathToPose(center_pose) → FAIL (door closed) × N
+           door opens → LiDAR rays through opening → global costmap clears interior
+           ComputePathToPose → SUCCESS → break loop
+      c. ClearEntireCostmap (local + global) — flush before entry navigation
+      d. BuildPoseVector(entry + inside)
+      e. NavigateThroughPoses → robot enters elevator
+
+10. In-elevator repositioning:
       StopRobot (800 ms)
       Wait (1.0 s)
-      ToggleAprilTag(true)               — start AprilTag detection
-      SetAMCLParams(d=10.0, a=10.0)      — freeze AMCL
-      Spin(-π rad)                       — 180° turn, faces exit
+      ToggleAprilTag(true)                   — start AprilTag detection
+      SetAMCLParams(d=10.0, a=10.0)          — freeze AMCL during spin
+      SpinInElevator Fallback:
+        Spin(-2.61799 rad, 40 s)             — ≈150° to face exit
+        OR: NavigateToPose(inside) + Spin    — reposition fallback
+      PublishBoolTopic(/going_in = true)
       StopRobot (800 ms)
-      SetAMCLParams(d=0.15, a=0.1)       — restore AMCL
+      SetAMCLParams(d=0.15, a=0.1)           — restore AMCL
+      PressFloorButton(floor1)               — MoveIt IBVS arm presses floor1 button
       Wait(1.0 s)
 
-10. Door close detection:
-      WaitForDoorClose loop:
-        Inverter(ComputePathToPose(staging)) → SUCCESS when plan fails
-        door closes → no path → plan FAIL → Inverter SUCCESS → break
-      Wait(3.0 s)
+11. Door close detection: **skipped** (WaitForDoorClose commented out)
 
-11. Map & localization switch:
+12. Map & localization switch:
       GetNamedMap(floor1, "open")        → floor1_open.yaml
+      GetNamedPose(amcl_initial_pose_open, floor1) → amcl_open_target
+      GetNamedPose(amcl_initial_pose_open, floor0) → amcl_open_current
       SwitchMap(floor1_open.yaml)        — load new occupancy grid
+      PublishCurrentFloor                — floor tracker updated immediately
       PublishInitialPose with AprilTag:
         - query /tf for tag36h11:0
         - parking_error = expected_tag - actual_tag
@@ -1350,25 +1504,335 @@ Nodes launched (hardware):
       ClearEntireCostmap (local + global)
       ToggleAprilTag(false)
 
-12. Elevator exit (Attempt 1):
+13. PublishBoolTopic(/going_out = true)
+
+14. Elevator exit (Attempt 1):
       GetNamedPose(elevator_exit, floor1)
-      CallElevator(floor1)               — press floor1 button
+      (CallElevator — commented out)
       CheckFloorArrival(floor1):         — YOLO watches button panel
         lit class detected → ON (elevator moving)
         ... elevator arrives at floor1 ...
         unlit class detected for 0.1 s → arrived=true → SUCCESS
       SetControllerParams(vx=0.75)
       ClearEntireCostmap (local + global)
-      WaitForPath_Exit loop:             — door opens on floor1
+      WaitForPath_Exit1 loop (3000 × 100ms = 5 min max):
         ComputePathToPose(exit_pose) → SUCCESS → break
+      SetGoalCheckerParams(xy=0.25, yaw=0.25)
       NavigateToPose(exit_pose)          — robot exits elevator
-      SetControllerParams(vx=0.5)
+      SetControllerParams(vx=0.25)
       SetCostmapInflation(0.5)
+      PublishCurrentFloor
 
-13. Final destination:
+15. Final destination:
       NavigateToPose(5.90, -2.29, 0.0)  — drive to office_101
 
-14. BT returns SUCCESS
-15. named_goal_server updates current_floor = floor1
-16. /go_to_pose response: accepted=true, "Navigation to office_101 completed"
+16. BT returns SUCCESS
+17. named_goal_server updates current_floor = floor1
+17. /go_to_pose response: accepted=true, "Navigation to office_101 completed"
 ```
+
+---
+
+## 11. Arm Button Pressing System
+
+The elevator button pressing pipeline is shared by both the outside call button
+(`DetectCallButton` / `elevator_call_button_server`) and the inside floor button
+(`PressFloorButton` / `elevator_floor_button_server`).  All physical motion is
+handled by three nodes in the `arm_link` stack (located in `moveit_integration/`):
+
+| Node | Package | Role |
+|---|---|---|
+| `commander` | `arm_link_commander` | MoveIt2 trajectory executor; receives pose goals and IBVS Cartesian steps; owns `/press_complete` |
+| `button_tracker` | `arm_link_visual_servo` | YOLO OBB inference on endoscopic camera; publishes button pixel coordinates |
+| `visual_alignment_controller` | `arm_link_visual_servo` | IBVS state machine; converts pixel errors to world-frame EEF deltas |
+
+### 11.1 Topic Graph
+
+```
+elevator_call_button_server ──┐
+elevator_floor_button_server ──┤──► /button_press_goal (PoseArray)
+                               │    /target_button     (String, transient_local)
+                               │
+                               ▼
+                         [ commander ]
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+    /visual_servo/start  /axis_adjust      /press_complete
+    (String)             (Vector3)         (Bool)
+              │                ▲
+              ▼                │
+  [ visual_alignment_controller ]
+              │                │
+              ▼                │
+    /button_tracker/target  /visual_servo/axis_done
+    (String, TL QoS)        (Bool)
+              │
+              ▼
+      [ button_tracker ]
+              │
+              ▼
+    /marker_tracker/state
+    (Float64MultiArray [u,v,area,valid])
+              │
+              └──────────────► visual_alignment_controller
+```
+
+### 11.2 Commander Node (`commander_template.cpp`)
+
+**MoveIt2 group:** `"arm"`, end-effector link `"end_effector"`, planning frame `"world"`.
+Velocity/acceleration scaling: **50%** (0.45 rad/s effective per joint at `joint_limits.yaml` max 1.5 rad/s).
+
+**Joint state workaround:** MoveGroupInterface's internal `CurrentStateMonitor` subscribes to the relative topic `joint_states`, which resolves to `/joint_states` outside the `arm` namespace — NOT `/arm/joint_states`.  The commander therefore maintains its own direct subscription to `/arm/joint_states` in a `Reentrant` callback group (`cached_joint_state_`) and uses it everywhere FK or settle verification is needed.
+
+**`/button_press_goal` callback** (`buttonPressGoalCallback`, dispatched to a background `std::thread` to allow preemption):
+
+```
+Phase 0 — Safe pre-press pose
+    joint target: [24°, 0°, 0°, 95°, -29°]   (joints 1–5)
+    OMPL plan + execute → settleToJointTarget()
+
+Phase 1 — Approach to poses[0] (approach pose from smrr_navigation server)
+    Tier 0: computeCartesianPath from Phase 0 end state (requires ≥95% coverage)
+    Tier 1: joint-space OMPL, orientation tolerance = ~3°
+    Tier 2: joint-space OMPL, orientation tolerance = ±20°
+    Tier 3: joint-space OMPL, orientation tolerance = ±45°
+    Tier 4: joint-space OMPL, orientation tolerance = ±90°
+    → execute whichever tier succeeds first → settleToJointTarget()
+
+Orientation correction (after Phase 1)
+    If approach used a relaxed orientation tier, snap orientation to goal via
+    computeCartesianPath (in-place rotation at current FK position, 0.3× speed).
+    Angular error < 1° → skip.
+
+Start IBVS
+    Read target button name from /target_button (poll up to 2 s if not yet received).
+    Normalise to lowercase.
+    visual_servo_active_ = true
+    Publish to /visual_servo/start → visual_alignment_controller takes over
+    (commander thread exits; IBVS runs independently)
+```
+
+**`/visual_servo/complete` callback** (`visualServoCompleteCallback`):
+```
+Retract to pre-press pose: [24°, 0°, 0°, 95°, -29°]  (same as Phase 0)
+    OMPL plan (5 attempts, 5 s) + execute → settleToJointTarget()
+Publish /press_complete = true     (regardless of IBVS success/failure)
+```
+The smrr_navigation action servers (`elevator_call_button_server`,
+`elevator_floor_button_server`) block waiting for `/press_complete` before
+returning a result to the BT.
+
+**`/axis_adjust` callback** (`axisAdjustCallback`):
+```
+Input: Vector3(dx, dy, dz) in world frame
+    Build RobotState from cached_joint_state_ (not CSM)
+    FK → current EEF position in world frame
+    Target = current + delta
+    computeCartesianPath(target waypoint, step=5mm, jump_threshold=0.0)
+    Time-parameterise at 50% speed
+    execute()
+    settleToJointTarget(trajectory.points.back())
+    Publish /visual_servo/axis_done = true   → gates next IBVS command
+```
+
+**`settleToJointTarget()`** — post-execution closed-loop verification:
+- Waits 500 ms for mechanical settle
+- Reads actual joint positions from `cached_joint_state_`
+- If max joint error > 0.06 rad (~3.4°), issues one corrective re-plan+execute
+- Accommodates mechanical backlash on joints 1 and 4
+
+**Preemption:** If a `/joint_command` message arrives while a button press is in progress, `preempt_requested_` is set, the background thread detects it at the next check-point (between motion phases and between settle loops), cancels the press, executes the preempting joint command, and clears the flag.  `visual_servo_abort_pub_` sends an abort signal to the IBVS controller in the same path.
+
+---
+
+### 11.3 Button Tracker Node (`button_tracker.py`)
+
+**Model:** YOLO OBB (`finger_camera_detection.pt`), loaded at startup with a
+dummy-inference warmup to pre-compile JIT/CUDA kernels.
+
+**OBB class map:**
+
+| Class ID | Name | Used for |
+|---|---|---|
+| 0 | `Button-Detection` | Generic fallback (not used — no fallback selection) |
+| 1 | `button_1` | Floor 1 |
+| 2 | `button_2` | Floor 2 |
+| 3 | `button_3` | Floor 3 |
+| 4 | `button_down` | Down call button |
+| 5 | `button_up` | Up call button |
+
+**Selection logic:** Only the highest-confidence box whose class name **contains** the
+target string (`"up"`, `"down"`, `"one"`, `"two"`, `"three"`) is selected.  No
+fallback to the generic `Button-Detection` class.  If no matching box is found,
+`valid_flag = 0.0` is published.
+
+**Active-only inference:** YOLO only runs when `_target_button` is non-empty
+(set by `/button_tracker/target` from `visual_alignment_controller`).
+On `/visual_servo/complete`, the target is cleared and `_latest_img` is discarded.
+This prevents stale detections leaking into the next press.
+
+**Camera QoS:** RELIABLE + VOLATILE (depth 5) — matches the ZED2 driver publisher.
+Using `qos_profile_sensor_data` (Best Effort) caused intermittent silent drops.
+
+**Output:** `/marker_tracker/state` = `[u, v, area, valid_flag]`
+- `u`, `v` — OBB centre pixel coordinates (from `xywhr[0]`)
+- `area` — `width × height` of the OBB (px²)
+- `valid_flag` — 1.0 if detection present, 0.0 otherwise
+
+**Publish rate:** 15 Hz timer. Each frame processed at most once (`_latest_img`
+consumed and cleared per tick). Re-entry guard (`_busy`) prevents concurrent YOLO calls.
+
+**Camera stall detection:** If `_latest_img` is `None` for > 0.5 s while a target
+is active, a `[CAMERA STALL]` error is logged once; recovery is logged when frames resume.
+
+---
+
+### 11.4 Visual Alignment Controller (`visual_alignment_controller.py`)
+
+**Image geometry:** 640 × 480 px, centre = (320, 240).
+
+**State machine:**
+
+```
+IDLE ──/visual_servo/start──► ALIGN ──settled──► FORWARD ──pressed──► FINAL_PRESS
+                                 ▲                    │                      │
+                                 └─────(re-align)─────┘                      │
+                                                                        RETRACT ──► IDLE
+```
+
+| State | Description |
+|---|---|
+| `IDLE` | No active servoing. Waits for `/visual_servo/start` |
+| `ALIGN` | Corrects u + v errors simultaneously in world frame via live TF |
+| `FORWARD` | Moves 30 mm toward button (camera +Z) after alignment convergence |
+| `FINAL_PRESS` | Two-phase final press (40 mm + 40 mm = 80 mm) after stop area reached |
+| `RETRACT` | Publishes −8 cm in base-link X before signalling complete |
+
+**Control law (ALIGN state):**
+
+$$\text{depth\_scale} = \text{clamp}\!\left(\sqrt{\frac{13500}{\text{area}}},\ 0.1,\ 1.5\right)$$
+
+$$\text{cam}_{dx} = K_U \cdot u_\text{err} \cdot \text{depth\_scale}, \quad K_U = +3\times10^{-4}\ \text{m/px}$$
+$$\text{cam}_{dy} = K_V \cdot v_\text{err} \cdot \text{depth\_scale}, \quad K_V = +3\times10^{-4}\ \text{m/px}$$
+
+$$\text{world\_step} = R_{\text{world}\leftarrow\text{cam}} \cdot [\text{cam}_{dx},\ \text{cam}_{dy},\ 0]^T$$
+
+Where $R_{\text{world}\leftarrow\text{cam}}$ is looked up live from `/tf` (`link_0` → `finger_camera_optical`) every control cycle, so the gain mapping is always correct regardless of current joint configuration.
+
+**Step-size limits:**
+- `MIN_STEP_M = 4 mm` (deadband floor — arm doesn't physically move below ~3 mm)
+- `MAX_STEP_M = 20 mm` (vector magnitude cap, direction preserved)
+- Clamping is **vector magnitude** (not per-axis) to preserve direction
+
+**ALIGN convergence to FORWARD:**
+- Settle box: `half_side = min(√(0.75 × area) / 2, 80 px)` — depth-adaptive, maps to a constant physical offset regardless of distance
+- Must be settled for **2 consecutive ticks** before entering FORWARD
+
+**FORWARD state:** Issues one `/axis_adjust` step of `FORWARD_STEP_M = 30 mm` in camera +Z (rotated to world), then waits for `/visual_servo/axis_done`. If the marker re-enters the settle box after the step, transitions back to ALIGN for refinement.
+
+**Stop condition (enter FINAL_PRESS):**
+- `area ≥ MARKER_AREA_STOP_FRACTION × (640×480) = 0.25 × 307200 = 76800 px²` AND
+- Image centre within 80 px of marker centre  
+OR  
+- `area > 0.35 × 307200` (large-area shortcut) AND computed step < 10 mm AND centred
+
+**FINAL_PRESS — two-phase:**
+```
+Phase 0 (after 3.0 s settle): forward nudge = FINAL_PRESS_M / 2 = 40 mm
+Phase 1 (after 3.0 s settle): forward nudge = FINAL_PRESS_M / 2 = 40 mm
+→ _publish_complete(success=True)
+```
+
+**RETRACT:** Issues one `/axis_adjust` of `−80 mm` in base-link X (retract from button), then transitions to IDLE and publishes `/visual_servo/complete = True`.
+
+**Stall detection (ALIGN):** If `u_error` does not decrease by ≥ 5 px over 5 consecutive cycles:
+- Case A (centred): 10 mm forward nudge to break stall
+- Case B (near stop area ≥ 80%): 10 mm forward nudge to shift kinematic config
+- Case C (lateral, small step): boost step to 15 mm
+- Case C escalation (3 consecutive C fires): override with 10 mm forward nudge
+
+**Hard time cap:** `MAX_ALIGN_TIME_S = 30 s` per ALIGN session. Prevents infinite loops from TF failure, permanent joint limits, or stall-escape loops.
+
+**Axis-done gating:** After publishing `/axis_adjust`, the controller blocks any new correction command until:
+1. `/visual_servo/axis_done` is received (commander has settled), AND
+2. A fresh YOLO detection newer than the `axis_done` timestamp arrives (prevents stale frames before the arm moved from contaminating the next control step)
+
+---
+
+### 11.5 Full Button Press Sequence — Outside Call Button
+
+Triggered from `elevator_call_button_server.py` via `/button_press_goal`:
+
+```
+1. ZED2 RANSAC → approach pose (poses[0], 6 cm from button surface)
+                  press  pose  (poses[1], 6 cm into surface)
+   Publish EEF_ORIENTATION = (-0.039, 0.691, 0.656, -0.301) on poses
+   Publish target class to /target_button: "up" (class 10/11) or "down" (class 0/1)
+
+2. Commander: Phase 0 → pre-press safe pose [24°, 0°, 0°, 95°, -29°]
+3. Commander: Phase 1 → approach pose (Cartesian Tier 0 or joint-space Tiers 1-4)
+4. Commander: orientation correction (snap to EEF_ORIENTATION)
+5. Commander: publish target button to /visual_servo/start → IBVS starts
+
+6. visual_alignment_controller: ALIGN (KU/KV proportional + TF rotation)
+7. visual_alignment_controller: FORWARD (30 mm steps toward button)
+8. visual_alignment_controller: FINAL_PRESS (2 × 40 mm)
+9. visual_alignment_controller: RETRACT (−80 mm base-link X)
+   → publishes /visual_servo/complete = True
+
+10. Commander: retracts to [24°, 0°, 0°, 95°, -29°]
+    → publishes /press_complete = True
+
+11. elevator_call_button_server: checks for BUTTON_LIT or DOOR_OPEN via YOLO
+    → if confirmed: returns SUCCESS to DetectCallButton BT action
+    → if not confirmed: re-triggers press loop (up to ARM_TIMEOUT_SEC=120 s)
+```
+
+### 11.6 Full Button Press Sequence — Inside Floor Button
+
+Triggered from `elevator_floor_button_server.py` via `/button_press_goal`:
+
+```
+1. YOLO on ZED2 image → locates floor button class:
+   floor0=2/3, floor1=4/5, floor3=6/7, floor2=8/9  (unlit/lit)
+   RANSAC → approach + press poses
+   Publish target class to /target_button: "one", "two", "three" etc.
+
+2–10. Same Commander + IBVS pipeline as §11.5
+
+11. elevator_floor_button_server: checks for BUTTON_LIT via YOLO on finger camera
+    → if confirmed: publish arm-down signal, return SUCCESS to PressFloorButton BT action
+    → on timeout: plain continue (no arm-down) → retry
+```
+
+**Key difference from call button:** Floor button server uses the endoscopic
+camera class map for floor numbers, not direction arrows. Lit class IDs confirm
+the correct floor was pressed before the BT action returns SUCCESS.
+
+---
+
+### 11.7 Key Constants Summary
+
+| Constant | Value | Description |
+|---|---|---|
+| `KU`, `KV` | `+3e-4 m/px` | ALIGN proportional gains (camera frame) |
+| `REFERENCE_AREA_PX` | 13500 px² | Area at which KU/KV were calibrated |
+| `MIN_DEPTH_SCALE` | 0.1 | Minimum depth gain scale factor |
+| `MAX_DEPTH_SCALE` | 1.5 | Maximum depth gain scale factor (150% of nominal) |
+| `MIN_STEP_M` | 4 mm | Deadband floor |
+| `MAX_STEP_M` | 20 mm | Vector magnitude cap per ALIGN command |
+| `FORWARD_STEP_M` | 30 mm | Step size per FORWARD state press |
+| `FINAL_PRESS_M` | 80 mm | Total final press distance (2 × 40 mm) |
+| `PRESS_SETTLE_S` | 3.0 s | Settle time before each forward or final press |
+| `MARKER_AREA_STOP_FRACTION` | 0.25 | Stop pressing when area ≥ 25% of image area |
+| `MAX_SETTLE_BOX_PX` | 80 px | Pixel cap for stop/centred condition |
+| `FORWARD_SETTLE_FRACTION` | 0.75 | Marker area fraction for ALIGN→FORWARD settle box |
+| `STALL_CYCLES` | 5 | Consecutive cycles without ≥5 px improvement = stall |
+| `STALL_BOOST_STEP_M` | 15 mm | Stall escape boost step magnitude |
+| `MAX_ALIGN_TIME_S` | 30 s | Hard timeout for one ALIGN session |
+| `EEF_ORIENTATION` | `(-0.039, 0.691, 0.656, -0.301)` | End-effector quaternion (x,y,z,w) for button press |
+| Pre-press joints | `[24°, 0°, 0°, 95°, -29°]` | Safe configuration before/after press |
+| Velocity scaling | 50% | MoveIt trajectory velocity and acceleration scaling |
+| Settle threshold | 0.06 rad (~3.4°) | Joint error threshold for post-execution settle check |

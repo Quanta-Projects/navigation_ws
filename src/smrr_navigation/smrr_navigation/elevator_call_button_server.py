@@ -346,19 +346,6 @@ class ElevatorCallButtonServer(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 3)
             cv2.putText(annotated, label, (lx, ly),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-        h = annotated.shape[0]
-        if approach_lf is not None:
-            cv2.putText(
-                annotated,
-                f'approach: ({approach_lf[0]:.4f},{approach_lf[1]:.4f},'
-                f'{approach_lf[2]:.4f})',
-                (10, h - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
-        if press_lf is not None:
-            cv2.putText(
-                annotated,
-                f'press:    ({press_lf[0]:.4f},{press_lf[1]:.4f},'
-                f'{press_lf[2]:.4f})',
-                (10, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
         try:
             self._debug_pub.publish(
                 self._bridge.cv2_to_imgmsg(annotated, encoding='bgr8'))
@@ -979,6 +966,30 @@ class ElevatorCallButtonServer(Node):
                     if yolo_res and yolo_res[0].boxes is not None:
                         classes = yolo_res[0].boxes.cls.cpu().numpy().astype(int)
                         confs   = yolo_res[0].boxes.conf.cpu().numpy()
+                        annotated = bgr.copy()
+                        for box in yolo_res[0].boxes:
+                            cid = int(box.cls[0].item())
+                            if cid != lit_class:
+                                continue
+                            cf_v = float(box.conf[0].item())
+                            bx1, by1, bx2, by2 = (
+                                int(v) for v in box.xyxy[0].tolist())
+                            cv2.rectangle(
+                                annotated, (bx1, by1), (bx2, by2),
+                                (0, 165, 255), 2)
+                            lbl = (self._model.names[cid]
+                                   if self._model.names else str(cid))
+                            cv2.putText(
+                                annotated, f'{lbl} {cf_v:.2f}',
+                                (bx2 + 6, (by1 + by2) // 2),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+                                (0, 165, 255), 2)
+                        try:
+                            self._debug_pub.publish(
+                                self._bridge.cv2_to_imgmsg(
+                                    annotated, encoding='bgr8'))
+                        except Exception:
+                            pass
                         if any(int(c) == lit_class and float(cf) > 0.55
                                for c, cf in zip(classes, confs)):
                             consecutive_lit += 1
@@ -1132,10 +1143,6 @@ class ElevatorCallButtonServer(Node):
                         feedback.status    = 'BUTTON_LIT'
                         feedback.direction = direction
                         goal_handle.publish_feedback(feedback)
-                        cv2.putText(annotated,
-                                    f'{direction} LIT — already pressed',
-                                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.7, (0, 165, 255), 2)
                         try:
                             self._debug_pub.publish(
                                 self._bridge.cv2_to_imgmsg(
@@ -1160,10 +1167,6 @@ class ElevatorCallButtonServer(Node):
                         feedback.status    = 'NO_DETECTION'
                         feedback.direction = direction
                         goal_handle.publish_feedback(feedback)
-                        cv2.putText(annotated,
-                                    f'{direction} not found',
-                                    (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                                    0.7, (0, 0, 255), 2)
                         try:
                             self._debug_pub.publish(
                                 self._bridge.cv2_to_imgmsg(
