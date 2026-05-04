@@ -5,7 +5,7 @@ docking_server:
     controller_frequency: 100.0
     initial_perception_timeout: 10.0
     wait_charge_timeout: 30.0
-    dock_approach_timeout: 45.0
+    dock_approach_timeout: 70.0
     undock_timeout: 30.0
     undock_linear_tolerance: 0.05
     undock_angular_tolerance: 0.05
